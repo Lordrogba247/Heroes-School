@@ -1,0 +1,240 @@
+/* ===== Heroes College - Portal Role Selection ===== */
+
+.portal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(68, 68, 68, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.portal-modal {
+  position: relative;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 40px 32px 36px;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
+}
+
+/* ---- Close button ---- */
+
+.portal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: #e0e0e0;
+  color: #555;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.portal-close:hover {
+  background: #c8c8c8;
+}
+
+/* ---- Header ---- */
+
+.portal-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.portal-door-icon {
+  width: 48px;
+  height: 48px;
+  color: #002662;
+  margin: 0 auto 12px;
+}
+
+.portal-door-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.portal-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: #002662;
+  margin: 0 0 6px;
+}
+
+.portal-subtitle {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #999;
+  margin: 0;
+}
+
+/* ---- Cards row ---- */
+
+.portal-cards {
+  display: flex;
+  gap: 14px;
+}
+
+.portal-card {
+  flex: 1;
+  background: #f5f5f5;
+  border-radius: 16px;
+  border: 2px solid transparent;
+  padding: 18px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.portal-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* Accent borders */
+.portal-card--navy {
+  border-color: #c5cfe0;
+}
+.portal-card--purple {
+  border-color: #d4bff2;
+}
+.portal-card--red {
+  border-color: #ff9999;
+}
+
+/* ---- Card icon box ---- */
+
+.portal-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.portal-card-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.portal-card-icon--navy {
+  background: #e8edf5;
+  color: #002662;
+}
+.portal-card-icon--purple {
+  background: #ede5f7;
+  color: #9a76c8;
+}
+.portal-card-icon--red {
+  background: #fde8e8;
+  color: #ff0000;
+}
+
+/* ---- Card title ---- */
+
+.portal-card-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  margin: 0;
+}
+
+.portal-card-title--navy {
+  color: #002662;
+}
+.portal-card-title--purple {
+  color: #9a76c8;
+}
+.portal-card-title--red {
+  color: #ff0000;
+}
+
+/* ---- Card description ---- */
+
+.portal-card-desc {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #888;
+  margin: 0;
+  flex: 1;
+}
+
+/* ---- Card button ---- */
+
+.portal-card-btn {
+  width: 100%;
+  padding: 10px 8px;
+  border: none;
+  border-radius: 10px;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 12.5px;
+  color: #ffffff;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: opacity 0.2s;
+}
+
+.portal-card-btn:hover {
+  opacity: 0.88;
+}
+
+.portal-card-btn--navy {
+  background: #002662;
+}
+.portal-card-btn--purple {
+  background: #9a76c8;
+}
+.portal-card-btn--red {
+  background: #ff0000;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 560px) {
+  .portal-modal {
+    padding: 32px 20px 28px;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+
+  .portal-cards {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* Keep same vertical layout as desktop, just full width */
+  .portal-card {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+    padding: 20px 16px 18px;
+  }
+
+  .portal-card-desc {
+    display: block;
+  }
+
+  .portal-card-btn {
+    width: 100%;
+  }
+}

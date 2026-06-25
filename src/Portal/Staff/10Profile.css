@@ -1,0 +1,191 @@
+/* ===== Staff Portal - Profile ===== */
+
+.sp-page {
+  width: 100%;
+}
+
+.sp-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #002662;
+  margin: 0 0 6px;
+}
+
+.sp-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #888;
+  margin: 0 0 24px;
+}
+
+/* ===== Alert banner ===== */
+
+.sp-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #faecb4;
+  border: 1px solid #f5c8a0;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 28px;
+}
+
+.sp-alert-icon {
+  color: #ff0000;
+  flex-shrink: 0;
+}
+
+.sp-alert-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #cc2200;
+  margin: 0;
+}
+
+.sp-alert-bold {
+  font-weight: 700;
+}
+
+/* ===== Staff info ===== */
+
+.sp-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.sp-info-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sp-info-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #555;
+  min-width: 80px;
+}
+
+.sp-info-value {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: #333;
+}
+
+/* ===== Divider ===== */
+
+.sp-divider {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin: 0 0 28px;
+}
+
+/* ===== Password form ===== */
+
+.sp-pw-form {
+  max-width: 700px;
+}
+
+.sp-pw-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 24px;
+}
+
+.sp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sp-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+}
+
+.sp-input {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #333;
+  background: #ffffff;
+  border: 1.5px solid #d0d0d0;
+  border-radius: 10px;
+  padding: 13px 16px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.sp-input::placeholder {
+  color: #c0c0c0;
+}
+.sp-input:focus {
+  border-color: #002662;
+}
+
+/* Button column */
+.sp-btn-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.sp-change-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ff0000;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 24px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.sp-change-btn:hover {
+  background: #cc0000;
+}
+
+/* Feedback messages */
+.sp-error {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12.5px;
+  color: #cc0000;
+  margin: 0;
+}
+
+.sp-success {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12.5px;
+  color: #1a7a3a;
+  margin: 0;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 600px) {
+  .sp-title {
+    font-size: 22px;
+  }
+
+  .sp-pw-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sp-change-btn {
+    width: 100%;
+  }
+}

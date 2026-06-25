@@ -1,0 +1,395 @@
+/* ===== Staff Portal - Result Entry ===== */
+
+.sre-page {
+  width: 100%;
+}
+
+.sre-back-btn {
+  background: none;
+  border: none;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 16px;
+  transition: color 0.2s;
+}
+
+.sre-back-btn:hover {
+  color: #002662;
+}
+
+.sre-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: #002662;
+  margin: 0 0 4px;
+}
+
+.sre-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #999;
+  margin: 0 0 20px;
+}
+
+/* ===== Top row (session / term / upload) ===== */
+
+.sre-top-row {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.sre-select {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #333;
+  background: #ffffff;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 11px 16px;
+  min-width: 150px;
+  cursor: pointer;
+  outline: none;
+}
+
+.sre-select:focus {
+  border-color: #002662;
+}
+
+.sre-upload-btn {
+  background: #002662;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 22px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.sre-upload-btn:hover:not(:disabled) {
+  background: #001b48;
+}
+
+.sre-upload-btn:disabled,
+.sre-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===== Tables (shared between input row + results) ===== */
+
+.sre-input-table-wrap,
+.sre-results-table-wrap {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0, 38, 98, 0.06);
+  padding: 18px;
+  margin-bottom: 18px;
+  overflow-x: auto;
+}
+
+.sre-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  min-width: 640px;
+}
+
+.sre-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: #333;
+  padding: 8px 10px;
+  border-bottom: 2px solid #f0f0f0;
+  white-space: nowrap;
+}
+
+.sre-table td {
+  font-size: 13px;
+  color: #444;
+  padding: 8px 10px;
+  border-bottom: 1px solid #f5f5f5;
+  white-space: nowrap;
+}
+
+.sre-subject-cell {
+  font-weight: 600;
+  color: #002662;
+  white-space: normal;
+  min-width: 140px;
+}
+
+.sre-cell-select,
+.sre-cell-input {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #333;
+  background: #ffffff;
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+  padding: 8px 10px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.sre-cell-select {
+  min-width: 140px;
+  cursor: pointer;
+}
+
+.sre-cell-input {
+  width: 64px;
+}
+
+.sre-cell-select:focus,
+.sre-cell-input:focus {
+  border-color: #002662;
+}
+
+.sre-readonly-cell {
+  color: #888;
+}
+
+.sre-add-result-btn {
+  background: #002662;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 22px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 14px;
+}
+
+.sre-add-result-btn:hover {
+  background: #001b48;
+}
+
+/* Row actions in results table */
+.sre-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sre-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.sre-icon-btn--edit {
+  background: transparent;
+  color: #555;
+}
+
+.sre-icon-btn--edit:hover {
+  background: #f0f0f0;
+}
+
+.sre-icon-btn--delete {
+  background: transparent;
+  color: #ff0000;
+}
+
+.sre-icon-btn--delete:hover {
+  background: #fde9e9;
+}
+
+/* ===== Comment ===== */
+
+.sre-comment-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.sre-comment-input {
+  flex: 1;
+  min-width: 200px;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #333;
+  background: #ffffff;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 12px 16px;
+  outline: none;
+}
+
+.sre-comment-input::placeholder {
+  color: #aaa;
+}
+
+.sre-comment-input:focus {
+  border-color: #002662;
+}
+
+.sre-comment-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ff0000;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.sre-comment-btn:hover:not(:disabled) {
+  background: #cc0000;
+}
+
+.sre-comment-btn:disabled,
+.sre-comment-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===== Warning ===== */
+
+.sre-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fdf3d8;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.sre-warning-icon {
+  color: #e63946;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.sre-warning-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #8a6d1f;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.sre-warning-bold {
+  font-weight: 700;
+  color: #e63946;
+}
+
+/* ===== Submit ===== */
+
+.sre-submit-btn {
+  background: #002662;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 28px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.sre-submit-btn:hover:not(:disabled) {
+  background: #001b48;
+}
+
+.sre-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 480px) {
+  .sre-title {
+    font-size: 20px;
+  }
+
+  .sre-top-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sre-select,
+  .sre-upload-btn {
+    width: 100%;
+  }
+
+  .sre-comment-row {
+    flex-direction: column;
+  }
+
+  .sre-comment-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .sre-submit-btn {
+    width: 100%;
+  }
+}
+/* ===== Comments list ===== */
+
+.sre-comments-list {
+  background: #f9f9f9;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 18px;
+}
+
+.sre-comment-item {
+  background: #ffffff;
+  border-left: 3px solid #ff0000;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.sre-comment-item:last-child {
+  margin-bottom: 0;
+}
+
+.sre-comment-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #333;
+  margin: 0 0 4px;
+  line-height: 1.4;
+}
+
+.sre-comment-time {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 11px;
+  color: #999;
+}

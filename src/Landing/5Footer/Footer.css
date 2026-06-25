@@ -1,0 +1,225 @@
+/* ===== Heroes College - Footer ===== */
+
+.footer {
+  width: 100%;
+  background: #002662;
+  padding: 56px 24px 28px;
+}
+
+.footer-top {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 96px;
+  flex-wrap: wrap;
+}
+
+.footer-col {
+  flex: 1 1 320px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Brand ---- */
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.footer-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.footer-brand-titles {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.footer-brand-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 19px;
+  color: #ffffff;
+}
+
+.footer-brand-subtitle {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* ---- Text blocks ---- */
+
+.footer-block {
+  margin-bottom: 14px;
+}
+
+.footer-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #ffc300;
+  margin: 0 0 6px;
+}
+
+.footer-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+.footer-text a {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+}
+
+.footer-text a:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+/* ---- Social icons ---- */
+
+.footer-social {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.footer-social a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  color: #ffffff;
+  transition: opacity 0.2s ease;
+}
+
+.footer-social a:hover {
+  opacity: 0.75;
+}
+
+.footer-social svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* ---- Divider ---- */
+
+.footer-divider {
+  max-width: 1180px;
+  margin: 40px auto 20px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ---- Bottom row ---- */
+
+.footer-bottom {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.footer-copyright {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.footer-legal-links {
+  display: flex;
+  gap: 24px;
+}
+
+.footer-legal-links a {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+}
+
+.footer-legal-links a:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 600px) {
+  .footer {
+    padding: 40px 20px 24px;
+  }
+
+  .footer-top {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .footer-col {
+    flex: 1 1 auto;
+  }
+
+  .footer-brand {
+    margin-bottom: 24px;
+  }
+
+  .footer-block {
+    margin-bottom: 18px;
+  }
+
+  .footer-social {
+    width: 100%;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+  }
+
+  .footer-social a {
+    width: 34px;
+    height: 34px;
+  }
+
+  .footer-social svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .footer-divider {
+    margin: 24px auto 16px;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .footer-legal-links {
+    order: -1;
+    width: 100%;
+    justify-content: space-between;
+    gap: 0;
+  }
+}

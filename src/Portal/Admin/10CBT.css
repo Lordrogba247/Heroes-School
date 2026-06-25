@@ -1,0 +1,324 @@
+/* ===== Admin Portal - CBT Tests/Exams ===== */
+
+.acbt-page {
+  width: 100%;
+}
+
+.acbt-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #9a76c8;
+  margin: 0 0 6px;
+}
+
+.acbt-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #888;
+  margin: 0 0 24px;
+}
+
+/* Schedule button */
+.acbt-schedule-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #9a76c8;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-radius: 12px;
+  padding: 13px 24px;
+  cursor: pointer;
+  margin-bottom: 28px;
+  transition: background 0.2s;
+}
+
+.acbt-schedule-btn:hover {
+  background: #855fbd;
+}
+
+/* ===== Tests list ===== */
+
+.acbt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.acbt-card {
+  background: #ffffff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 38, 98, 0.07);
+  max-width: 620px;
+}
+
+.acbt-card-header {
+  padding: 16px 20px;
+}
+.acbt-card-header--purple {
+  background: #9a76c8;
+}
+.acbt-card-header--red {
+  background: #ff0000;
+}
+
+.acbt-card-subject {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: #ffffff;
+  margin: 0 0 4px;
+}
+
+.acbt-card-meta-top {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+}
+
+.acbt-card-body {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 16px 20px;
+  gap: 12px;
+}
+
+.acbt-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.acbt-card-detail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #555;
+  margin: 0;
+}
+
+.acbt-delete-btn {
+  background: #ffe4e4;
+  color: #cc3333;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.acbt-delete-btn:hover {
+  background: #ffc8c8;
+}
+
+/* ===== Modal ===== */
+
+.acbt-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  padding: 16px;
+}
+
+.acbt-modal {
+  background: #ffffff;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 580px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.acbt-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.acbt-modal-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  color: #9a76c8;
+  margin: 0;
+}
+
+.acbt-modal-close {
+  background: #eee;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  transition: background 0.2s;
+}
+
+.acbt-modal-close:hover {
+  background: #ddd;
+}
+
+.acbt-modal-body {
+  padding: 20px 24px 24px;
+}
+
+.acbt-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 20px;
+  margin-bottom: 20px;
+}
+
+.acbt-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.acbt-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #555;
+}
+
+.acbt-input {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #333;
+  background: #ffffff;
+  border: 1.5px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 11px 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.acbt-input:focus {
+  border-color: #9a76c8;
+}
+
+.acbt-upload {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #5ba8a4;
+  background: #ffffff;
+  border: 1.5px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 11px 14px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  min-height: 46px;
+}
+
+.acbt-upload:hover {
+  border-color: #9a76c8;
+}
+
+.acbt-upload span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acbt-q-count {
+  flex-shrink: 0;
+  background: #ede5f7;
+  color: #9a76c8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.acbt-select {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #555;
+  background: #ffffff;
+  border: 1.5px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 11px 14px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.acbt-select:focus {
+  border-color: #9a76c8;
+}
+
+.acbt-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #9a76c8;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 24px;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: 100%;
+  justify-content: center;
+}
+
+.acbt-submit-btn:hover {
+  background: #855fbd;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 600px) {
+  .acbt-title {
+    font-size: 22px;
+  }
+  .acbt-card {
+    max-width: 100%;
+  }
+  .acbt-card-body {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .acbt-delete-btn {
+    align-self: flex-end;
+  }
+  .acbt-modal-grid {
+    grid-template-columns: 1fr;
+  }
+  .acbt-schedule-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

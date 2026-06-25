@@ -1,0 +1,273 @@
+/* ===== Admin Portal - Shared Layout ===== */
+
+.adl-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+/* ===== Top bar ===== */
+
+.adl-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
+  background: #ffffff;
+  border-bottom: 1px solid #e8e8e8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px;
+  height: 56px;
+  box-sizing: border-box;
+}
+
+.adl-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Brand */
+.adl-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.adl-brand-logo {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.adl-brand-titles {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.adl-brand-name {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #002662;
+}
+
+.adl-brand-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 10px;
+  color: #5c7ba0;
+}
+
+/* Right side */
+.adl-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.adl-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.adl-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #9a76c8;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.adl-user-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.adl-user-name {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: #002662;
+}
+
+.adl-user-role {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 11px;
+  color: #888;
+}
+
+.adl-logout {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ff0000;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.adl-logout:hover {
+  background: #cc0000;
+}
+
+/* ===== Body (sidebar + main) ===== */
+
+.adl-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ===== Sidebar ===== */
+
+.adl-sidebar {
+  width: 195px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-right: 1px solid #e0e0e0;
+  padding: 16px 0;
+  min-height: calc(100vh - 56px);
+}
+
+.adl-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.adl-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  text-decoration: none;
+  color: #888;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  border-left: 3px solid transparent;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.adl-nav-item:hover {
+  background: #f5f1fa;
+  color: #002662;
+}
+
+.adl-nav-item--active {
+  background: #f5f1fa;
+  color: #002662;
+  border-left-color: #002662;
+  font-weight: 600;
+}
+
+.adl-nav-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ===== Main content ===== */
+
+.adl-main {
+  flex: 1;
+  padding: 32px 28px;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+/* ===== Mobile hamburger ===== */
+
+.adl-hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  width: 28px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.adl-hamburger span {
+  display: block;
+  height: 2px;
+  width: 100%;
+  background: #002662;
+  border-radius: 2px;
+}
+
+.adl-overlay {
+  display: none;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 768px) {
+  .adl-hamburger {
+    display: flex;
+  }
+
+  .adl-user-info {
+    display: none;
+  }
+
+  .adl-sidebar {
+    position: fixed;
+    top: 56px;
+    left: -195px;
+    height: calc(100vh - 56px);
+    z-index: 200;
+    transition: left 0.25s ease;
+    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.1);
+  }
+
+  .adl-sidebar--open {
+    left: 0;
+  }
+
+  .adl-overlay {
+    display: block;
+    position: fixed;
+    inset: 56px 0 0 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 199;
+  }
+
+  .adl-main {
+    padding: 20px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .adl-brand-titles {
+    display: none;
+  }
+
+  .adl-logout span {
+    display: none;
+  }
+}

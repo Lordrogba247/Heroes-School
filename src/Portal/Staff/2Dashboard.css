@@ -1,0 +1,252 @@
+/* ===== Staff Portal - Dashboard ===== */
+
+.sfd-page {
+  width: 100%;
+}
+
+.sfd-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 26px;
+  color: #002662;
+  margin: 0 0 6px;
+}
+
+.sfd-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #888;
+  margin: 0 0 24px;
+}
+
+/* ===== Stats row ===== */
+
+.sfd-stats {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.sfd-stat-card {
+  flex: 1;
+  min-width: 180px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0, 38, 98, 0.06);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.sfd-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sfd-stat-icon--purple {
+  background: #f0eaf8;
+  color: #7b3fb5;
+}
+
+.sfd-stat-icon--navy {
+  background: #e8edf7;
+  color: #002662;
+}
+
+.sfd-stat-icon--red {
+  background: #fde9e9;
+  color: #ff0000;
+}
+
+.sfd-stat-value {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 26px;
+  color: #7b3fb5;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.sfd-stat-value--red {
+  color: #ff0000;
+}
+
+.sfd-stat-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12.5px;
+  color: #888;
+  margin: 2px 0 0;
+}
+
+/* ===== Bottom cards row ===== */
+
+.sfd-cards-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.sfd-card {
+  background: #ffffff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 38, 98, 0.06);
+}
+
+.sfd-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.sfd-card-header--navy {
+  background: #002662;
+}
+
+.sfd-card-header--red {
+  background: #ff0000;
+}
+
+.sfd-card-header-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.sfd-card-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: #ffffff;
+  margin: 0 0 2px;
+}
+
+.sfd-card-subtitle {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+.sfd-card-body {
+  padding: 18px 20px;
+}
+
+.sfd-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sfd-list-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sfd-list-icon--navy {
+  background: #e8edf7;
+  color: #002662;
+}
+
+.sfd-list-icon--red {
+  background: #fde9e9;
+  color: #ff0000;
+}
+
+.sfd-list-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.sfd-list-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #222;
+  margin: 0 0 3px;
+}
+
+.sfd-list-meta {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12px;
+  color: #999;
+  margin: 0;
+}
+
+.sfd-badge {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sfd-badge--active {
+  background: #fde9ef;
+  color: #d6336c;
+}
+
+.sfd-badge--expired {
+  background: #f5e9fb;
+  color: #9b59b6;
+}
+
+.sfd-view-all {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: #002662;
+  text-decoration: none;
+}
+
+.sfd-view-all:hover {
+  text-decoration: underline;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 900px) {
+  .sfd-cards-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .sfd-title {
+    font-size: 22px;
+  }
+
+  .sfd-stats {
+    flex-direction: column;
+  }
+
+  .sfd-stat-card {
+    min-width: 0;
+  }
+}

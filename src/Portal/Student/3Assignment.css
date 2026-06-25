@@ -1,0 +1,228 @@
+/* ===== Student Portal - Assignments ===== */
+
+.sa-page {
+  width: 100%;
+}
+
+.sa-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #002662;
+  margin: 0 0 6px;
+}
+
+.sa-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #888;
+  margin: 0 0 28px;
+}
+
+/* ===== Assignment list ===== */
+
+.sa-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ===== Card ===== */
+
+.sa-card {
+  background: #ffffff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 38, 98, 0.08);
+}
+
+/* Card header */
+.sa-card-header {
+  background: #002662;
+  padding: 18px 24px;
+}
+
+.sa-card-subject {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  color: #ffffff;
+  margin: 0 0 4px;
+}
+
+.sa-card-type {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0;
+}
+
+/* Card body */
+.sa-card-body {
+  padding: 20px 24px;
+}
+
+.sa-due {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #888;
+  margin: 0 0 16px;
+}
+
+.sa-instruction-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+  margin: 0 0 6px;
+}
+
+.sa-instruction-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #aaa;
+  line-height: 1.6;
+  margin: 0 0 20px;
+}
+
+/* Card footer */
+.sa-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.sa-attachments {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #aaa;
+  margin: 0;
+}
+
+.sa-submit-btn {
+  background: #002662;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 22px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.sa-submit-btn:hover {
+  background: #001b48;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 480px) {
+  .sa-title {
+    font-size: 22px;
+  }
+
+  .sa-card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sa-submit-btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* ===== Attachment upload ===== */
+
+.sa-attach-section {
+  margin-bottom: 16px;
+}
+
+.sa-attach-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sa-attach-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #aaa;
+  flex: 1;
+}
+
+.sa-attach-icon {
+  cursor: pointer;
+  color: #aaa;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+
+.sa-attach-icon:hover {
+  color: #002662;
+}
+
+/* File list */
+.sa-file-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sa-file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f5f7fb;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.sa-file-name {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12.5px;
+  color: #444;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sa-file-remove {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.sa-file-remove:hover {
+  color: #ff0000;
+}
+
+/* Footer — submit btn alone on the right */
+.sa-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}

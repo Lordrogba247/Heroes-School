@@ -1,0 +1,144 @@
+/* ===== Staff Portal - Add/Edit Student Modal ===== */
+
+.ads-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 20px;
+}
+
+.ads-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 480px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.ads-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #555;
+  color: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ads-modal-close:hover {
+  background: #333;
+}
+
+.ads-modal-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: #002662;
+  margin: 0 0 6px;
+}
+
+.ads-modal-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #888;
+  margin: 0 0 24px;
+}
+
+/* Form */
+.ads-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 20px;
+  margin-bottom: 24px;
+}
+
+.ads-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ads-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #333;
+}
+
+.ads-input {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #333;
+  background: #ffffff;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 12px 14px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ads-input::placeholder {
+  color: #aaa;
+}
+
+.ads-input:focus {
+  border-color: #002662;
+}
+
+.ads-select {
+  cursor: pointer;
+}
+
+.ads-input--locked {
+  background: #f0f0f0;
+  color: #888;
+  cursor: not-allowed;
+}
+
+.ads-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: #002662;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 22px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ads-submit-btn:hover {
+  background: #001b48;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 700px) {
+  .ads-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ads-modal {
+    padding: 26px 20px;
+  }
+}

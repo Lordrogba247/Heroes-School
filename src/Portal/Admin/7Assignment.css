@@ -1,0 +1,384 @@
+/* ===== Admin Portal - Assignments ===== */
+
+.ada-page {
+  width: 100%;
+}
+
+.ada-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #002662;
+  margin: 0 0 6px;
+}
+
+.ada-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #888;
+  margin: 0 0 20px;
+}
+
+.ada-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #002662;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 24px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-bottom: 24px;
+}
+
+.ada-add-btn:hover {
+  background: #001b48;
+}
+
+/* ===== List ===== */
+
+.ada-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.ada-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+}
+
+.ada-row + .ada-row {
+  border-top: 1px solid #ececec;
+}
+
+.ada-row-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: #e8edf7;
+  color: #002662;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ada-row-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.ada-row-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #222;
+  margin: 0 0 3px;
+}
+
+.ada-row-meta {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12.5px;
+  color: #999;
+  margin: 0;
+}
+
+.ada-delete-btn {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 12.5px;
+  color: #c0392b;
+  background: #fde9e9;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 18px;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.ada-delete-btn:hover {
+  background: #fbd2d2;
+}
+
+.ada-empty {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #999;
+  text-align: center;
+  padding: 30px 0;
+}
+
+/* ===== Modal overlay (shared: add, delete) ===== */
+
+.ada-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 20px;
+}
+
+/* ===== Add Assignment modal ===== */
+
+.ada-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 600px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.ada-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #555;
+  color: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ada-modal-close:hover {
+  background: #333;
+}
+
+.ada-modal-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: #002662;
+  margin: 0 0 6px;
+}
+
+.ada-modal-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #888;
+  margin: 0 0 24px;
+}
+
+.ada-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.ada-form-row--bottom {
+  align-items: end;
+  margin-bottom: 0;
+}
+
+.ada-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ada-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #333;
+}
+
+.ada-select,
+.ada-input,
+.ada-textarea {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #333;
+  background: #ffffff;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 12px 14px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ada-select {
+  cursor: pointer;
+}
+
+.ada-input::placeholder,
+.ada-textarea::placeholder {
+  color: #aaa;
+}
+
+.ada-select:focus,
+.ada-input:focus,
+.ada-textarea:focus {
+  border-color: #002662;
+}
+
+.ada-textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+}
+
+.ada-attach-box {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #aaa;
+  background: #ffffff;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 12px 14px;
+  min-height: 80px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  overflow-wrap: break-word;
+}
+
+.ada-attach-box:hover {
+  border-color: #002662;
+}
+
+.ada-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #002662;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 22px;
+  cursor: pointer;
+  transition: background 0.2s;
+  height: 46px;
+}
+
+.ada-submit-btn:hover {
+  background: #001b48;
+}
+
+/* ===== Delete confirmation modal ===== */
+
+.ada-confirm-modal {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 28px 24px;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.ada-confirm-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: #002662;
+  margin: 0 0 10px;
+}
+
+.ada-confirm-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #666;
+  line-height: 1.55;
+  margin: 0 0 22px;
+}
+
+.ada-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.ada-confirm-btn {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 22px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.ada-confirm-btn--cancel {
+  background: #ececec;
+  color: #555;
+}
+
+.ada-confirm-btn--cancel:hover {
+  background: #dedede;
+}
+
+.ada-confirm-btn--delete {
+  background: #ff0000;
+  color: #ffffff;
+}
+
+.ada-confirm-btn--delete:hover {
+  background: #cc0000;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 700px) {
+  .ada-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ada-form-row--bottom {
+    align-items: stretch;
+  }
+
+  .ada-modal {
+    padding: 26px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ada-title {
+    font-size: 22px;
+  }
+
+  .ada-add-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ada-row {
+    flex-wrap: wrap;
+  }
+
+  .ada-delete-btn {
+    margin-left: 52px;
+  }
+
+  .ada-confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .ada-confirm-btn {
+    width: 100%;
+  }
+}

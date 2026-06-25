@@ -1,0 +1,210 @@
+/* ===== Student Portal - Profile ===== */
+
+.pf-page {
+  width: 100%;
+}
+
+.pf-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #002662;
+  margin: 0 0 6px;
+}
+
+.pf-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #888;
+  margin: 0 0 20px;
+}
+
+/* ===== Warning banner ===== */
+
+.pf-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fdf3d8;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 24px;
+}
+
+.pf-warning-icon {
+  color: #e63946;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.pf-warning-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #8a6d1f;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.pf-warning-bold {
+  font-weight: 700;
+  color: #e63946;
+}
+
+/* ===== Read-only info ===== */
+
+.pf-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.pf-info-row {
+  display: flex;
+  gap: 8px;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 14px;
+  margin: 0;
+}
+
+.pf-info-label {
+  font-weight: 700;
+  color: #333;
+  min-width: 90px;
+}
+
+.pf-info-value {
+  color: #666;
+}
+
+.pf-divider {
+  height: 1px;
+  background: #e5e5e5;
+  margin: 0 0 24px;
+}
+
+/* ===== Password form ===== */
+
+.pf-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 28px;
+}
+
+.pf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pf-field--btn {
+  justify-content: flex-end;
+}
+
+.pf-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #333;
+}
+
+.pf-input {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #333;
+  background: #ffffff;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 12px 14px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pf-input::placeholder {
+  color: #aaa;
+}
+
+.pf-input:focus {
+  border-color: #002662;
+}
+
+.pf-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ff0000;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 22px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  height: 44px;
+  width: 50%;
+}
+
+.pf-submit-btn:hover:not(:disabled) {
+  background: #cc0000;
+}
+
+.pf-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Status message */
+.pf-status {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 18px 0 0;
+  padding: 12px 16px;
+  border-radius: 10px;
+}
+
+.pf-status--error {
+  background: #fdecea;
+  color: #c0392b;
+}
+
+.pf-status--success {
+  background: #e8f7ed;
+  color: #1e7e3a;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 700px) {
+  .pf-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pf-field--btn {
+    justify-content: flex-start;
+  }
+
+  .pf-submit-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .pf-title {
+    font-size: 22px;
+  }
+
+  .pf-info-row {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .pf-info-label {
+    min-width: 0;
+  }
+}

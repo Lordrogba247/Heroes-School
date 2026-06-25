@@ -1,0 +1,412 @@
+/* ===== Admin Portal - Students ===== */
+
+.stu-page {
+  width: 100%;
+}
+
+.stu-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #002662;
+  margin: 0 0 6px;
+}
+
+.stu-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #888;
+  margin: 0 0 20px;
+}
+
+/* ===== Class filter ===== */
+
+.stu-class-filter {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #333;
+  background: #ffffff;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 11px 16px;
+  min-width: 160px;
+  cursor: pointer;
+  outline: none;
+  margin-bottom: 20px;
+}
+
+.stu-class-filter:focus {
+  border-color: #002662;
+}
+
+/* ===== Table ===== */
+
+.stu-table-card {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0, 38, 98, 0.06);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.stu-table-wrap {
+  overflow-x: auto;
+}
+
+.stu-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+}
+
+.stu-table th {
+  text-align: left;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #333;
+  padding: 10px 12px;
+  border-bottom: 2px solid #f0f0f0;
+  white-space: nowrap;
+}
+
+.stu-table td {
+  font-size: 13px;
+  color: #555;
+  padding: 12px;
+  border-bottom: 1px solid #f5f5f5;
+  white-space: nowrap;
+}
+
+.stu-name {
+  color: #333;
+  white-space: normal;
+  min-width: 160px;
+}
+
+.stu-empty-row {
+  text-align: center;
+  color: #999;
+  padding: 24px 12px !important;
+  white-space: normal !important;
+}
+
+.stu-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #555;
+  font-size: 13px;
+}
+
+.stu-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.stu-icon-btn--edit {
+  background: transparent;
+  color: #555;
+}
+
+.stu-icon-btn--edit:hover {
+  background: #f0f0f0;
+}
+
+.stu-icon-btn--delete {
+  background: transparent;
+  color: #ff0000;
+}
+
+.stu-icon-btn--delete:hover {
+  background: #fde9e9;
+}
+
+.stu-icon-btn--lock {
+  background: transparent;
+  color: #002662;
+}
+
+.stu-icon-btn--lock:hover {
+  background: #e8edf7;
+}
+
+/* ===== Add button ===== */
+
+.stu-add-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.stu-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #002662;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 22px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.stu-add-btn:hover {
+  background: #001b48;
+}
+
+/* ===== Modal overlay (shared with delete + reset) ===== */
+
+.stu-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 20px;
+}
+
+/* ===== Delete confirmation modal ===== */
+
+.stu-confirm-modal {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 28px 24px;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.stu-confirm-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: #002662;
+  margin: 0 0 10px;
+}
+
+.stu-confirm-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #666;
+  line-height: 1.55;
+  margin: 0 0 22px;
+}
+
+.stu-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.stu-confirm-btn {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 22px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.stu-confirm-btn--cancel {
+  background: #ececec;
+  color: #555;
+}
+
+.stu-confirm-btn--cancel:hover {
+  background: #dedede;
+}
+
+.stu-confirm-btn--delete {
+  background: #ff0000;
+  color: #ffffff;
+}
+
+.stu-confirm-btn--delete:hover {
+  background: #cc0000;
+}
+
+/* ===== Reset password modal ===== */
+
+.stu-reset-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px;
+  max-width: 420px;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.stu-modal-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #555;
+  color: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.stu-modal-close:hover {
+  background: #333;
+}
+
+.stu-reset-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 19px;
+  color: #002662;
+  margin: 0 0 8px;
+}
+
+.stu-reset-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #888;
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+
+.stu-reset-field-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.stu-input {
+  flex: 1;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #333;
+  background: #ffffff;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 11px 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.stu-input:focus {
+  border-color: #002662;
+}
+
+.stu-generate-btn {
+  background: #ececec;
+  color: #333;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  border: none;
+  border-radius: 10px;
+  padding: 0 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.stu-generate-btn:hover {
+  background: #dedede;
+}
+
+.stu-reset-status {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+.stu-reset-status--error {
+  background: #fdecea;
+  color: #c0392b;
+}
+
+.stu-reset-status--success {
+  background: #e8f7ed;
+  color: #1e7e3a;
+}
+
+.stu-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background: #002662;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 22px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.stu-submit-btn:hover {
+  background: #001b48;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 480px) {
+  .stu-title {
+    font-size: 22px;
+  }
+
+  .stu-class-filter {
+    width: 100%;
+  }
+
+  .stu-table-card {
+    padding: 14px;
+  }
+
+  .stu-actions span {
+    display: none;
+  }
+
+  .stu-add-row {
+    justify-content: stretch;
+  }
+
+  .stu-add-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .stu-confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .stu-confirm-btn {
+    width: 100%;
+  }
+
+  .stu-reset-field-row {
+    flex-direction: column;
+  }
+}

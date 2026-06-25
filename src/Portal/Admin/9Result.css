@@ -1,0 +1,300 @@
+/* ===== Admin Portal - Results List ===== */
+
+.adr-page {
+  width: 100%;
+}
+
+.adr-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #7b3fb5;
+  margin: 0 0 6px;
+}
+
+.adr-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #888;
+  margin: 0 0 20px;
+}
+
+/* ===== Selectors ===== */
+
+.adr-selectors {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  width: 50%;
+}
+
+.adr-select {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #333;
+  background: #ffffff;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 11px 16px;
+  cursor: pointer;
+  outline: none;
+}
+
+.adr-select:focus {
+  border-color: #002662;
+}
+
+/* ===== Action row ===== */
+
+.adr-action-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.adr-get-btn {
+  background: #ff0000;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 22px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.adr-get-btn:hover {
+  background: #cc0000;
+}
+
+.adr-upload-btn {
+  background: #002662;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 22px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.adr-upload-btn:hover:not(:disabled) {
+  background: #001b48;
+}
+
+.adr-upload-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.adr-status {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  border-radius: 10px;
+}
+
+.adr-status--success {
+  background: #e8f7ed;
+  color: #1e7e3a;
+}
+
+/* ===== Table ===== */
+
+.adr-table-card {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0, 38, 98, 0.06);
+  padding: 20px;
+}
+
+.adr-table-wrap {
+  overflow-x: auto;
+}
+
+.adr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+}
+
+.adr-table th {
+  text-align: left;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #333;
+  padding: 10px 12px;
+  border-bottom: 2px solid #f0f0f0;
+  white-space: nowrap;
+}
+
+.adr-table td {
+  font-size: 13px;
+  color: #555;
+  padding: 12px;
+  border-bottom: 1px solid #f5f5f5;
+  white-space: nowrap;
+}
+
+.adr-name {
+  color: #333;
+  white-space: normal;
+  min-width: 160px;
+}
+
+.adr-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.adr-view-btn {
+  background: #7b3fb5;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 12.5px;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.adr-view-btn:hover {
+  background: #632f96;
+}
+
+.adr-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 35px;
+  height: 35px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.adr-icon-btn--delete {
+  background: transparent;
+  color: #ff0000;
+}
+
+.adr-icon-btn--delete:hover {
+  background: #fde9e9;
+}
+
+/* ===== Delete confirmation modal ===== */
+
+.adr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 20px;
+}
+
+.adr-confirm-modal {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 28px 24px;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.adr-confirm-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: #002662;
+  margin: 0 0 10px;
+}
+
+.adr-confirm-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #666;
+  line-height: 1.55;
+  margin: 0 0 22px;
+}
+
+.adr-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.adr-confirm-btn {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 22px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.adr-confirm-btn--cancel {
+  background: #ececec;
+  color: #555;
+}
+
+.adr-confirm-btn--cancel:hover {
+  background: #dedede;
+}
+
+.adr-confirm-btn--delete {
+  background: #ff0000;
+  color: #ffffff;
+}
+
+.adr-confirm-btn--delete:hover {
+  background: #cc0000;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 480px) {
+  .adr-title {
+    font-size: 22px;
+  }
+
+  .adr-action-row {
+    flex-direction: column;
+  }
+
+  .adr-get-btn,
+  .adr-upload-btn {
+    width: 100%;
+  }
+
+  .adr-actions span {
+    display: none;
+  }
+
+  .adr-confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .adr-confirm-btn {
+    width: 100%;
+  }
+}

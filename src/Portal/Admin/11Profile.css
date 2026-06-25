@@ -1,0 +1,177 @@
+/* ===== Admin Portal - Profile ===== */
+
+.adp-page {
+  width: 100%;
+}
+
+.adp-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #002662;
+  margin: 0 0 6px;
+}
+
+.adp-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #888;
+  margin: 0 0 24px;
+}
+
+.adp-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #faecb4;
+  border: 1px solid #f5c8a0;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 28px;
+}
+
+.adp-alert-icon {
+  color: #ff0000;
+  flex-shrink: 0;
+}
+
+.adp-alert-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #cc2200;
+  margin: 0;
+}
+
+.adp-alert-bold {
+  font-weight: 700;
+}
+
+.adp-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.adp-info-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.adp-info-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #555;
+  min-width: 80px;
+}
+
+.adp-info-value {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: #333;
+}
+
+.adp-divider {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin: 0 0 28px;
+}
+
+.adp-pw-form {
+  max-width: 700px;
+}
+
+.adp-pw-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 24px;
+}
+
+.adp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.adp-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+}
+
+.adp-input {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #333;
+  background: #ffffff;
+  border: 1.5px solid #d0d0d0;
+  border-radius: 10px;
+  padding: 13px 16px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.adp-input::placeholder {
+  color: #c0c0c0;
+}
+.adp-input:focus {
+  border-color: #ff0000;
+}
+
+.adp-btn-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.adp-change-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ff0000;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 24px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.adp-change-btn:hover {
+  background: #cc0000;
+}
+
+.adp-error {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12.5px;
+  color: #cc0000;
+  margin: 0;
+}
+
+.adp-success {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12.5px;
+  color: #1a7a3a;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .adp-title {
+    font-size: 22px;
+  }
+  .adp-pw-grid {
+    grid-template-columns: 1fr;
+  }
+  .adp-change-btn {
+    width: 100%;
+  }
+}

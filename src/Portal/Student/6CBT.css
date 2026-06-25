@@ -1,0 +1,465 @@
+/* ===== Student Portal - CBT Tests/Exams ===== */
+
+.cbt-page {
+  width: 100%;
+}
+
+.cbt-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #002662;
+  margin: 0 0 6px;
+}
+
+.cbt-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #888;
+  margin: 0 0 20px;
+}
+
+/* ===== Warning banner ===== */
+
+.cbt-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fdf3d8;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 24px;
+}
+
+.cbt-warning-icon {
+  color: #e63946;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.cbt-warning-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #8a6d1f;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.cbt-warning-bold {
+  font-weight: 700;
+  color: #e63946;
+}
+
+/* ===== Test list ===== */
+
+.cbt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cbt-card {
+  background: #ffffff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 38, 98, 0.08);
+}
+
+.cbt-card-header {
+  background: #ff0000;
+  padding: 18px 24px;
+}
+
+.cbt-card-subject {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  color: #ffffff;
+  margin: 0 0 4px;
+}
+
+.cbt-card-type {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+}
+
+.cbt-card-body {
+  padding: 20px 24px;
+}
+
+.cbt-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 10px;
+}
+
+.cbt-meta-row svg {
+  color: #888;
+  flex-shrink: 0;
+}
+
+.cbt-start-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: #7b3fb5;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 22px;
+  margin-top: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cbt-start-btn:hover {
+  background: #632f96;
+}
+
+/* ===== Test-taking screen ===== */
+
+.cbt-test-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.cbt-test-subject {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: #002662;
+  margin: 0 0 4px;
+}
+
+.cbt-test-type {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+}
+
+.cbt-timer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #002662;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  border-radius: 10px;
+  padding: 10px 18px;
+  white-space: nowrap;
+}
+
+.cbt-timer--low {
+  background: #ff0000;
+  animation: cbt-pulse 1s infinite;
+}
+
+@keyframes cbt-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Progress */
+.cbt-progress-wrap {
+  margin-bottom: 20px;
+}
+
+.cbt-progress-track {
+  width: 100%;
+  height: 8px;
+  background: #ececec;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.cbt-progress-fill {
+  height: 100%;
+  background: #7b3fb5;
+  border-radius: 4px;
+  transition: width 0.25s ease;
+}
+
+.cbt-progress-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12.5px;
+  color: #888;
+  margin: 0;
+}
+
+/* Question card */
+.cbt-question-card {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0, 38, 98, 0.08);
+  padding: 28px 24px;
+  margin-bottom: 20px;
+}
+
+.cbt-question-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  color: #222;
+  line-height: 1.5;
+  margin: 0 0 22px;
+}
+
+.cbt-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cbt-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  background: #f7f8fa;
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.cbt-option:hover {
+  background: #f0eaf8;
+}
+
+.cbt-option--selected {
+  background: #f0eaf8;
+  border-color: #7b3fb5;
+  color: #002662;
+  font-weight: 600;
+}
+
+.cbt-option-radio {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #c9c9c9;
+  flex-shrink: 0;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.cbt-option--selected .cbt-option-radio {
+  border-color: #7b3fb5;
+  background: #7b3fb5;
+  box-shadow: inset 0 0 0 3px #ffffff;
+}
+
+/* Nav row */
+.cbt-nav-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cbt-nav-btn {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 28px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s;
+}
+
+.cbt-nav-btn--primary {
+  background: #7b3fb5;
+  color: #ffffff;
+}
+
+.cbt-nav-btn--primary:hover {
+  background: #632f96;
+}
+
+.cbt-nav-btn--secondary {
+  background: #ececec;
+  color: #555;
+}
+
+.cbt-nav-btn--secondary:hover {
+  background: #dedede;
+}
+
+.cbt-nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Submit confirmation modal */
+.cbt-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 20px;
+}
+
+.cbt-modal {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 28px 24px;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.cbt-modal-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: #002662;
+  margin: 0 0 10px;
+}
+
+.cbt-modal-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #666;
+  line-height: 1.55;
+  margin: 0 0 22px;
+}
+
+.cbt-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Done / submitted state */
+.cbt-done-card {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0, 38, 98, 0.08);
+  padding: 48px 32px;
+  text-align: center;
+  max-width: 480px;
+  margin: 40px auto 0;
+}
+
+.cbt-done-icon {
+  color: #2ecc71;
+  margin-bottom: 16px;
+}
+
+.cbt-done-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: #002662;
+  margin: 0 0 12px;
+}
+
+.cbt-done-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #666;
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+/* ===== Coming Soon state ===== */
+
+.cbt-soon-card {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0, 38, 98, 0.08);
+  padding: 56px 32px;
+  text-align: center;
+  max-width: 480px;
+  margin: 20px auto 0;
+}
+
+.cbt-soon-icon {
+  color: #7b3fb5;
+  margin-bottom: 16px;
+}
+
+.cbt-soon-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: #002662;
+  margin: 0 0 10px;
+}
+
+.cbt-soon-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #888;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 480px) {
+  .cbt-title {
+    font-size: 22px;
+  }
+
+  .cbt-test-header {
+    flex-direction: column;
+  }
+
+  .cbt-timer {
+    align-self: flex-start;
+  }
+
+  .cbt-nav-row {
+    flex-direction: column-reverse;
+  }
+
+  .cbt-nav-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .cbt-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .cbt-modal-actions .cbt-nav-btn {
+    width: 100%;
+  }
+}

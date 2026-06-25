@@ -1,0 +1,103 @@
+/* ===== Heroes College - Terms of Use ===== */
+
+.terms {
+  width: 100%;
+  background: #f7f7f8;
+  padding: 56px 24px 80px;
+}
+
+.terms-container {
+  max-width: 760px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 48px 56px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.terms-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #002662;
+  margin: 0 0 8px;
+}
+
+.terms-effective {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: #6b6b6b;
+  margin: 0 0 28px;
+}
+
+.terms-intro {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #2b2b2b;
+  margin: 0 0 32px;
+}
+
+.terms-section {
+  margin-bottom: 28px;
+}
+
+.terms-section h2 {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: #1a1a2e;
+  margin: 0 0 10px;
+}
+
+.terms-section p {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #2b2b2b;
+  margin: 0 0 8px;
+}
+
+.terms-section ul {
+  margin: 4px 0 8px;
+  padding-left: 20px;
+}
+
+.terms-section li {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #2b2b2b;
+  margin-bottom: 4px;
+}
+
+.terms-address-label {
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-top: 12px;
+}
+
+.terms-contact-line {
+  margin-bottom: 4px;
+}
+
+.terms-contact-line a {
+  color: #002662;
+  text-decoration: none;
+}
+
+.terms-contact-line a:hover {
+  text-decoration: underline;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 600px) {
+  .terms-container {
+    padding: 32px 24px;
+  }
+
+  .terms-title {
+    font-size: 24px;
+  }
+}

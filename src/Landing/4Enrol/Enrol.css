@@ -1,0 +1,208 @@
+/* ===== Heroes College - "Enrol" Section ===== */
+
+.enrol {
+  width: 100%;
+  background: #ffffff;
+  border-top: 2px solid #002662;
+  padding: 64px 24px;
+}
+
+.enrol-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 48px;
+}
+
+/* ---- Left: text content ---- */
+
+.enrol-content {
+  flex: 1 1 420px;
+  max-width: 460px;
+}
+
+.enrol-heading {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.3;
+  color: #002662;
+  margin: 0 0 20px;
+}
+
+.enrol-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #686363;
+  margin: 0 0 28px;
+  max-width: 380px;
+}
+
+.enrol-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #9a76c8;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  padding: 13px 26px;
+  border-radius: 14px;
+  transition: background 0.2s ease;
+}
+
+.enrol-cta:hover {
+  background: #855fbd;
+}
+
+.enrol-cta-arrow {
+  font-size: 16px;
+}
+
+/* ---- Right: photo collage ---- */
+
+.enrol-collage {
+  position: relative;
+  flex: 1 1 390px;
+  max-width: 390px;
+  width: 100%;
+  aspect-ratio: 39 / 32;
+}
+
+.enrol-photo {
+  position: absolute;
+  object-fit: cover;
+  border-radius: 22px;
+  box-shadow: 0 12px 28px rgba(0, 38, 98, 0.18);
+}
+
+.enrol-photo-1 {
+  left: 5.8%;
+  top: 14.1%;
+  width: 35.3%;
+  height: 46.1%;
+  z-index: 2;
+}
+
+.enrol-photo-2 {
+  left: 45.5%;
+  top: 34.4%;
+  width: 34.6%;
+  height: 46.9%;
+  z-index: 2;
+}
+
+.enrol-backdrop {
+  position: absolute;
+  border-radius: 22px;
+  z-index: 1;
+}
+
+.enrol-backdrop-red {
+  background: #ff0000;
+  left: 1.9%;
+  top: 31.3%;
+  width: 29.5%;
+  height: 34.4%;
+}
+
+.enrol-backdrop-navy {
+  background: #002662;
+  left: 57.1%;
+  top: 50%;
+  width: 27.6%;
+  height: 35.2%;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 900px) {
+  .enrol-inner {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .enrol-content {
+    max-width: 100%;
+  }
+
+  .enrol-text {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .enrol-collage {
+    max-width: 340px;
+  }
+}
+
+@media (max-width: 480px) {
+  .enrol {
+    padding: 48px 16px;
+  }
+
+  .enrol-heading {
+    font-size: 24px;
+  }
+
+  /* Vertical stacked collage: boy photo on top (with red backdrop
+     peeking from behind), girl photo below (with navy backdrop
+     peeking from behind), matching the target screenshot. */
+
+  .enrol-collage {
+    position: relative;
+    max-width: 200px;
+    aspect-ratio: auto;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    margin-top: 0;
+  }
+
+  .enrol-photo {
+    position: relative;
+    left: auto;
+    top: auto;
+    width: 150px;
+    height: 190px;
+  }
+
+  .enrol-photo-1 {
+    align-self: center;
+  }
+
+  .enrol-photo-2 {
+    align-self: center;
+    margin-top: 0;
+  }
+
+  .enrol-backdrop {
+    position: absolute;
+    width: 150px;
+    height: 190px;
+    z-index: 1;
+  }
+
+  /* First photo sits at top: 0. Its backdrop offsets left and
+     down behind it, peeking out on the bottom-left. */
+  .enrol-backdrop-red {
+    left: -10px;
+    top: 20px;
+  }
+
+  /* Second photo sits 190px (height) + 28px (gap) = 218px down.
+     Its backdrop offsets right and down behind it, peeking out
+     on the bottom-right. */
+  .enrol-backdrop-navy {
+    left: -10px;
+    top: 238px;
+    right: auto;
+  }
+}

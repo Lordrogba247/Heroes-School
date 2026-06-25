@@ -1,0 +1,117 @@
+/* ===== Heroes College - Admissions ===== */
+
+.admissions {
+  width: 100%;
+  background: #f7f7f8;
+  padding: 56px 24px 80px;
+}
+
+.admissions-container {
+  max-width: 760px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 48px 56px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.admissions-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #002662;
+  margin: 0 0 24px;
+}
+
+.admissions-intro {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #2b2b2b;
+  margin: 0 0 8px;
+}
+
+.admissions-intro-list {
+  margin: 0 0 24px;
+  padding-left: 20px;
+}
+
+.admissions-intro-list li {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #2b2b2b;
+  margin-bottom: 4px;
+}
+
+.admissions-subintro {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #2b2b2b;
+  margin: 0 0 28px;
+}
+
+.admissions-section {
+  margin-bottom: 28px;
+}
+
+.admissions-section h2 {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: #1a1a2e;
+  margin: 0 0 10px;
+}
+
+.admissions-section p {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #2b2b2b;
+  margin: 0 0 8px;
+}
+
+.admissions-section ol {
+  margin: 4px 0 8px;
+  padding-left: 20px;
+}
+
+.admissions-section ol > li {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #2b2b2b;
+  margin-bottom: 8px;
+}
+
+.admissions-section ul {
+  margin: 6px 0 8px;
+  padding-left: 20px;
+}
+
+.admissions-section ul > li {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #2b2b2b;
+  margin-bottom: 4px;
+}
+
+/* nested bullet lists inside numbered steps */
+.admissions-section ol ul {
+  margin-top: 6px;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 600px) {
+  .admissions-container {
+    padding: 32px 24px;
+  }
+
+  .admissions-title {
+    font-size: 24px;
+  }
+}

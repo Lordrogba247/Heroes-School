@@ -1,0 +1,252 @@
+/* ===== Staff Portal - CBT Tests/Exams ===== */
+
+.sc-page {
+  width: 100%;
+}
+
+.sc-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #9a76c8;
+  margin: 0 0 6px;
+}
+
+.sc-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #888;
+  margin: 0 0 28px;
+}
+
+/* ===== Form ===== */
+
+.sc-form {
+  margin-bottom: 32px;
+}
+
+.sc-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
+  margin-bottom: 20px;
+}
+
+.sc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sc-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+}
+
+.sc-input {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #5ba8a4;
+  background: #ffffff;
+  border: 1.5px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 13px 16px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.sc-input::placeholder {
+  color: #5ba8a4;
+}
+.sc-input:focus {
+  border-color: #9a76c8;
+}
+
+/* Upload box */
+.sc-upload {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #5ba8a4;
+  background: #ffffff;
+  border: 1.5px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 13px 16px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  min-height: 50px;
+}
+
+.sc-upload:hover {
+  border-color: #9a76c8;
+}
+
+.sc-upload span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sc-q-count {
+  flex-shrink: 0;
+  background: #ede5f7;
+  color: #9a76c8;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+/* Select dropdowns */
+.sc-select {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #555;
+  background: #ffffff;
+  border: 1.5px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 13px 16px;
+  cursor: pointer;
+  outline: none;
+  appearance: auto;
+  transition: border-color 0.2s;
+}
+
+.sc-select:focus {
+  border-color: #9a76c8;
+}
+
+/* Schedule button */
+.sc-schedule-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #9a76c8;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 28px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.sc-schedule-btn:hover {
+  background: #855fbd;
+}
+
+/* ===== Scheduled tests list ===== */
+
+.sc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sc-card {
+  background: #ffffff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 38, 98, 0.07);
+  max-width: 620px;
+}
+
+.sc-card-header {
+  background: #9a76c8;
+  padding: 16px 20px;
+}
+
+.sc-card-subject {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: #ffffff;
+  margin: 0 0 4px;
+}
+
+.sc-card-meta-top {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+}
+
+.sc-card-body {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 16px 20px;
+  gap: 12px;
+}
+
+.sc-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sc-card-detail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #555;
+  margin: 0;
+}
+
+.sc-delete-btn {
+  background: #ffe4e4;
+  color: #cc3333;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sc-delete-btn:hover {
+  background: #ffc8c8;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 600px) {
+  .sc-title {
+    font-size: 22px;
+  }
+
+  .sc-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sc-schedule-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .sc-card {
+    max-width: 100%;
+  }
+
+  .sc-card-body {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sc-delete-btn {
+    align-self: flex-end;
+  }
+}

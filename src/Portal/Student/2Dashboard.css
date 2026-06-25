@@ -1,0 +1,252 @@
+/* ===== Student Portal - Dashboard ===== */
+
+.sd-page {
+  width: 100%;
+}
+
+.sd-welcome {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #002662;
+  margin: 0 0 6px;
+}
+
+.sd-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #888;
+  margin: 0 0 28px;
+}
+
+/* ===== Stat cards ===== */
+
+.sd-stats {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.sd-stat-card {
+  flex: 1 1 160px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0, 38, 98, 0.06);
+}
+
+.sd-stat-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sd-stat-icon--purple {
+  background: #f0eaf9;
+  color: #9a76c8;
+}
+.sd-stat-icon--navy {
+  background: #eaeff7;
+  color: #002662;
+}
+.sd-stat-icon--red {
+  background: #fdeaea;
+  color: #ff0000;
+}
+
+.sd-stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sd-stat-count {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.sd-stat-count--purple {
+  color: #9a76c8;
+}
+.sd-stat-count--navy {
+  color: #002662;
+}
+.sd-stat-count--red {
+  color: #ff0000;
+}
+
+.sd-stat-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12px;
+  color: #888;
+  white-space: pre-line;
+  line-height: 1.4;
+}
+
+/* ===== Bottom panels ===== */
+
+.sd-panels {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.sd-panel {
+  flex: 1 1 280px;
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 38, 98, 0.06);
+}
+
+.sd-panel-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  color: #ffffff;
+}
+
+.sd-panel-header--navy {
+  background: #002662;
+}
+.sd-panel-header--red {
+  background: #ff0000;
+}
+
+.sd-panel-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  margin: 0 0 2px;
+}
+
+.sd-panel-subtitle {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 11.5px;
+  margin: 0;
+  opacity: 0.85;
+}
+
+.sd-panel-body {
+  padding: 16px 20px;
+}
+
+/* ===== Item row ===== */
+
+.sd-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.sd-item:last-of-type {
+  border-bottom: none;
+}
+
+.sd-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sd-item-icon--navy {
+  background: #eaeff7;
+  color: #002662;
+}
+.sd-item-icon--red {
+  background: #fdeaea;
+  color: #ff0000;
+}
+
+.sd-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sd-item-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: #002662;
+  margin: 0 0 2px;
+}
+
+.sd-item-meta {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 11.5px;
+  color: #aaa;
+  margin: 0;
+}
+
+/* ===== Badges ===== */
+
+.sd-badge {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sd-badge--active {
+  background: #ffe4e4;
+  color: #cc3333;
+}
+.sd-badge--expired {
+  background: #ffe4e4;
+  color: #cc3333;
+}
+
+/* ===== View all link ===== */
+
+.sd-view-all {
+  text-align: right;
+  margin-top: 12px;
+}
+
+.sd-view-all a {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #002662;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.sd-view-all a:hover {
+  text-decoration: underline;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 600px) {
+  .sd-welcome {
+    font-size: 22px;
+  }
+
+  .sd-stats {
+    gap: 12px;
+  }
+
+  .sd-panels {
+    flex-direction: column;
+  }
+}

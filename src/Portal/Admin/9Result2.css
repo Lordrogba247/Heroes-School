@@ -1,0 +1,183 @@
+/* ===== Admin Portal - Result Viewer ===== */
+
+.adr2-page {
+  width: 100%;
+}
+
+.adr2-back-btn {
+  background: none;
+  border: none;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 16px;
+  transition: color 0.2s;
+}
+
+.adr2-back-btn:hover {
+  color: #002662;
+}
+
+.adr2-card {
+  background: #ffffff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 38, 98, 0.08);
+  padding: 0 0 24px;
+}
+
+/* Letterhead */
+.adr2-letterhead {
+  background: #002662;
+  padding: 22px 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.adr2-letterhead-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.adr2-letterhead-name {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  color: #ffffff;
+  margin: 0;
+}
+
+/* Student info */
+.adr2-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px 24px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.adr2-info-item {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #444;
+  margin: 0;
+}
+
+.adr2-info-label {
+  font-weight: 600;
+  color: #002662;
+}
+
+/* Table */
+.adr2-table-wrap {
+  padding: 20px 24px 0;
+  overflow-x: auto;
+}
+
+.adr2-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+}
+
+.adr2-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+  padding: 10px 12px;
+  border-bottom: 2px solid #f0f0f0;
+  white-space: nowrap;
+}
+
+.adr2-table td {
+  font-size: 13px;
+  color: #444;
+  padding: 12px;
+  border-bottom: 1px solid #f5f5f5;
+  white-space: nowrap;
+}
+
+.adr2-subject-name {
+  font-weight: 600;
+  color: #002662;
+  white-space: normal;
+  min-width: 140px;
+}
+
+/* Summary stats */
+.adr2-stats {
+  display: flex;
+  gap: 16px;
+  padding: 24px;
+  flex-wrap: wrap;
+}
+
+.adr2-stat-box {
+  flex: 1;
+  min-width: 100px;
+  background: #f7f4fb;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+.adr2-stat-value {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: #7b3fb5;
+  margin: 0 0 4px;
+}
+
+.adr2-stat-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12px;
+  color: #888;
+  margin: 0;
+}
+
+/* Comment */
+.adr2-comment-section {
+  padding: 0 24px;
+}
+
+.adr2-comment-label {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+  margin: 0 0 8px;
+}
+
+.adr2-comment-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 768px) {
+  .adr2-info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .adr2-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .adr2-stats {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,120 @@
+/* ===== Student Portal - Online Classes ===== */
+
+.oc-page {
+  width: 100%;
+}
+
+.oc-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: #002662;
+  margin: 0 0 6px;
+}
+
+.oc-sub {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #888;
+  margin: 0 0 28px;
+}
+
+/* ===== Class list ===== */
+
+.oc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ===== Card ===== */
+
+.oc-card {
+  background: #ffffff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 38, 98, 0.08);
+  max-width: 520px;
+}
+
+/* Card header */
+.oc-card-header {
+  padding: 18px 24px;
+}
+
+.oc-card-header--navy {
+  background: #002662;
+}
+.oc-card-header--red {
+  background: #ff0000;
+}
+
+.oc-subject {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  color: #ffffff;
+  margin: 0 0 10px;
+}
+
+/* Meta row */
+.oc-meta {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.oc-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Card body */
+.oc-card-body {
+  padding: 20px 24px;
+}
+
+/* Join button */
+.oc-join-btn {
+  display: inline-block;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #ffffff;
+  padding: 11px 24px;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.oc-join-btn--navy {
+  background: #002662;
+}
+.oc-join-btn--red {
+  background: #ff0000;
+}
+
+.oc-join-btn:hover {
+  opacity: 0.85;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 480px) {
+  .oc-title {
+    font-size: 22px;
+  }
+
+  .oc-meta {
+    gap: 12px;
+  }
+
+  .oc-card {
+    max-width: 100%;
+  }
+}
