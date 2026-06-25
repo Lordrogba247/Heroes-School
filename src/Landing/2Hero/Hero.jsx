@@ -1,9 +1,9 @@
 import "./Hero.css";
 // Add these imports at the very top of your component file
-import heroesImage from './assets/heroesimage.png';
-import instillImage from './assets/instill.png';
-import ensureImage from './assets/ensure.png';
-import encourageImage from './assets/encourage.png';
+import heroesImage from '../../assets/heroesimage.png';
+import instillImage from '../../assets/instill.png';
+import ensureImage from '../../assets/ensure.png';
+import encourageImage from '../../assets/encourage.png';
 export default function Hero() {
     return (
         <section className="hero">
