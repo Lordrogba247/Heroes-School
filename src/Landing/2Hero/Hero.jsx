@@ -1,4 +1,9 @@
 import "./Hero.css";
+// Add these imports at the very top of your component file
+import heroesImage from './assets/heroesimage.png';
+import instillImage from './assets/instill.png';
+import ensureImage from './assets/ensure.png';
+import encourageImage from './assets/encourage.png';
 export default function Hero() {
     return (
         <section className="hero">
@@ -30,24 +35,24 @@ export default function Hero() {
                 <div className="hero-collage">
                     {/* The single flattened collage photo (already cut into the bolt shape in Figma) */}
                     <img
-                        src="src/assets/heroesimage.png"
+                        src={heroesImage}
                         alt="Heroes College students and campus life"
                         className="hero-img-main"
                     />
 
                     {/* 3 badge images - drop your exported badge graphics here */}
                     <img
-                        src="src/assets/instill.png"
+                        src={instillImage}
                         alt="We instill leadership and team skills"
                         className="hero-badge hero-badge-navy"
                     />
                     <img
-                        src="src/assets/ensure.png"
+                        src={ensureImage}
                         alt="We ensure learners have Vocational Skills"
                         className="hero-badge hero-badge-purple"
                     />
                     <img
-                        src="src/assets/encourage.png"
+                        src={encourageImage}
                         alt="We encourage Cultural diversity"
                         className="hero-badge hero-badge-red"
                     />
