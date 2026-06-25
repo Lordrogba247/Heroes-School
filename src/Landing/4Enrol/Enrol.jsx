@@ -1,5 +1,6 @@
 import "./Enrol.css";
-
+import boyImage from '../../assets/boy.png';
+import girlImage from '../../assets/girl.png';
 export default function Enrol() {
     return (
         <section className="enrol">
@@ -27,14 +28,14 @@ export default function Enrol() {
                 <div className="enrol-collage">
                     <div className="enrol-backdrop enrol-backdrop-red" />
                     <img
-                        src="src/assets/boy.png"
+                        src={boyImage}
                         alt="Heroes College student in classroom"
                         className="enrol-photo enrol-photo-1"
                     />
 
                     <div className="enrol-backdrop enrol-backdrop-navy" />
                     <img
-                        src="src/assets/girl.png"
+                        src={girlImage}
                         alt="Heroes College student portrait"
                         className="enrol-photo enrol-photo-2"
                     />
