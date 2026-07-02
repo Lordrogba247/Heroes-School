@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import "./AdminLayout.css";
 import logo from "../../assets/logo2.png";
+import api from "../../api";
 
 const navItems = [
     {
@@ -95,19 +96,32 @@ const navItems = [
     },
 ];
 
-// Mock admin data — backend dev go replace with real user from auth context
-const admin = {
-    name: "Danladi Musa Adamu",
-    initials: "DM",
-    role: "Admin",
-};
-
 export default function AdminLayout() {
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const handleLogout = () => {
-        // Backend dev go clear auth token/session here
+    // ===== Real admin data from API =====
+    const [admin, setAdmin] = useState({ name: "", initials: "", role: "Admin" });
+
+    useEffect(() => {
+        api.get("/admin/me")
+            .then(({ data }) => {
+                const name = data.name || data.fullName || "";
+                const initials = name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase();
+                setAdmin({ name, initials, role: data.role || "Admin" });
+            })
+            .catch(() => { }); // 401 handled globally by api.js interceptor
+    }, []);
+
+    const handleLogout = async () => {
+        try { await api.post("/auth/logout"); } catch { }
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
         navigate("/portal/admin/login");
     };
 
@@ -132,7 +146,6 @@ export default function AdminLayout() {
                         </div>
                     </NavLink>
                 </div>
-
                 <div className="adl-topbar-right">
                     <div className="adl-user">
                         <div className="adl-avatar">{admin.initials}</div>
@@ -149,14 +162,10 @@ export default function AdminLayout() {
                     </button>
                 </div>
             </header>
-
             <div className="adl-body">
                 {/* ===== Sidebar ===== */}
                 {sidebarOpen && (
-                    <div
-                        className="adl-overlay"
-                        onClick={() => setSidebarOpen(false)}
-                    />
+                    <div className="adl-overlay" onClick={() => setSidebarOpen(false)} />
                 )}
                 <aside className={`adl-sidebar ${sidebarOpen ? "adl-sidebar--open" : ""}`}>
                     <nav className="adl-nav">
@@ -175,7 +184,6 @@ export default function AdminLayout() {
                         ))}
                     </nav>
                 </aside>
-
                 {/* ===== Page content ===== */}
                 <main className="adl-main">
                     <Outlet />

@@ -1,10 +1,11 @@
+import { useState, useEffect } from "react";
 import "./2Dashboard.css";
+import api from "../../api";
 
-// Mock data — backend dev go replace with real API data
-const stats = [
+// Static icon config — counts come from API
+const statConfig = [
     {
         id: "assignments",
-        count: 125,
         label: "Active\nAssignments",
         accent: "purple",
         icon: (
@@ -12,12 +13,10 @@ const stats = [
                 <path d="M0 0h512v512H0z" fill="none" />
                 <path fill="#9577c9" d="M202.24 74C166.11 56.75 115.61 48.3 48 48a31.36 31.36 0 0 0-17.92 5.33A32 32 0 0 0 16 79.9V366c0 19.34 13.76 33.93 32 33.93c71.07 0 142.36 6.64 185.06 47a4.11 4.11 0 0 0 6.94-3V106.82a15.9 15.9 0 0 0-5.46-12A143 143 0 0 0 202.24 74m279.68-20.7A31.33 31.33 0 0 0 464 48c-67.61.3-118.11 8.71-154.24 26a143.3 143.3 0 0 0-32.31 20.78a15.93 15.93 0 0 0-5.45 12v337.13a3.93 3.93 0 0 0 6.68 2.81c25.67-25.5 70.72-46.82 185.36-46.81a32 32 0 0 0 32-32v-288a32 32 0 0 0-14.12-26.61" />
             </svg>
-
         ),
     },
     {
         id: "online",
-        count: 7,
         label: "Online Classes",
         accent: "navy",
         icon: (
@@ -28,7 +27,6 @@ const stats = [
     },
     {
         id: "cbt",
-        count: 2,
         label: "upcoming\nCBT Tests/Exam",
         accent: "red",
         icon: (
@@ -39,33 +37,34 @@ const stats = [
     },
 ];
 
-const recentAssignments = [
-    {
-        id: 1,
-        subject: "Basic Science",
-        due: "To be submitted  July 12, 2026",
-        status: "Active",
-    },
-];
-
-const cbtTests = [
-    {
-        id: 1,
-        subject: "English Language",
-        detail: "2026/2027 . First Term . 1st C.A Test",
-        status: "Expired",
-    },
-];
-
 export default function StudentDashboard() {
+    const [dashData, setDashData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        api.get("/api/student/dashboard")
+            .then((res) => setDashData(res.data))
+            .catch(() => setError("Failed to load dashboard. Please try again."))
+            .finally(() => setLoading(false));
+    }, []);
+
+    if (loading) return <div className="sd-loading">Loading...</div>;
+    if (error) return <div className="sd-error">{error}</div>;
+
+    const { stats, recentAssignments, cbtTests, student } = dashData;
+
+    // Merge API counts into static icon config
+    const statCards = statConfig.map((s, i) => ({ ...s, count: stats[i].count }));
+
     return (
         <div className="sd-page">
-            <h1 className="sd-welcome">Welcome, Chukwuemeka</h1>
+            <h1 className="sd-welcome">Welcome, {student?.name?.split(" ")[0]}</h1>
             <p className="sd-sub">Here's What's happening with your studies today!</p>
 
             {/* Stat cards */}
             <div className="sd-stats">
-                {stats.map((s) => (
+                {statCards.map((s) => (
                     <div className={`sd-stat-card sd-stat-card--${s.accent}`} key={s.id}>
                         <div className={`sd-stat-icon sd-stat-icon--${s.accent}`}>{s.icon}</div>
                         <div className="sd-stat-info">
@@ -87,7 +86,6 @@ export default function StudentDashboard() {
                             <path d="M0 0h20v20H0z" fill="none" />
                             <path fill="#ffffff" d="M5 17h13v2H5c-1.66 0-3-1.34-3-3V4c0-1.66 1.34-3 3-3h13v14H5c-.55 0-1 .45-1 1s.45 1 1 1m2-3.5v-11c0-.28-.22-.5-.5-.5s-.5.22-.5.5v11c0 .28.22.5.5.5s.5-.22.5-.5" />
                         </svg>
-
                         <div>
                             <p className="sd-panel-title">Recent Assignments</p>
                             <p className="sd-panel-subtitle">Stay on top of your assignments</p>
@@ -101,13 +99,14 @@ export default function StudentDashboard() {
                                         <path d="M0 0h20v20H0z" fill="none" />
                                         <path fill="#112562" d="M5 17h13v2H5c-1.66 0-3-1.34-3-3V4c0-1.66 1.34-3 3-3h13v14H5c-.55 0-1 .45-1 1s.45 1 1 1m2-3.5v-11c0-.28-.22-.5-.5-.5s-.5.22-.5.5v11c0 .28.22.5.5.5s.5-.22.5-.5" />
                                     </svg>
-
                                 </div>
                                 <div className="sd-item-info">
                                     <p className="sd-item-title">{a.subject}</p>
                                     <p className="sd-item-meta">{a.due}</p>
                                 </div>
-                                <span className={`sd-badge sd-badge--active`}>{a.status}</span>
+                                <span className={`sd-badge sd-badge--${a.status === "Active" ? "active" : "expired"}`}>
+                                    {a.status}
+                                </span>
                             </div>
                         ))}
                         <div className="sd-view-all">
@@ -139,7 +138,9 @@ export default function StudentDashboard() {
                                     <p className="sd-item-title">{t.subject}</p>
                                     <p className="sd-item-meta">{t.detail}</p>
                                 </div>
-                                <span className={`sd-badge sd-badge--expired`}>{t.status}</span>
+                                <span className={`sd-badge sd-badge--${t.status === "Active" ? "active" : "expired"}`}>
+                                    {t.status}
+                                </span>
                             </div>
                         ))}
                         <div className="sd-view-all">

@@ -2,19 +2,36 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./1Login.css";
 import logo from "../../assets/logo2.png";
+import api from "../../api";
 
 export default function AdminLogin() {
     const navigate = useNavigate();
-    const [form, setForm] = useState({ adminId: "", password: "" });
+    const [form, setForm] = useState({ staffId: "", password: "" });
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
+        setError("");
     };
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-        // Backend dev go hook real auth here
-        navigate("/portal/admin/dashboard");
+        setLoading(true);
+        setError("");
+        try {
+            const res = await api.post("/api/auth/login", {
+                staffId: form.staffId,
+                password: form.password,
+            });
+            localStorage.setItem("token", res.data.token);
+            localStorage.setItem("user", JSON.stringify(res.data.user));
+            navigate("/portal/admin/dashboard");
+        } catch (err) {
+            setError(err.response?.data?.message || "Login failed. Check your credentials.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -29,9 +46,9 @@ export default function AdminLogin() {
 
             <div className="sl-card">
                 <div className="sl-icon sl-icon--red">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-                        <path d="M0 0h24v24H0z" fill="none" />
-                        <path fill="#e62e2d" d="M12 14v8H4a8 8 0 0 1 8-8m0-1c-3.315 0-6-2.685-6-6s2.685-6 6-6s6 2.685 6 6s-2.685 6-6 6m9 4h1v5h-8v-5h1v-1a3 3 0 1 1 6 0zm-2 0v-1a1 1 0 1 0-2 0v1z" />
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="7" r="4" />
+                        <path d="M12 13c-4.42 0-8 1.79-8 4v1h16v-1c0-2.21-3.58-4-8-4z" />
                     </svg>
                 </div>
 
@@ -42,25 +59,21 @@ export default function AdminLogin() {
 
                 <form className="sl-form" onSubmit={handleLogin}>
                     <div className="sl-field">
-                        <label className="sl-label sl-label--red" htmlFor="adminId">
-                            Admin Id
-                        </label>
+                        <label className="sl-label sl-label--red" htmlFor="staffId">Admin Id</label>
                         <input
-                            id="adminId"
-                            name="adminId"
+                            id="staffId"
+                            name="staffId"
                             type="text"
                             className="sl-input sl-input--red"
                             placeholder="Type here..."
-                            value={form.adminId}
+                            value={form.staffId}
                             onChange={handleChange}
                             required
                         />
                     </div>
 
                     <div className="sl-field">
-                        <label className="sl-label sl-label--red" htmlFor="password">
-                            Password
-                        </label>
+                        <label className="sl-label sl-label--red" htmlFor="password">Password</label>
                         <input
                             id="password"
                             name="password"
@@ -73,8 +86,10 @@ export default function AdminLogin() {
                         />
                     </div>
 
-                    <button type="submit" className="sl-btn sl-btn--red">
-                        Login
+                    {error && <p className="sl-error">{error}</p>}
+
+                    <button type="submit" className="sl-btn sl-btn--red" disabled={loading}>
+                        {loading ? "Logging in..." : "Login"}
                     </button>
                 </form>
 

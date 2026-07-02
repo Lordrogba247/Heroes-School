@@ -1,20 +1,12 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./3Assignment.css";
-
-// Mock data — backend dev go replace with real API
-const assignmentsData = [
-    {
-        id: 1,
-        subject: "Chemistry",
-        type: "Research Assignment",
-        due: "July 12, 2026",
-        instruction: "Research in not less than 10 paragraphs with images the fractional distillation of Crude Oil",
-        submitted: false,
-    },
-];
+import api from "../../api";
 
 function AssignmentCard({ assignment }) {
     const [files, setFiles] = useState([]);
+    const [submitting, setSubmitting] = useState(false);
+    const [submitted, setSubmitted] = useState(assignment.submitted);
+    const [error, setError] = useState("");
     const fileInputRef = useRef(null);
 
     const handleFileChange = (e) => {
@@ -26,119 +18,129 @@ function AssignmentCard({ assignment }) {
         setFiles((prev) => prev.filter((_, i) => i !== index));
     };
 
-    const handleSubmit = () => {
-        // Backend dev go handle file upload + submission here
-        console.log("Submitting assignment", assignment.id, "with files:", files);
+    const handleSubmit = async () => {
+        setSubmitting(true);
+        setError("");
+        try {
+            const formData = new FormData();
+            files.forEach((file) => formData.append("files", file));
+
+            await api.post(`/api/student/assignments/${assignment.id}/submit`, formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+
+            setSubmitted(true);
+            setFiles([]);
+        } catch (err) {
+            setError(err.response?.data?.message || "Submission failed. Try again.");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
         <div className="sa-card">
-            {/* Card header */}
             <div className="sa-card-header">
                 <p className="sa-card-subject">{assignment.subject}</p>
                 <p className="sa-card-type">{assignment.type}</p>
             </div>
 
-            {/* Card body */}
             <div className="sa-card-body">
                 <p className="sa-due">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 24 24">
-                        <path d="M0 0h24v24H0z" fill="none" />
-                        <path fill="none" stroke="#112562" stroke-dasharray="66" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4h7c0.55 0 1 0.45 1 1v14c0 0.55 -0.45 1 -1 1h-14c-0.55 0 -1 -0.45 -1 -1v-14c0 -0.55 0.45 -1 1 -1Z">
-                            <animate fill="freeze" attributeName="stroke-dashoffset" dur="0.6s" values="66;0" />
-                        </path>
-                        <path fill="#112562" d="M5 5h14v0h-14Z">
-                            <animate fill="freeze" attributeName="d" begin="0.6s" dur="0.2s" to="M5 5h14v3h-14Z" />
-                        </path>
-                        <g fill="none" stroke="#112562" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
-                            <path stroke-dasharray="4" stroke-dashoffset="4" d="M7 4v-2M17 4v-2">
-                                <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.8s" dur="0.2s" to="0" />
-                            </path>
-                            <path stroke-dasharray="12" stroke-dashoffset="12" d="M7 11h10">
-                                <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.8s" dur="0.2s" to="0" />
-                            </path>
-                            <path stroke-dasharray="10" stroke-dashoffset="10" d="M7 15h7">
-                                <animate fill="freeze" attributeName="stroke-dashoffset" begin="0.8s" dur="0.2s" to="0" />
-                            </path>
-                        </g>
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15">
+                        <path d="M19 4h-1V2h-2v2H8V2H6v2H5C3.9 4 3 4.9 3 6v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h5v5H7z" />
                     </svg>
-
                     Due: {assignment.due}
                 </p>
 
                 <p className="sa-instruction-label">Instruction</p>
                 <p className="sa-instruction-text">{assignment.instruction}</p>
 
-                {/* Attachment upload */}
-                <div className="sa-attach-section">
-                    <div className="sa-attach-row">
-                        <svg
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                            width="18"
-                            height="18"
-                            className="sa-attach-icon"
-                            onClick={() => fileInputRef.current.click()}
-                            title="Click to attach file"
-                        >
-                            <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 015 0v10.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V6H9v9.5a2.5 2.5 0 005 0V5c0-2.21-1.79-4-4-4S6 2.79 6 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1z" />
-                        </svg>
-                        <span className="sa-attach-label">
-                            {files.length} attachment{files.length !== 1 ? "s" : ""}
-                        </span>
-                    </div>
+                {submitted ? (
+                    <p className="sa-submitted-msg">✅ Assignment submitted</p>
+                ) : (
+                    <>
+                        <div className="sa-attach-section">
+                            <div className="sa-attach-row">
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                    width="18"
+                                    height="18"
+                                    className="sa-attach-icon"
+                                    onClick={() => fileInputRef.current.click()}
+                                    title="Click to attach file"
+                                >
+                                    <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 015 0v10.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V6H9v9.5a2.5 2.5 0 005 0V5c0-2.21-1.79-4-4-4S6 2.79 6 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1z" />
+                                </svg>
+                                <span className="sa-attach-label">
+                                    {files.length} attachment{files.length !== 1 ? "s" : ""}
+                                </span>
+                            </div>
 
-                    {/* Hidden file input */}
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        style={{ display: "none" }}
-                        onChange={handleFileChange}
-                    />
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                style={{ display: "none" }}
+                                onChange={handleFileChange}
+                            />
 
-                    {/* File list */}
-                    {files.length > 0 && (
-                        <ul className="sa-file-list">
-                            {files.map((file, i) => (
-                                <li key={i} className="sa-file-item">
-                                    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-                                        <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
-                                    </svg>
-                                    <span className="sa-file-name">{file.name}</span>
-                                    <button
-                                        className="sa-file-remove"
-                                        onClick={() => removeFile(i)}
-                                        aria-label="Remove file"
-                                    >
-                                        ✕
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
+                            {files.length > 0 && (
+                                <ul className="sa-file-list">
+                                    {files.map((file, i) => (
+                                        <li key={i} className="sa-file-item">
+                                            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                                                <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                                            </svg>
+                                            <span className="sa-file-name">{file.name}</span>
+                                            <button className="sa-file-remove" onClick={() => removeFile(i)}>✕</button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
 
-                <div className="sa-card-footer">
-                    <button className="sa-submit-btn" onClick={handleSubmit}>
-                        Mark as Submitted
-                    </button>
-                </div>
+                        {error && <p className="sa-error">{error}</p>}
+
+                        <div className="sa-card-footer">
+                            <button className="sa-submit-btn" onClick={handleSubmit} disabled={submitting}>
+                                {submitting ? "Submitting..." : "Mark as Submitted"}
+                            </button>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );
 }
 
 export default function StudentAssignment() {
+    const [assignments, setAssignments] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        api.get("/api/student/assignments")
+            .then((res) => setAssignments(res.data))
+            .catch(() => setError("Failed to load assignments."))
+            .finally(() => setLoading(false));
+    }, []);
+
+    if (loading) return <div className="sa-loading">Loading...</div>;
+    if (error) return <div className="sa-error">{error}</div>;
+
     return (
         <div className="sa-page">
             <h1 className="sa-title">Assignments</h1>
             <p className="sa-sub">View and submit assignments</p>
 
             <div className="sa-list">
-                {assignmentsData.map((a) => (
-                    <AssignmentCard key={a.id} assignment={a} />
-                ))}
+                {assignments.length === 0 ? (
+                    <p className="sa-empty">No assignments available.</p>
+                ) : (
+                    assignments.map((a) => <AssignmentCard key={a.id} assignment={a} />)
+                )}
             </div>
         </div>
     );

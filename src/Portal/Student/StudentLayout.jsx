@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import "./StudentLayout.css";
 import logo from "../../assets/logo2.png";
+import api from "../../api";
 
 const navItems = [
     {
@@ -12,7 +13,6 @@ const navItems = [
                 <path d="M0 0h24v24H0z" fill="none" />
                 <path fill="currentColor" d="M13 9V3h8v6zM3 13V3h8v10zm10 8V11h8v10zM3 21v-6h8v6z" />
             </svg>
-
         ),
     },
     {
@@ -43,7 +43,6 @@ const navItems = [
                 <path fill="currentColor" d="m29.7 19.3l-3-3c-.4-.4-1-.4-1.4 0L16 25.6V30h4.4l9.3-9.3c.4-.4.4-1 0-1.4M19.6 28H18v-1.6l5-5l1.6 1.6zm6.4-6.4L24.4 20l1.6-1.6l1.6 1.6zM10 23h2v2h-2zm4-5h4v2h-4zm-4 0h2v2h-2zm4-5h8v2h-8zm-4 0h2v2h-2z" />
                 <path fill="currentColor" d="M7 28V7h3v3h12V7h3v6h2V7c0-1.1-.9-2-2-2h-3V4c0-1.1-.9-2-2-2h-8c-1.1 0-2 .9-2 2v1H7c-1.1 0-2 .9-2 2v21c0 1.1.9 2 2 2h5v-2zm5-24h8v4h-8z" />
             </svg>
-
         ),
     },
     {
@@ -63,24 +62,36 @@ const navItems = [
                 <path d="M0 0h24v24H0z" fill="none" />
                 <path fill="currentColor" d="M14 13h5v-2h-5zm0-3h5V8h-5zm-9 6h8v-.55q0-1.125-1.1-1.787T9 13t-2.9.663T5 15.45zm5.413-4.587Q11 10.825 11 10t-.587-1.412T9 8t-1.412.588T7 10t.588 1.413T9 12t1.413-.587M4 20q-.825 0-1.412-.587T2 18V6q0-.825.588-1.412T4 4h16q.825 0 1.413.588T22 6v12q0 .825-.587 1.413T20 20z" />
             </svg>
-
         ),
     },
 ];
-
-// Mock student data — backend dev go replace with real user from auth context
-const student = {
-    name: "Chukwuemeka Jemima",
-    initials: "CJ",
-    class: "SSS 2",
-};
 
 export default function StudentLayout() {
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const handleLogout = () => {
-        // Backend dev go clear auth token/session here
+    // Load from localStorage first so topbar no go blank on refresh
+    const [student, setStudent] = useState(() => {
+        const saved = localStorage.getItem("user");
+        return saved ? JSON.parse(saved) : { name: "", initials: "", class: "" };
+    });
+
+    // Fetch fresh profile from API
+    useEffect(() => {
+        api.get("/api/student/me")
+            .then((res) => {
+                setStudent(res.data);
+                localStorage.setItem("user", JSON.stringify(res.data));
+            })
+            .catch(() => {
+                // Token invalid or expired — interceptor in api.js handles redirect
+            });
+    }, []);
+
+    const handleLogout = async () => {
+        try { await api.post("/api/auth/logout"); } catch (_) { }
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
         navigate("/portal/student/login");
     };
 
@@ -89,7 +100,6 @@ export default function StudentLayout() {
             {/* ===== Top bar ===== */}
             <header className="stl-topbar">
                 <div className="stl-topbar-left">
-                    {/* Mobile hamburger */}
                     <button
                         className="stl-hamburger"
                         onClick={() => setSidebarOpen((o) => !o)}

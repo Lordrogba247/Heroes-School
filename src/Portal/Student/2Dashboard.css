@@ -3,7 +3,18 @@
 .sd-page {
   width: 100%;
 }
+.sd-loading,
+.sd-error {
+  font-family: "Poppins", sans-serif;
+  font-size: 14px;
+  color: #888;
+  padding: 40px;
+  text-align: center;
+}
 
+.sd-error {
+  color: #cc0000;
+}
 .sd-welcome {
   font-family: "Poppins", "Segoe UI", sans-serif;
   font-weight: 700;

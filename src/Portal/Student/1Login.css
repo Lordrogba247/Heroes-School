@@ -15,7 +15,6 @@
 /* ---- Top-left brand ---- */
 
 .sl-brand {
-  text-decoration: none;
   position: absolute;
   top: 24px;
   left: 24px;
@@ -202,4 +201,67 @@
   .sl-bottom-links {
     gap: 40px;
   }
+}
+
+/* ===== Accent variants — Purple (Staff) & Red (Admin) ===== */
+
+/* Icon */
+.sl-icon--purple {
+  color: #9a76c8;
+}
+.sl-icon--red {
+  color: #ff0000;
+}
+
+/* Title */
+.sl-title--purple {
+  color: #9a76c8;
+}
+.sl-title--red {
+  color: #ff0000;
+}
+
+/* Label */
+.sl-label--purple {
+  color: #9a76c8;
+}
+.sl-label--red {
+  color: #ff0000;
+}
+
+/* Input focus border */
+.sl-input--purple:focus {
+  border-color: #9a76c8;
+}
+.sl-input--red:focus {
+  border-color: #ff0000;
+}
+
+/* Button */
+.sl-btn--purple {
+  background: #9a76c8;
+}
+.sl-btn--purple:hover {
+  background: #855fbd;
+}
+
+.sl-btn--red {
+  background: #ff0000;
+}
+.sl-btn--red:hover {
+  background: #cc0000;
+}
+
+/* Brand link */
+.sl-brand {
+  text-decoration: none;
+}
+
+/* Error message */
+.sl-error {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 12.5px;
+  color: #cc0000;
+  margin: 0;
+  text-align: center;
 }

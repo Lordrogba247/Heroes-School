@@ -2,19 +2,36 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./1Login.css";
 import logo from "../../assets/logo2.png";
+import api from "../../api";
 
 export default function StaffLogin() {
     const navigate = useNavigate();
     const [form, setForm] = useState({ staffId: "", password: "" });
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
+        setError("");
     };
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-        // Backend dev go hook real auth here
-        navigate("/portal/staff/dashboard");
+        setLoading(true);
+        setError("");
+        try {
+            const res = await api.post("/api/auth/login", {
+                staffId: form.staffId,
+                password: form.password,
+            });
+            localStorage.setItem("token", res.data.token);
+            localStorage.setItem("user", JSON.stringify(res.data.user));
+            navigate("/portal/staff/dashboard");
+        } catch (err) {
+            setError(err.response?.data?.message || "Login failed. Check your credentials.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -42,9 +59,7 @@ export default function StaffLogin() {
 
                 <form className="sl-form" onSubmit={handleLogin}>
                     <div className="sl-field">
-                        <label className="sl-label sl-label--purple" htmlFor="staffId">
-                            Staff Id
-                        </label>
+                        <label className="sl-label sl-label--purple" htmlFor="staffId">Staff Id</label>
                         <input
                             id="staffId"
                             name="staffId"
@@ -58,9 +73,7 @@ export default function StaffLogin() {
                     </div>
 
                     <div className="sl-field">
-                        <label className="sl-label sl-label--purple" htmlFor="password">
-                            Password
-                        </label>
+                        <label className="sl-label sl-label--purple" htmlFor="password">Password</label>
                         <input
                             id="password"
                             name="password"
@@ -73,8 +86,10 @@ export default function StaffLogin() {
                         />
                     </div>
 
-                    <button type="submit" className="sl-btn sl-btn--purple">
-                        Login
+                    {error && <p className="sl-error">{error}</p>}
+
+                    <button type="submit" className="sl-btn sl-btn--purple" disabled={loading}>
+                        {loading ? "Logging in..." : "Login"}
                     </button>
                 </form>
 
