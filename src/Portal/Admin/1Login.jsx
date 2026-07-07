@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./1Login.css";
 import logo from "../../assets/logo2.png";
-import api from "../../api";
+
+const BASE_URL = "https://heroes-school.vercel.app";
 
 export default function AdminLogin() {
     const navigate = useNavigate();
@@ -19,16 +20,30 @@ export default function AdminLogin() {
         e.preventDefault();
         setLoading(true);
         setError("");
+
         try {
-            const res = await api.post("/api/auth/login", {
-                staffId: form.staffId,
-                password: form.password,
+            const res = await fetch(`${BASE_URL}/api/auth/login`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    staffId: form.staffId,
+                    password: form.password,
+                }),
             });
-            localStorage.setItem("token", res.data.token);
-            localStorage.setItem("user", JSON.stringify(res.data.user));
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || "Login failed. Check your credentials.");
+            }
+
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("user", JSON.stringify(data.user));
             navigate("/portal/admin/dashboard");
         } catch (err) {
-            setError(err.response?.data?.message || "Login failed. Check your credentials.");
+            setError(err.message || "Login failed. Check your credentials.");
         } finally {
             setLoading(false);
         }

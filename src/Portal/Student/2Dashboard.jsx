@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import "./2Dashboard.css";
-import api from "../../api";
+
+const BASE_URL = "https://heroes-school.vercel.app";
 
 // Static icon config — counts come from API
 const statConfig = [
@@ -43,8 +44,19 @@ export default function StudentDashboard() {
     const [error, setError] = useState("");
 
     useEffect(() => {
-        api.get("/api/student/dashboard")
-            .then((res) => setDashData(res.data))
+        const token = localStorage.getItem("token");
+
+        fetch(`${BASE_URL}/api/student/dashboard`, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load dashboard.");
+                return res.json();
+            })
+            .then((data) => setDashData(data))
             .catch(() => setError("Failed to load dashboard. Please try again."))
             .finally(() => setLoading(false));
     }, []);
@@ -93,7 +105,7 @@ export default function StudentDashboard() {
                     </div>
                     <div className="sd-panel-body">
                         {recentAssignments.map((a) => (
-                            <div className="sd-item" key={a.id}>
+                            <div className="sd-item" key={a._id || a.id}>
                                 <div className="sd-item-icon sd-item-icon--navy">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 20 20">
                                         <path d="M0 0h20v20H0z" fill="none" />
@@ -102,7 +114,7 @@ export default function StudentDashboard() {
                                 </div>
                                 <div className="sd-item-info">
                                     <p className="sd-item-title">{a.subject}</p>
-                                    <p className="sd-item-meta">{a.due}</p>
+                                    <p className="sd-item-meta">{a.dueDate || a.due}</p>
                                 </div>
                                 <span className={`sd-badge sd-badge--${a.status === "Active" ? "active" : "expired"}`}>
                                     {a.status}
@@ -128,7 +140,7 @@ export default function StudentDashboard() {
                     </div>
                     <div className="sd-panel-body">
                         {cbtTests.map((t) => (
-                            <div className="sd-item" key={t.id}>
+                            <div className="sd-item" key={t._id || t.id}>
                                 <div className="sd-item-icon sd-item-icon--red">
                                     <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
                                         <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
@@ -136,7 +148,7 @@ export default function StudentDashboard() {
                                 </div>
                                 <div className="sd-item-info">
                                     <p className="sd-item-title">{t.subject}</p>
-                                    <p className="sd-item-meta">{t.detail}</p>
+                                    <p className="sd-item-meta">{t.description || t.detail}</p>
                                 </div>
                                 <span className={`sd-badge sd-badge--${t.status === "Active" ? "active" : "expired"}`}>
                                     {t.status}

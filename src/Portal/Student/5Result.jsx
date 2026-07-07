@@ -2,7 +2,8 @@ import { useState } from "react";
 import "./5Result.css";
 import schoolLogo from "../../assets/logo4.png";
 import principalSign from "../../assets/sign1.png";
-import api from "../../api";
+
+const BASE_URL = "https://heroes-school.vercel.app";
 
 const sessions = ["2024/2025", "2025/2026"];
 const terms = ["First Term", "Second Term", "Third Term"];
@@ -18,13 +19,28 @@ export default function StudentResults() {
         setLoading(true);
         setError("");
         setResultData(null);
+
         try {
-            const res = await api.get("/api/student/results", {
-                params: { session, term },
+            const token = localStorage.getItem("token");
+
+            const params = new URLSearchParams({ session, term });
+
+            const res = await fetch(`${BASE_URL}/api/student/results?${params}`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                },
             });
-            setResultData(res.data);
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || "No result found for the selected session and term.");
+            }
+
+            setResultData(data);
         } catch (err) {
-            setError(err.response?.data?.message || "No result found for the selected session and term.");
+            setError(err.message || "No result found for the selected session and term.");
         } finally {
             setLoading(false);
         }

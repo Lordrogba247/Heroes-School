@@ -1,8 +1,7 @@
 import { useState } from "react";
 import "./7Profile.css";
 
-// TODO: backend dev go give real endpoint — replace this URL
-const CHANGE_PASSWORD_API_URL = "https://api.example.com/student/change-password";
+const CHANGE_PASSWORD_API_URL = "https://heroes-school.vercel.app/api/auth/change-password";
 
 // Mock student data — backend dev go replace with real user from auth context
 const studentInfo = {
@@ -55,10 +54,18 @@ export default function StudentProfile() {
         // ===== Submit to API =====
         setLoading(true);
         try {
+            const token = localStorage.getItem("token");
+
             const res = await fetch(CHANGE_PASSWORD_API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ oldPassword, newPassword }),
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    currentPassword: oldPassword,
+                    newPassword: newPassword,
+                }),
             });
             const data = await res.json();
 

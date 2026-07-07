@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import "./4Online.css";
-import api from "../../api";
+
+const BASE_URL = "https://heroes-school.vercel.app";
 
 export default function StudentOnlineClass() {
     const [classes, setClasses] = useState([]);
@@ -8,8 +9,19 @@ export default function StudentOnlineClass() {
     const [error, setError] = useState("");
 
     useEffect(() => {
-        api.get("/api/student/online-classes")
-            .then((res) => setClasses(res.data))
+        const token = localStorage.getItem("token");
+
+        fetch(`${BASE_URL}/api/student/online-classes`, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load online classes.");
+                return res.json();
+            })
+            .then((data) => setClasses(data.classes || data || []))
             .catch(() => setError("Failed to load online classes."))
             .finally(() => setLoading(false));
     }, []);
@@ -27,7 +39,7 @@ export default function StudentOnlineClass() {
                     <p className="oc-empty">No online classes scheduled.</p>
                 ) : (
                     classes.map((c, index) => (
-                        <div className="oc-card" key={c.id}>
+                        <div className="oc-card" key={c._id || c.id}>
                             <div className={`oc-card-header oc-card-header--${index % 2 === 0 ? "navy" : "red"}`}>
                                 <p className="oc-subject">{c.subject}</p>
                                 <div className="oc-meta">
@@ -41,7 +53,7 @@ export default function StudentOnlineClass() {
                                         <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
                                             <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z" />
                                         </svg>
-                                        {c.class}
+                                        {c.classLabel || c.class}
                                     </span>
                                     <span className="oc-meta-item">
                                         <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
@@ -54,7 +66,7 @@ export default function StudentOnlineClass() {
 
                             <div className="oc-card-body">
                                 <a
-                                    href={c.link}
+                                    href={c.meetingLink || c.link}
                                     target="_blank"
                                     rel="noreferrer"
                                     className={`oc-join-btn oc-join-btn--${index % 2 === 0 ? "navy" : "red"}`}
