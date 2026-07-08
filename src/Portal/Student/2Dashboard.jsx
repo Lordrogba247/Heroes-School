@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import "./2Dashboard.css";
 
-const BASE_URL = "https://heroes-school.vercel.app";
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 // Static icon config — counts come from API
 const statConfig = [

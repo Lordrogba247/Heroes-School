@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./7Profile.css";
 
-const CHANGE_PASSWORD_API_URL = "https://heroes-school.vercel.app/api/auth/change-password";
+const CHANGE_PASSWORD_API_URL = "https://heroesschool-management-backend.vercel.app/api/auth/change-password";
 
 // Mock student data — backend dev go replace with real user from auth context
 const studentInfo = {

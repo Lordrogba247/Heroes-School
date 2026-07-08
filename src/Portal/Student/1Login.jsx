@@ -4,7 +4,7 @@ import "./1Login.css";
 import logo from "../../assets/logo2.png";
 
 
-const BASE_URL = "https://heroes-school.vercel.app";
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 export default function StudentLogin() {
     const navigate = useNavigate();

@@ -2,7 +2,7 @@ import axios from "axios";
 
 // ===== Base axios instance =====
 const api = axios.create({
-    baseURL: "https://heroes-school.vercel.app/",
+    baseURL: "https://heroesschool-management-backend.vercel.app",
     headers: { "Content-Type": "application/json" },
 });
 

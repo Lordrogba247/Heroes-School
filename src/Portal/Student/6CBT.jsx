@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import "./6CBT.css";
 
-const BASE_URL = "https://heroes-school.vercel.app";
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 export default function StudentCBT() {
     const [tests, setTests] = useState([]);

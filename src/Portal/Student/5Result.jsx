@@ -3,7 +3,7 @@ import "./5Result.css";
 import schoolLogo from "../../assets/logo4.png";
 import principalSign from "../../assets/sign1.png";
 
-const BASE_URL = "https://heroes-school.vercel.app";
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 const sessions = ["2024/2025", "2025/2026"];
 const terms = ["First Term", "Second Term", "Third Term"];
