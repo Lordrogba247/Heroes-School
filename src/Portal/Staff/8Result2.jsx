@@ -1,20 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./8Result2.css";
 
-// Mock students data
-const studentsData = [
-    { id: 1, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01324", sex: "M", classLabel: "JSS2" },
-    { id: 2, name: "Adekoya Bimbo Mosunmola", studentId: "HC/2025/01325", sex: "F", classLabel: "JSS2" },
-    { id: 3, name: "Temidire Audu Ali", studentId: "HC/2025/01326", sex: "M", classLabel: "JSS2" },
-    { id: 4, name: "Richard Judith emenembo", studentId: "HC/2025/01314", sex: "F", classLabel: "JSS2" },
-    { id: 5, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01354", sex: "M", classLabel: "JSS2" },
-    { id: 6, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01327", sex: "M", classLabel: "JSS2" },
-    { id: 7, name: "Abdulafeez Simbiat Rukayat", studentId: "HC/2025/01424", sex: "F", classLabel: "JSS2" },
-    { id: 8, name: "Luke Demilade Mary", studentId: "HC/2025/01320", sex: "F", classLabel: "JSS2" },
-    { id: 9, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01328", sex: "M", classLabel: "JSS2" },
-    { id: 10, name: "Tijesunimi Irede Dorcas", studentId: "HC/2025/01340", sex: "F", classLabel: "JSS2" },
-];
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 const subjectOptions = [
     "Mathematics", "English Language", "Basic Science", "Basic Technology",
@@ -30,6 +18,7 @@ const subjectOptions = [
 const sessions = ["2024/2025", "2025/2026"];
 const terms = ["First Term", "Second Term", "Third Term"];
 
+// Local-only preview grading — server recalculates the official grade on submit
 function getGrade(total) {
     if (total >= 75) return { grade: "A1", remark: "Excellent" };
     if (total >= 70) return { grade: "B2", remark: "V.Good" };
@@ -48,7 +37,11 @@ export default function StaffResultEntry() {
     const { studentId } = useParams();
     const navigate = useNavigate();
 
-    const student = studentsData.find((s) => String(s.id) === studentId) || studentsData[0];
+    const token = localStorage.getItem("token");
+
+    const [student, setStudent] = useState(null);
+    const [loadingStudent, setLoadingStudent] = useState(true);
+    const [loadError, setLoadError] = useState("");
 
     const [session, setSession] = useState(sessions[1]);
     const [term, setTerm] = useState(terms[2]);
@@ -58,6 +51,29 @@ export default function StaffResultEntry() {
     const [comments, setComments] = useState([]);
     const [commentInput, setCommentInput] = useState("");
     const [submitted, setSubmitted] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState("");
+
+    // Load the student's info by re-fetching the class list and matching the route param.
+    // (No single-student endpoint exists in the docs, so this is the safest option.)
+    useEffect(() => {
+        fetch(`${BASE_URL}/api/staff/results/students`, {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load student.");
+                return res.json();
+            })
+            .then((data) => {
+                const list = data.students || data || [];
+                const found = list.find((s) => String(s._id || s.id) === studentId);
+                setStudent(found || null);
+                if (!found) setLoadError("Student not found.");
+            })
+            .catch(() => setLoadError("Failed to load student details."))
+            .finally(() => setLoadingStudent(false));
+    }, [studentId]);
 
     const handleRowChange = (field, value) => {
         setRowInput((prev) => ({ ...prev, [field]: value }));
@@ -127,12 +143,48 @@ export default function StaffResultEntry() {
         return { total, ...getGrade(total) };
     })();
 
-    const handleSubmitResult = () => {
-        if (results.length === 0) return;
-        // Backend dev go POST results + comments here
-        // POST /api/staff/results with { studentId, session, term, results, comments }
-        setSubmitted(true);
+    const handleSubmitResult = async () => {
+        if (results.length === 0 || !student) return;
+
+        setSubmitting(true);
+        setSubmitError("");
+        try {
+            const payload = {
+                studentId: student._id || student.id,
+                session,
+                term,
+                subjects: results.map((r) => ({
+                    subject: r.subject,
+                    ca1: r.ca1,
+                    ca2: r.ca2,
+                    exam: r.exam,
+                })),
+                // Backend expects a single comment string — combining the comment thread into one.
+                comment: comments.map((c) => c.text).join(" | "),
+            };
+
+            const res = await fetch(`${BASE_URL}/api/staff/results`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to submit result.");
+
+            setSubmitted(true);
+        } catch (err) {
+            setSubmitError(err.message || "Failed to submit result. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
     };
+
+    if (loadingStudent) return <div className="sre-page"><p>Loading student...</p></div>;
+    if (loadError || !student) return <div className="sre-page"><p className="sre-error">{loadError || "Student not found."}</p></div>;
 
     return (
         <div className="sre-page">
@@ -140,9 +192,9 @@ export default function StaffResultEntry() {
                 ← Back to Students
             </button>
 
-            <h1 className="sre-title">{student.name}</h1>
+            <h1 className="sre-title">{student.name || `${student.surname} ${student.otherNames}`}</h1>
             <p className="sre-sub">
-                {student.studentId} &nbsp; {student.sex} &nbsp; {student.classLabel}
+                {student.studentId} &nbsp; {student.sex} &nbsp; {student.classLabel || student.class}
             </p>
 
             {/* Session / Term */}
@@ -344,7 +396,7 @@ export default function StaffResultEntry() {
                 <span className="sre-warning-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 24 24">
                         <path d="M0 0h24v24H0z" fill="none" />
-                        <path fill="currentColor" fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12s4.477 10 10 10s10-4.477 10-10M12 7a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0V8a1 1 0 0 1 1-1m-1 9a1 1 0 0 1 1-1h.008a1 1 0 1 1 0 2H12a1 1 0 0 1-1-1" clip-rule="evenodd" />
+                        <path fill="currentColor" fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12s4.477 10 10 10s10-4.477 10-10M12 7a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0V8a1 1 0 0 1 1-1m-1 9a1 1 0 0 1 1-1h.008a1 1 0 1 1 0 2H12a1 1 0 0 1-1-1" clipRule="evenodd" />
                     </svg>
                 </span>
                 <p className="sre-warning-text">
@@ -352,13 +404,15 @@ export default function StaffResultEntry() {
                 </p>
             </div>
 
+            {submitError && <p className="sre-error">{submitError}</p>}
+
             {/* Submit */}
             <button
                 className="sre-submit-btn"
                 onClick={handleSubmitResult}
-                disabled={submitted || results.length === 0}
+                disabled={submitted || submitting || results.length === 0}
             >
-                {submitted ? "✓ Result Submitted" : "Submit result"}
+                {submitted ? "✓ Result Submitted" : submitting ? "Submitting..." : "Submit result"}
             </button>
         </div>
     );

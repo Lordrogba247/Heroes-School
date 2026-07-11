@@ -1,26 +1,37 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./7Result.css";
 
-// Mock students data — backend dev go replace with real API (students in this class)
-const studentsData = [
-    { id: 1, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01324", sex: "M" },
-    { id: 2, name: "Adekoya Bimbo Mosunmola", studentId: "HC/2025/01325", sex: "F" },
-    { id: 3, name: "Temidire Audu Ali", studentId: "HC/2025/01326", sex: "M" },
-    { id: 4, name: "Richard Judith emenembo", studentId: "HC/2025/01314", sex: "F" },
-    { id: 5, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01354", sex: "M" },
-    { id: 6, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01327", sex: "M" },
-    { id: 7, name: "Abdulafeez Simbiat Rukayat", studentId: "HC/2025/01424", sex: "F" },
-    { id: 8, name: "Luke Demilade Mary", studentId: "HC/2025/01320", sex: "F" },
-    { id: 9, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01328", sex: "M" },
-    { id: 10, name: "Tijesunimi Irede Dorcas", studentId: "HC/2025/01340", sex: "F" },
-];
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 export default function StaffResultsList() {
     const navigate = useNavigate();
+    const [students, setStudents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+
+        fetch(`${BASE_URL}/api/staff/results/students`, {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load students.");
+                return res.json();
+            })
+            .then((data) => setStudents(data.students || data || []))
+            .catch(() => setError("Failed to load students."))
+            .finally(() => setLoading(false));
+    }, []);
 
     const handleUpload = (student) => {
-        navigate(`/portal/staff/results/${student.id}`);
+        navigate(`/portal/staff/results/${student._id || student.id}`);
     };
+
+    if (loading) return <div className="srl-page"><p>Loading students...</p></div>;
+    if (error) return <div className="srl-page"><p className="srl-error">{error}</p></div>;
 
     return (
         <div className="srl-page">
@@ -39,9 +50,9 @@ export default function StaffResultsList() {
                             </tr>
                         </thead>
                         <tbody>
-                            {studentsData.map((s) => (
-                                <tr key={s.id}>
-                                    <td className="srl-name">{s.name}</td>
+                            {students.map((s) => (
+                                <tr key={s._id || s.id}>
+                                    <td className="srl-name">{s.name || `${s.surname} ${s.otherNames}`}</td>
                                     <td>{s.studentId}</td>
                                     <td>{s.sex}</td>
                                     <td>
@@ -58,6 +69,10 @@ export default function StaffResultsList() {
                     </table>
                 </div>
             </div>
+
+            {students.length === 0 && (
+                <p className="srl-empty">No students found in your class.</p>
+            )}
         </div>
     );
 }

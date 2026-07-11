@@ -1,6 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
 import "./9CBT.css";
+
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 const subjectOptions = [
     "Mathematics", "English Language", "Basic Science", "Basic Technology",
@@ -19,19 +21,6 @@ const classOptions = [
     "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
 ];
 
-// Mock scheduled tests — backend dev go replace with real API
-const initialTests = [
-    {
-        id: 1,
-        subject: "Basic Science",
-        classLevel: "JSS 2",
-        description: "First C.A Test",
-        duration: "30mins",
-        questions: 25,
-        date: "July 12, 2026",
-    },
-];
-
 export default function StaffCBT() {
     const [form, setForm] = useState({
         duration: "",
@@ -42,8 +31,34 @@ export default function StaffCBT() {
     });
     const [file, setFile] = useState(null);
     const [questionCount, setQuestionCount] = useState(0);
-    const [tests, setTests] = useState(initialTests);
+    const [tests, setTests] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [scheduling, setScheduling] = useState(false);
+    const [formError, setFormError] = useState("");
     const fileInputRef = useRef(null);
+
+    const token = localStorage.getItem("token");
+
+    const loadTests = () => {
+        setLoading(true);
+        setError("");
+        fetch(`${BASE_URL}/api/staff/cbt`, {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load CBT tests.");
+                return res.json();
+            })
+            .then((data) => setTests(data.tests || data || []))
+            .catch(() => setError("Failed to load CBT tests."))
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        loadTests();
+    }, []);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -55,7 +70,7 @@ export default function StaffCBT() {
 
         setFile(selectedFile);
 
-        // Parse Excel and count question rows
+        // Parse Excel and count question rows (for display only — backend re-parses the file itself)
         const reader = new FileReader();
         reader.onload = (evt) => {
             const data = new Uint8Array(evt.target.result);
@@ -67,33 +82,58 @@ export default function StaffCBT() {
         reader.readAsArrayBuffer(selectedFile);
     };
 
-    const handleSchedule = () => {
+    const handleSchedule = async () => {
         if (!form.subject || !form.classLevel || !form.duration || !form.date || !file) {
             alert("Please fill all fields and upload a question file.");
             return;
         }
 
-        // Backend dev go replace this with real API call
-        const newTest = {
-            id: Date.now(),
-            subject: form.subject,
-            classLevel: form.classLevel,
-            description: form.description,
-            duration: form.duration,
-            questions: questionCount,
-            date: form.date,
-        };
+        setScheduling(true);
+        setFormError("");
+        try {
+            const formData = new FormData();
+            formData.append("subject", form.subject);
+            formData.append("classLevel", form.classLevel);
+            formData.append("description", form.description);
+            formData.append("duration", form.duration);
+            formData.append("date", form.date);
+            formData.append("excelFile", file);
 
-        setTests((prev) => [newTest, ...prev]);
-        setForm({ duration: "", date: "", description: "", classLevel: "", subject: "" });
-        setFile(null);
-        setQuestionCount(0);
-        if (fileInputRef.current) fileInputRef.current.value = "";
+            const res = await fetch(`${BASE_URL}/api/staff/cbt`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` },
+                body: formData,
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to schedule test.");
+
+            setForm({ duration: "", date: "", description: "", classLevel: "", subject: "" });
+            setFile(null);
+            setQuestionCount(0);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            loadTests(); // refresh from server so we get the real ID and server-parsed question count
+        } catch (err) {
+            setFormError(err.message || "Failed to schedule test. Please try again.");
+        } finally {
+            setScheduling(false);
+        }
     };
 
-    const handleDelete = (id) => {
-        // Backend dev go hit DELETE endpoint here
-        setTests((prev) => prev.filter((t) => t.id !== id));
+    const handleDelete = async (test) => {
+        try {
+            const res = await fetch(`${BASE_URL}/api/staff/cbt/${test._id || test.id}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || "Failed to delete test.");
+            }
+            setTests((prev) => prev.filter((t) => (t._id || t.id) !== (test._id || test.id)));
+        } catch (err) {
+            setError(err.message || "Failed to delete test.");
+        }
     };
 
     return (
@@ -196,18 +236,24 @@ export default function StaffCBT() {
                 </div>
 
                 {/* Schedule button */}
-                <button className="sc-schedule-btn" onClick={handleSchedule}>
-                    Schedule CBT Test/Exam
+                <button className="sc-schedule-btn" onClick={handleSchedule} disabled={scheduling}>
+                    {scheduling ? "Scheduling..." : "Schedule CBT Test/Exam"}
                     <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
                         <path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" />
                     </svg>
                 </button>
+
+                {formError && <p className="sc-error">{formError}</p>}
             </div>
 
             {/* Scheduled tests list */}
             <div className="sc-list">
-                {tests.map((t) => (
-                    <div className="sc-card" key={t.id}>
+                {loading && <p className="sc-empty">Loading tests...</p>}
+                {!loading && error && <p className="sc-error">{error}</p>}
+                {!loading && tests.length === 0 && <p className="sc-empty">No tests scheduled yet.</p>}
+
+                {!loading && tests.map((t) => (
+                    <div className="sc-card" key={t._id || t.id}>
                         <div className="sc-card-header">
                             <div>
                                 <p className="sc-card-subject">{t.subject}</p>
@@ -237,7 +283,7 @@ export default function StaffCBT() {
                             </div>
                             <button
                                 className="sc-delete-btn"
-                                onClick={() => handleDelete(t.id)}
+                                onClick={() => handleDelete(t)}
                             >
                                 Delete
                             </button>

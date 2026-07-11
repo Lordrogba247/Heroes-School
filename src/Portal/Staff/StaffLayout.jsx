@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import "./StaffLayout.css";
 import logo from "../../assets/logo2.png";
+import api from "../../api";
 
 const navItems = [
     {
@@ -22,8 +23,6 @@ const navItems = [
                 <path d="M0 0h48v48H0z" fill="none" />
                 <path fill="currentColor" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M24 20a7 7 0 1 0 0-14a7 7 0 0 0 0 14M6 40.8V42h36v-1.2c0-4.48 0-6.72-.872-8.432a8 8 0 0 0-3.496-3.496C35.92 28 33.68 28 29.2 28H18.8c-4.48 0-6.72 0-8.432.872a8 8 0 0 0-3.496 3.496C6 34.08 6 36.32 6 40.8" />
             </svg>
-
-
         ),
     },
     {
@@ -77,19 +76,32 @@ const navItems = [
     },
 ];
 
-// Mock staff data — backend dev go replace with real user from auth context
-const staff = {
-    name: "Aderibigbe Oluwatosin",
-    initials: "AO",
-    role: "Class Teacher JSS 2",
-};
-
 export default function StaffLayout() {
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const handleLogout = () => {
-        // Backend dev go clear auth token/session here
+    // Load from localStorage first so topbar no go blank on refresh
+    const [staff, setStaff] = useState(() => {
+        const saved = localStorage.getItem("user");
+        return saved ? JSON.parse(saved) : { name: "", initials: "", role: "" };
+    });
+
+    // Fetch fresh profile from API
+    useEffect(() => {
+        api.get("/api/staff/me")
+            .then((res) => {
+                setStaff(res.data);
+                localStorage.setItem("user", JSON.stringify(res.data));
+            })
+            .catch(() => {
+                // Token invalid or expired — interceptor in api.js handles redirect
+            });
+    }, []);
+
+    const handleLogout = async () => {
+        try { await api.post("/api/auth/logout"); } catch (_) { }
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
         navigate("/portal/staff/login");
     };
 

@@ -1,39 +1,56 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./3Student.css";
 import AddStudentModal from "./4Add";
 
-// Mock staff data — backend dev go replace with real user from auth context
-const staff = {
-    assignedClass: "JSS 2",
-};
-
-// Mock students data — backend dev go replace with real API (students in this class)
-const initialStudents = [
-    { id: 1, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01324", sex: "M", class: "JSS2" },
-    { id: 2, name: "Adekoya Bimbo Mosunmola", studentId: "HC/2025/01325", sex: "F", class: "JSS2" },
-    { id: 3, name: "Temidire Audu Ali", studentId: "HC/2025/01326", sex: "M", class: "JSS2" },
-    { id: 4, name: "Richard Judith emenembo", studentId: "HC/2025/01314", sex: "F", class: "JSS2" },
-    { id: 5, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01354", sex: "M", class: "JSS2" },
-    { id: 6, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01327", sex: "M", class: "JSS2" },
-    { id: 7, name: "Abdulafeez Simbiat Rukayat", studentId: "HC/2025/01424", sex: "F", class: "JSS2" },
-    { id: 8, name: "Luke Demilade Mary", studentId: "HC/2025/01320", sex: "F", class: "JSS2" },
-    { id: 9, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01328", sex: "M", class: "JSS2" },
-    { id: 10, name: "Tijesunimi Irede Dorcas", studentId: "HC/2025/01340", sex: "F", class: "JSS2" },
-];
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 export default function StudentsList() {
-    const [students, setStudents] = useState(initialStudents);
+    const [staff, setStaff] = useState({ assignedClass: "" });
+    const [students, setStudents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
     const [modalOpen, setModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState(null); // null = adding, otherwise the student object being edited
     const [deleteTarget, setDeleteTarget] = useState(null); // student object pending delete confirmation
+    const [actionError, setActionError] = useState("");
+
+    const token = localStorage.getItem("token");
+
+    const loadStudents = () => {
+        setLoading(true);
+        setError("");
+        fetch(`${BASE_URL}/api/staff/students`, {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load students.");
+                return res.json();
+            })
+            .then((data) => setStudents(data.students || data || []))
+            .catch(() => setError("Failed to load students. Please try again."))
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        // Staff profile (for assignedClass) — falls back to whatever StaffLayout already cached
+        const saved = localStorage.getItem("user");
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            setStaff({ assignedClass: parsed.assignedClass || parsed.class || "" });
+        }
+        loadStudents();
+    }, []);
 
     const openAddModal = () => {
         setEditingStudent(null);
+        setActionError("");
         setModalOpen(true);
     };
 
     const openEditModal = (student) => {
         setEditingStudent(student);
+        setActionError("");
         setModalOpen(true);
     };
 
@@ -42,44 +59,72 @@ export default function StudentsList() {
         setEditingStudent(null);
     };
 
-    const handleModalSubmit = (form) => {
-        const fullName = `${form.surname} ${form.otherNames}`.trim();
-        const sexLetter = form.sex === "Male" ? "M" : form.sex === "Female" ? "F" : "";
+    const handleModalSubmit = async (form) => {
+        const sexLetter = form.sex === "Male" ? "M" : form.sex === "Female" ? "F" : form.sex;
+        const payload = {
+            surname: form.surname,
+            otherNames: form.otherNames,
+            sex: sexLetter,
+        };
 
-        if (editingStudent) {
-            // Backend dev go PUT/PATCH update here
-            setStudents((prev) =>
-                prev.map((s) =>
-                    s.id === editingStudent.id
-                        ? { ...s, name: fullName, sex: sexLetter }
-                        : s
-                )
-            );
-        } else {
-            // Backend dev go POST new student here, then use the real returned studentId
-            const newStudent = {
-                id: Date.now(),
-                name: fullName,
-                studentId: "Pending",
-                sex: sexLetter,
-                class: staff.assignedClass.replace(" ", ""),
-            };
-            setStudents((prev) => [...prev, newStudent]);
+        setActionError("");
+        try {
+            if (editingStudent) {
+                const res = await fetch(`${BASE_URL}/api/staff/students/${editingStudent._id || editingStudent.id}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || "Failed to update student.");
+            } else {
+                const res = await fetch(`${BASE_URL}/api/staff/students`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || "Failed to add student.");
+            }
+            closeModal();
+            loadStudents(); // refresh list from server so we get the real studentId/_id
+        } catch (err) {
+            setActionError(err.message || "Something went wrong. Please try again.");
         }
-
-        closeModal();
     };
 
-    const confirmDelete = () => {
-        // Backend dev go DELETE request here
-        setStudents((prev) => prev.filter((s) => s.id !== deleteTarget.id));
-        setDeleteTarget(null);
+    const confirmDelete = async () => {
+        try {
+            const res = await fetch(`${BASE_URL}/api/staff/students/${deleteTarget._id || deleteTarget.id}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || "Failed to remove student.");
+            }
+            setStudents((prev) => prev.filter((s) => (s._id || s.id) !== (deleteTarget._id || deleteTarget.id)));
+        } catch (err) {
+            setError(err.message || "Failed to remove student.");
+        } finally {
+            setDeleteTarget(null);
+        }
     };
+
+    if (loading) return <div className="stu-page"><p>Loading students...</p></div>;
 
     return (
         <div className="stu-page">
             <h1 className="stu-title">Students</h1>
             <p className="stu-sub">Find below the list of students in your class</p>
+
+            {error && <p className="stu-error">{error}</p>}
 
             <div className="stu-table-card">
                 <div className="stu-table-wrap">
@@ -95,11 +140,11 @@ export default function StudentsList() {
                         </thead>
                         <tbody>
                             {students.map((s) => (
-                                <tr key={s.id}>
-                                    <td className="stu-name">{s.name}</td>
+                                <tr key={s._id || s.id}>
+                                    <td className="stu-name">{s.name || `${s.surname} ${s.otherNames}`}</td>
                                     <td>{s.studentId}</td>
                                     <td>{s.sex}</td>
-                                    <td>{s.class}</td>
+                                    <td>{s.class || s.studentClass}</td>
                                     <td>
                                         <div className="stu-actions">
                                             <span>Edit details</span>
@@ -143,6 +188,8 @@ export default function StudentsList() {
                 </button>
             </div>
 
+            {actionError && <p className="stu-error">{actionError}</p>}
+
             {/* Add / Edit modal — separate component */}
             <AddStudentModal
                 isOpen={modalOpen}
@@ -158,7 +205,7 @@ export default function StudentsList() {
                     <div className="stu-confirm-modal" onClick={(e) => e.stopPropagation()}>
                         <h3 className="stu-confirm-title">Remove Student?</h3>
                         <p className="stu-confirm-text">
-                            Are you sure you want to remove <strong>{deleteTarget.name}</strong> from your class list? This cannot be undone.
+                            Are you sure you want to remove <strong>{deleteTarget.name || `${deleteTarget.surname} ${deleteTarget.otherNames}`}</strong> from your class list? This cannot be undone.
                         </p>
                         <div className="stu-confirm-actions">
                             <button

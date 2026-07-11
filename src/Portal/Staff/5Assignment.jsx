@@ -1,5 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import "./5Assignment.css";
+
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 // Standard Nigerian school subjects across Primary, JSS, and SSS levels
 const subjectOptions = [
@@ -47,26 +49,42 @@ const classOptions = [
     "SSS 1", "SSS 2", "SSS 3",
 ];
 
-// Mock recent assignments — backend dev go replace with real API (assignments posted by this staff)
-const initialAssignments = [
-    {
-        id: 1,
-        subject: "Chemistry",
-        classLabel: "SS1",
-        due: "July 12, 2026",
-    },
-];
-
 export default function StaffAssignment() {
     const [subject, setSubject] = useState("");
     const [classLabel, setClassLabel] = useState("");
     const [instructions, setInstructions] = useState("");
     const [attachment, setAttachment] = useState(null);
     const [dueDate, setDueDate] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [formError, setFormError] = useState("");
     const fileInputRef = useRef(null);
 
-    const [assignments, setAssignments] = useState(initialAssignments);
+    const [assignments, setAssignments] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
     const [deleteTarget, setDeleteTarget] = useState(null);
+
+    const token = localStorage.getItem("token");
+
+    const loadAssignments = () => {
+        setLoading(true);
+        setError("");
+        fetch(`${BASE_URL}/api/staff/assignments`, {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load assignments.");
+                return res.json();
+            })
+            .then((data) => setAssignments(data.assignments || data || []))
+            .catch(() => setError("Failed to load assignments."))
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        loadAssignments();
+    }, []);
 
     const resetForm = () => {
         setSubject("");
@@ -81,30 +99,56 @@ export default function StaffAssignment() {
         setAttachment(e.target.files[0] || null);
     };
 
-    const handleAddAssignment = (e) => {
+    const handleAddAssignment = async (e) => {
         e.preventDefault();
         if (!subject || !classLabel || !instructions.trim() || !dueDate.trim()) {
             return;
         }
 
-        // Backend dev go POST this (with file upload) to the API, scoped to `classLabel`
-        const newAssignment = {
-            id: Date.now(),
-            subject,
-            classLabel,
-            due: dueDate,
-            instructions,
-            attachmentName: attachment?.name || null,
-        };
+        setSubmitting(true);
+        setFormError("");
+        try {
+            const formData = new FormData();
+            formData.append("subject", subject);
+            formData.append("classLabel", classLabel);
+            formData.append("instructions", instructions);
+            formData.append("dueDate", dueDate);
+            if (attachment) formData.append("attachment", attachment);
 
-        setAssignments((prev) => [newAssignment, ...prev]);
-        resetForm();
+            const res = await fetch(`${BASE_URL}/api/staff/assignments`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` },
+                body: formData,
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to create assignment.");
+
+            resetForm();
+            loadAssignments(); // refresh from server so we get the real ID
+        } catch (err) {
+            setFormError(err.message || "Failed to create assignment. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
-    const confirmDelete = () => {
-        // Backend dev go DELETE request here
-        setAssignments((prev) => prev.filter((a) => a.id !== deleteTarget.id));
-        setDeleteTarget(null);
+    const confirmDelete = async () => {
+        try {
+            const res = await fetch(`${BASE_URL}/api/staff/assignments/${deleteTarget._id || deleteTarget.id}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || "Failed to delete assignment.");
+            }
+            setAssignments((prev) => prev.filter((a) => (a._id || a.id) !== (deleteTarget._id || deleteTarget.id)));
+        } catch (err) {
+            setError(err.message || "Failed to delete assignment.");
+        } finally {
+            setDeleteTarget(null);
+        }
     };
 
     return (
@@ -185,14 +229,16 @@ export default function StaffAssignment() {
                         />
                     </div>
 
-                    <button type="submit" className="sga-add-btn">
-                        Add Assignment
+                    <button type="submit" className="sga-add-btn" disabled={submitting}>
+                        {submitting ? "Adding..." : "Add Assignment"}
                         <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 20 20">
                             <path d="M0 0h20v20H0z" fill="none" />
                             <path fill="#ffffff" d="M5 17h13v2H5c-1.66 0-3-1.34-3-3V4c0-1.66 1.34-3 3-3h13v14H5c-.55 0-1 .45-1 1s.45 1 1 1m2-3.5v-11c0-.28-.22-.5-.5-.5s-.5.22-.5.5v11c0 .28.22.5.5.5s.5-.22.5-.5" />
                         </svg>
                     </button>
                 </div>
+
+                {formError && <p className="sga-error">{formError}</p>}
             </form>
 
             {/* Recent assignments */}
@@ -211,11 +257,13 @@ export default function StaffAssignment() {
                 </div>
 
                 <div className="sga-recent-body">
-                    {assignments.length === 0 && (
+                    {loading && <p className="sga-empty">Loading assignments...</p>}
+                    {!loading && error && <p className="sga-error">{error}</p>}
+                    {!loading && !error && assignments.length === 0 && (
                         <p className="sga-empty">No assignments posted yet.</p>
                     )}
-                    {assignments.map((a) => (
-                        <div className="sga-recent-item" key={a.id}>
+                    {!loading && assignments.map((a) => (
+                        <div className="sga-recent-item" key={a._id || a.id}>
                             <span className="sga-recent-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 20 20">
                                     <path d="M0 0h20v20H0z" fill="none" />
@@ -225,7 +273,7 @@ export default function StaffAssignment() {
                             <div className="sga-recent-text">
                                 <p className="sga-recent-item-title">{a.subject}</p>
                                 <p className="sga-recent-item-meta">
-                                    {a.classLabel} . To be submitted {a.due}
+                                    {a.classLabel} . To be submitted {a.due || a.dueDate}
                                 </p>
                             </div>
                             <button

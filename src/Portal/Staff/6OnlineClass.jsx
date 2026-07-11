@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./6OnlineClass.css";
+
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 // Reuse the same subject/class lists from Assignment for consistency
 const subjectOptions = [
@@ -19,27 +21,41 @@ const classOptions = [
     "SSS 1", "SSS 2", "SSS 3",
 ];
 
-// Mock scheduled sessions — backend dev go replace with real API (sessions created by this staff)
-const initialSessions = [
-    {
-        id: 1,
-        subject: "Physics",
-        classLabel: "SSS 2",
-        date: "July 12, 2026",
-        time: "10:00am",
-        link: "",
-    },
-];
-
 export default function StaffOnlineClass() {
     const [date, setDate] = useState("");
     const [time, setTime] = useState("");
     const [classLabel, setClassLabel] = useState("");
     const [subject, setSubject] = useState("");
     const [meetingLink, setMeetingLink] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [formError, setFormError] = useState("");
 
-    const [sessions, setSessions] = useState(initialSessions);
+    const [sessions, setSessions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
     const [deleteTarget, setDeleteTarget] = useState(null);
+
+    const token = localStorage.getItem("token");
+
+    const loadSessions = () => {
+        setLoading(true);
+        setError("");
+        fetch(`${BASE_URL}/api/staff/online-classes`, {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load sessions.");
+                return res.json();
+            })
+            .then((data) => setSessions(data.classes || data || []))
+            .catch(() => setError("Failed to load online classes."))
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        loadSessions();
+    }, []);
 
     const resetForm = () => {
         setDate("");
@@ -49,39 +65,61 @@ export default function StaffOnlineClass() {
         setMeetingLink("");
     };
 
-    const handleSchedule = (e) => {
+    const handleSchedule = async (e) => {
         e.preventDefault();
         if (!date.trim() || !time.trim() || !classLabel || !subject || !meetingLink.trim()) {
             return;
         }
 
-        // Backend dev go POST this to the API, scoped to `classLabel`
-        const newSession = {
-            id: Date.now(),
-            subject,
-            classLabel,
-            date,
-            time,
-            link: meetingLink,
-        };
+        setSubmitting(true);
+        setFormError("");
+        try {
+            const res = await fetch(`${BASE_URL}/api/staff/online-classes`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                body: JSON.stringify({ date, time, classLabel, subject, meetingLink }),
+            });
 
-        setSessions((prev) => [newSession, ...prev]);
-        resetForm();
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to schedule session.");
+
+            resetForm();
+            loadSessions(); // refresh from server so we get the real ID
+        } catch (err) {
+            setFormError(err.message || "Failed to schedule session. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handleStartSession = (session) => {
-        if (session.link) {
-            window.open(session.link, "_blank", "noopener,noreferrer");
+        const link = session.link || session.meetingLink;
+        if (link) {
+            window.open(link, "_blank", "noopener,noreferrer");
         } else {
-            // Backend dev go ensure every session has a real meeting link before this fires
             alert("No meeting link has been set for this session yet.");
         }
     };
 
-    const confirmDelete = () => {
-        // Backend dev go DELETE request here
-        setSessions((prev) => prev.filter((s) => s.id !== deleteTarget.id));
-        setDeleteTarget(null);
+    const confirmDelete = async () => {
+        try {
+            const res = await fetch(`${BASE_URL}/api/staff/online-classes/${deleteTarget._id || deleteTarget.id}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || "Failed to delete session.");
+            }
+            setSessions((prev) => prev.filter((s) => (s._id || s.id) !== (deleteTarget._id || deleteTarget.id)));
+        } catch (err) {
+            setError(err.message || "Failed to delete session.");
+        } finally {
+            setDeleteTarget(null);
+        }
     };
 
     return (
@@ -153,18 +191,23 @@ export default function StaffOnlineClass() {
                     />
                 </div>
 
-                <button type="submit" className="soc-schedule-btn">
-                    Schedule Session
+                <button type="submit" className="soc-schedule-btn" disabled={submitting}>
+                    {submitting ? "Scheduling..." : "Schedule Session"}
                     <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
                         <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
                     </svg>
                 </button>
+
+                {formError && <p className="soc-error">{formError}</p>}
             </form>
 
             {/* Scheduled sessions */}
             <div className="soc-list">
-                {sessions.map((s) => (
-                    <div className="soc-card" key={s.id}>
+                {loading && <p className="soc-empty">Loading sessions...</p>}
+                {!loading && error && <p className="soc-error">{error}</p>}
+
+                {!loading && sessions.map((s) => (
+                    <div className="soc-card" key={s._id || s.id}>
                         <div className="soc-card-header">
                             <p className="soc-card-subject">{s.subject}</p>
                             <div className="soc-card-meta">
@@ -206,7 +249,7 @@ export default function StaffOnlineClass() {
                     </div>
                 ))}
 
-                {sessions.length === 0 && (
+                {!loading && sessions.length === 0 && (
                     <p className="soc-empty">No sessions scheduled yet.</p>
                 )}
             </div>

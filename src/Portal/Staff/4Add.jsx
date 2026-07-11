@@ -12,7 +12,7 @@ const emptyForm = { surname: "", otherNames: "", sex: "" };
  * - onSubmit: (formData) => void — called with { surname, otherNames, sex } on submit
  * - assignedClass: string — the teacher's locked class, e.g. "JSS 2"
  * - editingStudent: object | null — if provided, pre-fills the form for editing.
- *     Expected shape: { name: string, sex: "M" | "F" }
+ *     Accepts either { name, sex } or { surname, otherNames, sex } — whichever shape the API returns.
  */
 export default function AddStudentModal({
     isOpen,
@@ -28,11 +28,20 @@ export default function AddStudentModal({
         if (!isOpen) return;
 
         if (editingStudent) {
-            const [surname, ...rest] = editingStudent.name.split(" ");
+            let surname = editingStudent.surname || "";
+            let otherNames = editingStudent.otherNames || "";
+
+            // Fallback: if backend only returns a combined "name" field, split it
+            if (!surname && !otherNames && editingStudent.name) {
+                const [first, ...rest] = editingStudent.name.split(" ");
+                surname = first || "";
+                otherNames = rest.join(" ");
+            }
+
             setForm({
-                surname: surname || "",
-                otherNames: rest.join(" "),
-                sex: editingStudent.sex === "M" ? "Male" : editingStudent.sex === "F" ? "Female" : "",
+                surname,
+                otherNames,
+                sex: editingStudent.sex === "M" ? "Male" : editingStudent.sex === "F" ? "Female" : (editingStudent.sex || ""),
             });
         } else {
             setForm(emptyForm);
