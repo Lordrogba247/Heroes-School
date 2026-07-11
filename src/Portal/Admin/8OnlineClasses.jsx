@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./8OnlineClasses.css";
+
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 const subjectOptions = [
     "Mathematics", "English Language", "Basic Science", "Basic Technology",
@@ -18,22 +20,44 @@ const classOptions = [
     "SSS 1", "SSS 2", "SSS 3",
 ];
 
-// Mock scheduled sessions — backend dev go replace with real API (all sessions, all classes)
-const initialSessions = [
-    { id: 1, subject: "Mathematics", classLabel: "JSS 2", date: "July 12, 2026", time: "02:00pm", link: "" },
-    { id: 2, subject: "Civic Education", classLabel: "JSS 2", date: "July 10, 2026", time: "10:00am", link: "" },
-];
-
 const emptyForm = { date: "", time: "", classLabel: "", subject: "", meetingLink: "" };
 
 export default function AdminOnlineClass() {
-    const [sessions, setSessions] = useState(initialSessions);
+    const [sessions, setSessions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
     const [modalOpen, setModalOpen] = useState(false);
     const [form, setForm] = useState(emptyForm);
+    const [submitting, setSubmitting] = useState(false);
+    const [formError, setFormError] = useState("");
     const [deleteTarget, setDeleteTarget] = useState(null);
+
+    const token = localStorage.getItem("token");
+
+    const loadSessions = () => {
+        setLoading(true);
+        setError("");
+        fetch(`${BASE_URL}/api/admin/online-classes`, {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load sessions.");
+                return res.json();
+            })
+            .then((data) => setSessions(data.classes || data || []))
+            .catch(() => setError("Failed to load online classes."))
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        loadSessions();
+    }, []);
 
     const openModal = () => {
         setForm(emptyForm);
+        setFormError("");
         setModalOpen(true);
     };
 
@@ -46,46 +70,77 @@ export default function AdminOnlineClass() {
         setForm((prev) => ({ ...prev, [field]: value }));
     };
 
-    const handleSchedule = (e) => {
+    const handleSchedule = async (e) => {
         e.preventDefault();
         if (!form.date.trim() || !form.time.trim() || !form.classLabel || !form.subject || !form.meetingLink.trim()) {
             return;
         }
 
-        // Backend dev go POST this to the API, scoped to `form.classLabel`.
-        // This should push the session to that class's students and reflect on
-        // the dashboard of the staff in charge of that class.
-        const newSession = {
-            id: Date.now(),
-            subject: form.subject,
-            classLabel: form.classLabel,
-            date: form.date,
-            time: form.time,
-            link: form.meetingLink,
-        };
+        setSubmitting(true);
+        setFormError("");
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/online-classes`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    date: form.date,
+                    time: form.time,
+                    classLabel: form.classLabel,
+                    subject: form.subject,
+                    meetingLink: form.meetingLink,
+                }),
+            });
 
-        setSessions((prev) => [newSession, ...prev]);
-        closeModal();
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to schedule session.");
+
+            closeModal();
+            loadSessions(); // refresh from server so we get the real ID
+        } catch (err) {
+            setFormError(err.message || "Failed to schedule session. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handleStartSession = (session) => {
-        if (session.link) {
-            window.open(session.link, "_blank", "noopener,noreferrer");
+        const link = session.link || session.meetingLink;
+        if (link) {
+            window.open(link, "_blank", "noopener,noreferrer");
         } else {
             alert("No meeting link has been set for this session yet.");
         }
     };
 
-    const confirmDelete = () => {
-        // Backend dev go DELETE request here
-        setSessions((prev) => prev.filter((s) => s.id !== deleteTarget.id));
-        setDeleteTarget(null);
+    const confirmDelete = async () => {
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/online-classes/${deleteTarget._id || deleteTarget.id}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || "Failed to delete session.");
+            }
+            setSessions((prev) => prev.filter((s) => (s._id || s.id) !== (deleteTarget._id || deleteTarget.id)));
+        } catch (err) {
+            setError(err.message || "Failed to delete session.");
+        } finally {
+            setDeleteTarget(null);
+        }
     };
+
+    if (loading) return <div className="aoc-page"><p>Loading sessions...</p></div>;
 
     return (
         <div className="aoc-page">
             <h1 className="aoc-title">Online Classes</h1>
             <p className="aoc-sub">See below the available online classes</p>
+
+            {error && <p className="aoc-error">{error}</p>}
 
             <button className="aoc-schedule-btn" onClick={openModal}>
                 Schedule Session
@@ -98,7 +153,7 @@ export default function AdminOnlineClass() {
                 {sessions.map((s, index) => {
                     const isNavy = index % 2 === 0;
                     return (
-                        <div className="aoc-card" key={s.id}>
+                        <div className="aoc-card" key={s._id || s.id}>
                             <div className={`aoc-card-header ${isNavy ? "aoc-card-header--navy" : "aoc-card-header--red"}`}>
                                 <p className="aoc-card-subject">{s.subject}</p>
                                 <div className="aoc-card-meta">
@@ -222,12 +277,14 @@ export default function AdminOnlineClass() {
                                 />
                             </div>
 
-                            <button type="submit" className="aoc-submit-btn">
-                                Schedule Session
+                            <button type="submit" className="aoc-submit-btn" disabled={submitting}>
+                                {submitting ? "Scheduling..." : "Schedule Session"}
                                 <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
                                     <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
                                 </svg>
                             </button>
+
+                            {formError && <p className="aoc-error">{formError}</p>}
                         </form>
                     </div>
                 </div>

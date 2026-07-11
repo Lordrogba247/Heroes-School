@@ -1,6 +1,9 @@
+// AdminResultsList (file 29)
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./9Result.css";
+
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 const sessions = ["2024/2025", "2025/2026"];
 const terms = ["First Term", "Second Term", "Third Term"];
@@ -8,20 +11,6 @@ const classOptions = [
     "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5",
     "JSS 1", "JSS 2", "JSS 3",
     "SSS 1", "SSS 2", "SSS 3",
-];
-
-// Mock students data — backend dev go replace with real API (students in selected class)
-const studentsData = [
-    { id: 1, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01324", sex: "M" },
-    { id: 2, name: "Adekoya Bimbo Mosunmola", studentId: "HC/2025/01325", sex: "F" },
-    { id: 3, name: "Temidire Audu Ali", studentId: "HC/2025/01326", sex: "M" },
-    { id: 4, name: "Richard Judith emenembo", studentId: "HC/2025/01314", sex: "F" },
-    { id: 5, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01354", sex: "M" },
-    { id: 6, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01327", sex: "M" },
-    { id: 7, name: "Abdulafeez Simbiat Rukayat", studentId: "HC/2025/01424", sex: "F" },
-    { id: 8, name: "Luke Demilade Mary", studentId: "HC/2025/01320", sex: "F" },
-    { id: 9, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01328", sex: "M" },
-    { id: 10, name: "Tijesunimi Irede Dorcas", studentId: "HC/2025/01340", sex: "F" },
 ];
 
 export default function AdminResultsList() {
@@ -32,35 +21,92 @@ export default function AdminResultsList() {
     const [classLabel, setClassLabel] = useState(classOptions[6]); // JSS 2
 
     const [students, setStudents] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [loadError, setLoadError] = useState("");
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [uploadStatus, setUploadStatus] = useState(null);
+    const [publishing, setPublishing] = useState(false);
 
-    const handleGetClassResults = () => {
-        // Backend dev go fetch students + their results for session/term/classLabel here.
-        // Using the same mock list regardless of selection for now.
-        setStudents(studentsData);
+    const token = localStorage.getItem("token");
+
+    const handleGetClassResults = async () => {
+        setLoading(true);
+        setLoadError("");
         setUploadStatus(null);
+        try {
+            const params = new URLSearchParams({ session, term, class: classLabel });
+            const res = await fetch(`${BASE_URL}/api/admin/results?${params}`, {
+                method: "GET",
+                headers: { "Authorization": `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error("Failed to load class results.");
+            const data = await res.json();
+            // Response shape is unconfirmed by the docs — assumes a `students` array
+            // or plain array of { studentId (Mongo _id), name, studentId (human), sex }
+            setStudents(data.students || data || []);
+        } catch (err) {
+            setLoadError(err.message || "Failed to load class results.");
+            setStudents([]);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleUploadResults = () => {
+    const handleUploadResults = async () => {
         if (students.length === 0) return;
-        // Backend dev go finalize/publish all results for this class+session+term here
-        setUploadStatus({
-            type: "success",
-            message: `All results for ${classLabel} (${session}, ${term}) have been uploaded.`,
-        });
+        setPublishing(true);
+        setUploadStatus(null);
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/results/publish`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                // Docs example body only shows { session, term } — classLabel added since
+                // this action is clearly scoped to the selected class. Confirm with backend.
+                body: JSON.stringify({ session, term, classLabel }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to publish results.");
+
+            setUploadStatus({
+                type: "success",
+                message: `All results for ${classLabel} (${session}, ${term}) have been uploaded.`,
+            });
+        } catch (err) {
+            setUploadStatus({ type: "error", message: err.message || "Failed to publish results." });
+        } finally {
+            setPublishing(false);
+        }
     };
 
     const handleViewResult = (student) => {
-        navigate(`/portal/admin/results/${student.id}`, {
+        navigate(`/portal/admin/results/${student._id || student.id}`, {
             state: { session, term, classLabel },
         });
     };
 
-    const confirmDelete = () => {
-        // Backend dev go DELETE this student's result here
-        setStudents((prev) => prev.filter((s) => s.id !== deleteTarget.id));
-        setDeleteTarget(null);
+    const confirmDelete = async () => {
+        try {
+            const params = new URLSearchParams({ session, term });
+            const res = await fetch(
+                `${BASE_URL}/api/admin/results/${deleteTarget._id || deleteTarget.id}?${params}`,
+                {
+                    method: "DELETE",
+                    headers: { "Authorization": `Bearer ${token}` },
+                }
+            );
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || "Failed to delete result.");
+            }
+            setStudents((prev) => prev.filter((s) => (s._id || s.id) !== (deleteTarget._id || deleteTarget.id)));
+        } catch (err) {
+            setLoadError(err.message || "Failed to delete result.");
+        } finally {
+            setDeleteTarget(null);
+        }
     };
 
     return (
@@ -101,18 +147,19 @@ export default function AdminResultsList() {
             </div>
 
             <div className="adr-action-row">
-                <button className="adr-get-btn" onClick={handleGetClassResults}>
-                    Get Class Results
+                <button className="adr-get-btn" onClick={handleGetClassResults} disabled={loading}>
+                    {loading ? "Loading..." : "Get Class Results"}
                 </button>
                 <button
                     className="adr-upload-btn"
                     onClick={handleUploadResults}
-                    disabled={students.length === 0}
+                    disabled={students.length === 0 || publishing}
                 >
-                    Upload Results
+                    {publishing ? "Uploading..." : "Upload Results"}
                 </button>
             </div>
 
+            {loadError && <p className="adr-status adr-status--error">{loadError}</p>}
             {uploadStatus && (
                 <p className={`adr-status adr-status--${uploadStatus.type}`}>
                     {uploadStatus.message}
@@ -133,8 +180,8 @@ export default function AdminResultsList() {
                             </thead>
                             <tbody>
                                 {students.map((s) => (
-                                    <tr key={s.id}>
-                                        <td className="adr-name">{s.name}</td>
+                                    <tr key={s._id || s.id}>
+                                        <td className="adr-name">{s.name || `${s.surname} ${s.otherNames}`}</td>
                                         <td>{s.studentId}</td>
                                         <td>{s.sex}</td>
                                         <td>
@@ -172,7 +219,7 @@ export default function AdminResultsList() {
                     <div className="adr-confirm-modal" onClick={(e) => e.stopPropagation()}>
                         <h3 className="adr-confirm-title">Delete Result?</h3>
                         <p className="adr-confirm-text">
-                            Are you sure you want to delete the result for <strong>{deleteTarget.name}</strong>? This cannot be undone.
+                            Are you sure you want to delete the result for <strong>{deleteTarget.name || `${deleteTarget.surname} ${deleteTarget.otherNames}`}</strong>? This cannot be undone.
                         </p>
                         <div className="adr-confirm-actions">
                             <button

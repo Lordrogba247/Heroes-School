@@ -1,6 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
 import "./10CBT.css";
+
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 const subjectOptions = [
     "Mathematics", "English Language", "Basic Science", "Basic Technology",
@@ -22,39 +24,47 @@ const classOptions = [
 // Card colors alternate purple/red
 const cardAccents = ["purple", "red"];
 
-// Mock data — backend dev go replace with real API
-const initialTests = [
-    {
-        id: 1,
-        subject: "Basic Science",
-        classLevel: "JSS 2",
-        description: "First C.A Test",
-        duration: "30mins",
-        questions: 25,
-        date: "July 12, 2026",
-        accent: "purple",
-    },
-    {
-        id: 2,
-        subject: "Literature-in-English",
-        classLevel: "SS 1",
-        description: "Second C.A Test",
-        duration: "30mins",
-        questions: 25,
-        date: "July 27, 2026",
-        accent: "red",
-    },
-];
-
 export default function AdminCBT() {
-    const [tests, setTests] = useState(initialTests);
+    const [tests, setTests] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
     const [showModal, setShowModal] = useState(false);
     const [form, setForm] = useState({
         duration: "", date: "", description: "", classLevel: "", subject: "",
     });
     const [file, setFile] = useState(null);
     const [questionCount, setQuestionCount] = useState(0);
+    const [scheduling, setScheduling] = useState(false);
+    const [formError, setFormError] = useState("");
     const fileInputRef = useRef(null);
+
+    const token = localStorage.getItem("token");
+
+    const loadTests = () => {
+        setLoading(true);
+        setError("");
+        fetch(`${BASE_URL}/api/admin/cbt`, {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load CBT tests.");
+                return res.json();
+            })
+            .then((data) => {
+                const list = data.tests || data || [];
+                // Assign alternating accent colors client-side since this is purely visual
+                const withAccents = list.map((t, i) => ({ ...t, accent: cardAccents[i % 2] }));
+                setTests(withAccents);
+            })
+            .catch(() => setError("Failed to load CBT tests."))
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        loadTests();
+    }, []);
 
     const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -73,38 +83,67 @@ export default function AdminCBT() {
         reader.readAsArrayBuffer(selected);
     };
 
-    const handleSchedule = () => {
+    const handleSchedule = async () => {
         if (!form.subject || !form.classLevel || !form.duration || !form.date || !file) {
             alert("Please fill all fields and upload a question file.");
             return;
         }
-        const newTest = {
-            id: Date.now(),
-            subject: form.subject,
-            classLevel: form.classLevel,
-            description: form.description,
-            duration: form.duration,
-            questions: questionCount,
-            date: form.date,
-            accent: cardAccents[tests.length % 2],
-        };
-        setTests((prev) => [newTest, ...prev]);
-        setForm({ duration: "", date: "", description: "", classLevel: "", subject: "" });
-        setFile(null);
-        setQuestionCount(0);
-        if (fileInputRef.current) fileInputRef.current.value = "";
-        setShowModal(false);
+
+        setScheduling(true);
+        setFormError("");
+        try {
+            const formData = new FormData();
+            formData.append("subject", form.subject);
+            formData.append("classLevel", form.classLevel);
+            formData.append("description", form.description);
+            formData.append("duration", form.duration);
+            formData.append("date", form.date);
+            formData.append("excelFile", file);
+
+            const res = await fetch(`${BASE_URL}/api/admin/cbt`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` },
+                body: formData,
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to schedule test.");
+
+            setForm({ duration: "", date: "", description: "", classLevel: "", subject: "" });
+            setFile(null);
+            setQuestionCount(0);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            setShowModal(false);
+            loadTests(); // refresh from server so we get the real ID and server-parsed question count
+        } catch (err) {
+            setFormError(err.message || "Failed to schedule test. Please try again.");
+        } finally {
+            setScheduling(false);
+        }
     };
 
-    const handleDelete = (id) => {
-        // Backend dev go hit DELETE endpoint here
-        setTests((prev) => prev.filter((t) => t.id !== id));
+    const handleDelete = async (test) => {
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/cbt/${test._id || test.id}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || "Failed to delete test.");
+            }
+            setTests((prev) => prev.filter((t) => (t._id || t.id) !== (test._id || test.id)));
+        } catch (err) {
+            setError(err.message || "Failed to delete test.");
+        }
     };
 
     return (
         <div className="acbt-page">
             <h1 className="acbt-title">CBT Tests/Exams</h1>
             <p className="acbt-sub">See below the available computer-based tests/exams at your school</p>
+
+            {error && <p className="acbt-error">{error}</p>}
 
             {/* Schedule button */}
             <button className="acbt-schedule-btn" onClick={() => setShowModal(true)}>
@@ -116,8 +155,11 @@ export default function AdminCBT() {
 
             {/* Tests list */}
             <div className="acbt-list">
-                {tests.map((t) => (
-                    <div className="acbt-card" key={t.id}>
+                {loading && <p className="acbt-empty">Loading tests...</p>}
+                {!loading && tests.length === 0 && <p className="acbt-empty">No tests scheduled yet.</p>}
+
+                {!loading && tests.map((t) => (
+                    <div className="acbt-card" key={t._id || t.id}>
                         <div className={`acbt-card-header acbt-card-header--${t.accent}`}>
                             <p className="acbt-card-subject">{t.subject}</p>
                             <p className="acbt-card-meta-top">{t.classLevel} &nbsp;·&nbsp; {t.description}</p>
@@ -143,7 +185,7 @@ export default function AdminCBT() {
                                     Date of Test/Exam: {t.date}
                                 </p>
                             </div>
-                            <button className="acbt-delete-btn" onClick={() => handleDelete(t.id)}>
+                            <button className="acbt-delete-btn" onClick={() => handleDelete(t)}>
                                 Delete
                             </button>
                         </div>
@@ -199,8 +241,10 @@ export default function AdminCBT() {
                                 </div>
                             </div>
 
-                            <button className="acbt-submit-btn" onClick={handleSchedule}>
-                                Schedule CBT Test/Exam
+                            {formError && <p className="acbt-error">{formError}</p>}
+
+                            <button className="acbt-submit-btn" onClick={handleSchedule} disabled={scheduling}>
+                                {scheduling ? "Scheduling..." : "Schedule CBT Test/Exam"}
                                 <svg viewBox="0 0 24 24" fill="currentColor" width="17" height="17">
                                     <path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" />
                                 </svg>
