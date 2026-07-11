@@ -100,11 +100,14 @@ export default function AdminLayout() {
     const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    // ===== Real admin data from API =====
-    const [admin, setAdmin] = useState({ name: "", initials: "", role: "Admin" });
+    // Load from localStorage first so topbar no go blank on refresh
+    const [admin, setAdmin] = useState(() => {
+        const saved = localStorage.getItem("user");
+        return saved ? JSON.parse(saved) : { name: "", initials: "", role: "Admin" };
+    });
 
     useEffect(() => {
-        api.get("/admin/me")
+        api.get("/api/admin/me")
             .then(({ data }) => {
                 const name = data.name || data.fullName || "";
                 const initials = name
@@ -113,13 +116,15 @@ export default function AdminLayout() {
                     .join("")
                     .slice(0, 2)
                     .toUpperCase();
-                setAdmin({ name, initials, role: data.role || "Admin" });
+                const adminData = { name, initials, role: data.role || "Admin" };
+                setAdmin(adminData);
+                localStorage.setItem("user", JSON.stringify(adminData));
             })
             .catch(() => { }); // 401 handled globally by api.js interceptor
     }, []);
 
     const handleLogout = async () => {
-        try { await api.post("/auth/logout"); } catch { }
+        try { await api.post("/api/auth/logout"); } catch { }
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         navigate("/portal/admin/login");

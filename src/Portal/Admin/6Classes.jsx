@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import "./6Classes.css";
 
-
-const STUDENTS_ENDPOINT = "/api/admin/students";
-const STAFF_ENDPOINT = "/api/admin/staff";
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
+const STUDENTS_ENDPOINT = `${BASE_URL}/api/admin/students`;
+const STAFF_ENDPOINT = `${BASE_URL}/api/admin/staff`;
 
 // The fixed list of classes the school runs. Order shown = order on screen.
+// Consider replacing this with GET /api/admin/meta's `classes[]` if the backend
+// exposes it, so this list stays in sync with the school's actual configuration.
 const CLASS_LIST = [
     "Primary 1",
     "Primary 2",
@@ -21,21 +23,19 @@ const CLASS_LIST = [
 ];
 
 // Pulls the class a given student record belongs to.
-// Assumes a student object looks like: { id, name, class, ... }
-// Change `student.class` below if your API names it differently
-// (e.g. student.className, student.classroom, student.currentClass).
+// Checks both `class` and `studentClass` since the exact field name returned
+// by GET /api/admin/students is unconfirmed (see Staff Portal doc notes).
 function mapStudentToClass(student) {
-    return student.class;
+    return student.class || student.studentClass;
 }
 
 // Pulls the class a given staff record is assigned to teach, and their name.
-// Assumes a staff object looks like:
-// { id, name, assignedClass, role, ... }
-// Change the two lines below if your API names these differently
-// (e.g. staff.fullName, staff.classAssigned, staff.classTeacherOf).
+// Checks both `name` and split surname/otherNames, since the exact shape
+// returned by GET /api/admin/staff is unconfirmed.
 function mapStaffToClass(staffMember) {
+    const name = staffMember.name || `${staffMember.surname || ""} ${staffMember.otherNames || ""}`.trim();
     return {
-        name: staffMember.name,
+        name,
         assignedClass: staffMember.assignedClass,
     };
 }
@@ -57,23 +57,30 @@ export default function AdminClasses() {
             setError(null);
 
             try {
+                const token = localStorage.getItem("token");
+                const headers = { "Authorization": `Bearer ${token}` };
+
                 const [studentsRes, staffRes] = await Promise.all([
-                    fetch(STUDENTS_ENDPOINT),
-                    fetch(STAFF_ENDPOINT),
+                    fetch(STUDENTS_ENDPOINT, { method: "GET", headers }),
+                    fetch(STAFF_ENDPOINT, { method: "GET", headers }),
                 ]);
 
                 if (!studentsRes.ok || !staffRes.ok) {
                     throw new Error("Failed to load class data");
                 }
 
-                const students = await studentsRes.json();
-                const staff = await staffRes.json();
+                const studentsData = await studentsRes.json();
+                const staffData = await staffRes.json();
+
+                // Handle either a plain array or a { students: [...] } / { staff: [...] } wrapper
+                const students = studentsData.students || studentsData || [];
+                const staff = staffData.staff || staffData || [];
 
                 // Count students per class
                 const countByClass = {};
                 students.forEach((student) => {
                     const className = mapStudentToClass(student);
-                    countByClass[className] = (countByClass[className] || 0) + 1;
+                    if (className) countByClass[className] = (countByClass[className] || 0) + 1;
                 });
 
                 // Find the assigned class teacher per class
@@ -106,8 +113,9 @@ export default function AdminClasses() {
     }, []);
 
     const handleAddClass = () => {
-        // Backend dev go wire this up to open a modal / navigate to a form
-        console.log("Add class clicked");
+        // No POST /api/admin/classes (or similar) endpoint exists in the current API
+        // documentation. This needs a real endpoint from the backend before it can be wired.
+        alert("Adding new classes isn't supported by the backend yet — check with the backend dev.");
     };
 
     return (

@@ -21,8 +21,8 @@ export default function AdminDashboard() {
         const fetchData = async () => {
             try {
                 const [meRes, dashRes] = await Promise.all([
-                    api.get("/admin/me"),
-                    api.get("/admin/dashboard"),
+                    api.get("/api/admin/me"),
+                    api.get("/api/admin/dashboard"),
                 ]);
 
                 // Extract first name

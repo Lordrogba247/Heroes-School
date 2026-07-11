@@ -3,17 +3,6 @@ import "./4Add.css";
 
 const emptyForm = { surname: "", otherNames: "", sex: "", studentClass: "" };
 
-/**
- * Add/Edit Student modal (Admin version).
- *
- * Props:
- * - isOpen: boolean
- * - onClose: () => void
- * - onSubmit: (formData) => void — { surname, otherNames, sex, studentClass }
- * - editingStudent: object | null — { name, sex: "M"|"F", class: "JSS2" } when editing
- * - defaultClass: string — class to preselect when adding (e.g. the currently filtered class)
- * - classOptions: string[] — full list of selectable classes
- */
 export default function AddStudentModal({
     isOpen,
     onClose,
@@ -28,15 +17,26 @@ export default function AddStudentModal({
         if (!isOpen) return;
 
         if (editingStudent) {
-            const [surname, ...rest] = editingStudent.name.split(" ");
-            // editingStudent.class is stored without a space (e.g. "JSS2") — match it back to classOptions
+            let surname = editingStudent.surname || "";
+            let otherNames = editingStudent.otherNames || "";
+
+            // Fallback: if backend only returns a combined "name" field, split it
+            if (!surname && !otherNames && editingStudent.name) {
+                const [first, ...rest] = editingStudent.name.split(" ");
+                surname = first || "";
+                otherNames = rest.join(" ");
+            }
+
+            // editingStudent.class may be stored without a space (e.g. "JSS2") — match it back to classOptions.
+            // Also handles the case where the backend already returns studentClass with the space intact.
+            const rawClass = editingStudent.studentClass || editingStudent.class || "";
             const matchedClass =
-                classOptions.find((c) => c.replace(" ", "") === editingStudent.class) || "";
+                classOptions.find((c) => c === rawClass || c.replace(" ", "") === rawClass) || rawClass;
 
             setForm({
-                surname: surname || "",
-                otherNames: rest.join(" "),
-                sex: editingStudent.sex === "M" ? "Male" : editingStudent.sex === "F" ? "Female" : "",
+                surname,
+                otherNames,
+                sex: editingStudent.sex === "M" ? "Male" : editingStudent.sex === "F" ? "Female" : (editingStudent.sex || ""),
                 studentClass: matchedClass,
             });
         } else {

@@ -1,5 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import "./7Assignment.css";
+
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 // Same subject/class lists as Staff's Assignment page, for consistency
 const subjectOptions = [
@@ -19,30 +21,48 @@ const classOptions = [
     "SSS 1", "SSS 2", "SSS 3",
 ];
 
-// Mock assignments — backend dev go replace with real API (all assignments, all classes)
-const initialAssignments = [
-    { id: 1, subject: "Chemistry", classLabel: "SSS 1", due: "July 12, 2026" },
-    { id: 2, subject: "Mathematics", classLabel: "Primary 1", due: "July 12, 2026" },
-    { id: 3, subject: "Government", classLabel: "SSS 2", due: "July 12, 2026" },
-    { id: 4, subject: "Basic Science", classLabel: "JSS 2", due: "July 12, 2026" },
-    { id: 5, subject: "PHE", classLabel: "Primary 5", due: "July 12, 2026" },
-    { id: 6, subject: "Literature-in-English", classLabel: "SS 3", due: "July 12, 2026" },
-];
-
 const emptyForm = { subject: "", classLabel: "", instructions: "", dueDate: "" };
 
 export default function AdminAssignment() {
-    const [assignments, setAssignments] = useState(initialAssignments);
+    const [assignments, setAssignments] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
     const [modalOpen, setModalOpen] = useState(false);
     const [form, setForm] = useState(emptyForm);
     const [attachment, setAttachment] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
+    const [formError, setFormError] = useState("");
     const fileInputRef = useRef(null);
 
     const [deleteTarget, setDeleteTarget] = useState(null);
 
+    const token = localStorage.getItem("token");
+
+    const loadAssignments = () => {
+        setLoading(true);
+        setError("");
+        fetch(`${BASE_URL}/api/admin/assignments`, {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load assignments.");
+                return res.json();
+            })
+            .then((data) => setAssignments(data.assignments || data || []))
+            .catch(() => setError("Failed to load assignments."))
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        loadAssignments();
+    }, []);
+
     const openAddModal = () => {
         setForm(emptyForm);
         setAttachment(null);
+        setFormError("");
         setModalOpen(true);
     };
 
@@ -60,38 +80,66 @@ export default function AdminAssignment() {
         setAttachment(e.target.files[0] || null);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!form.subject || !form.classLabel || !form.instructions.trim() || !form.dueDate.trim()) {
             return;
         }
 
-        // Backend dev go POST this (with file upload) to the API, scoped to `form.classLabel`.
-        // This should push the assignment to that class's students and show on the staff dashboard
-        // for the teacher in charge of that class.
-        const newAssignment = {
-            id: Date.now(),
-            subject: form.subject,
-            classLabel: form.classLabel,
-            due: form.dueDate,
-            instructions: form.instructions,
-            attachmentName: attachment?.name || null,
-        };
+        setSubmitting(true);
+        setFormError("");
+        try {
+            const formData = new FormData();
+            formData.append("subject", form.subject);
+            formData.append("classLabel", form.classLabel);
+            formData.append("instructions", form.instructions);
+            formData.append("dueDate", form.dueDate);
+            if (attachment) formData.append("attachment", attachment);
 
-        setAssignments((prev) => [newAssignment, ...prev]);
-        closeModal();
+            const res = await fetch(`${BASE_URL}/api/admin/assignments`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` },
+                body: formData,
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to create assignment.");
+
+            closeModal();
+            loadAssignments(); // refresh from server so we get the real ID
+        } catch (err) {
+            setFormError(err.message || "Failed to create assignment. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
-    const confirmDelete = () => {
-        // Backend dev go DELETE request here
-        setAssignments((prev) => prev.filter((a) => a.id !== deleteTarget.id));
-        setDeleteTarget(null);
+    const confirmDelete = async () => {
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/assignments/${deleteTarget._id || deleteTarget.id}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || "Failed to delete assignment.");
+            }
+            setAssignments((prev) => prev.filter((a) => (a._id || a.id) !== (deleteTarget._id || deleteTarget.id)));
+        } catch (err) {
+            setError(err.message || "Failed to delete assignment.");
+        } finally {
+            setDeleteTarget(null);
+        }
     };
+
+    if (loading) return <div className="ada-page"><p>Loading assignments...</p></div>;
 
     return (
         <div className="ada-page">
             <h1 className="ada-title">Assignments</h1>
             <p className="ada-sub">See below the available assignments</p>
+
+            {error && <p className="ada-error">{error}</p>}
 
             <button className="ada-add-btn" onClick={openAddModal}>
                 Add Assignment
@@ -103,7 +151,7 @@ export default function AdminAssignment() {
 
             <div className="ada-list">
                 {assignments.map((a) => (
-                    <div className="ada-row" key={a.id}>
+                    <div className="ada-row" key={a._id || a.id}>
                         <span className="ada-row-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 20 20">
                                 <path d="M0 0h20v20H0z" fill="none" />
@@ -113,7 +161,7 @@ export default function AdminAssignment() {
                         <div className="ada-row-text">
                             <p className="ada-row-title">{a.subject}</p>
                             <p className="ada-row-meta">
-                                {a.classLabel} . To be submitted {a.due}
+                                {a.classLabel} . To be submitted {a.due || a.dueDate}
                             </p>
                         </div>
                         <button
@@ -215,13 +263,15 @@ export default function AdminAssignment() {
                                     />
                                 </div>
 
-                                <button type="submit" className="ada-submit-btn">
-                                    Add Assignment
+                                <button type="submit" className="ada-submit-btn" disabled={submitting}>
+                                    {submitting ? "Adding..." : "Add Assignment"}
                                     <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
                                         <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z" />
                                     </svg>
                                 </button>
                             </div>
+
+                            {formError && <p className="ada-error">{formError}</p>}
                         </form>
                     </div>
                 </div>

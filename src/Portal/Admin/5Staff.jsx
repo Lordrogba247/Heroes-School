@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./5Staff.css";
+
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 // Staff role options — Admin, generic Teacher, or Class Teacher for a specific class
 const roleOptions = [
@@ -18,47 +20,70 @@ const roleOptions = [
     "Class Teacher SSS 3",
 ];
 
-// Mock staff data — backend dev go replace with real API (all staff)
-const initialStaff = [
-    { id: 1, name: "Adedayo Tofunmi Moses", staffId: "HCS/2025/01324", sex: "M", role: "Admin" },
-    { id: 2, name: "Adekoya Bimbo Mosunmola", staffId: "HCS/2025/01325", sex: "F", role: "Class Teacher JSS 2" },
-    { id: 3, name: "Temidire Audu Ali", staffId: "HCS/2025/01326", sex: "M", role: "Class Teacher JSS 1" },
-    { id: 4, name: "Richard Judith emenembo", staffId: "HPS/2025/01314", sex: "F", role: "Teacher" },
-    { id: 5, name: "Adedayo Tofunmi Moses", staffId: "HC/2025/01354", sex: "M", role: "Class Teacher Primary 2" },
-    { id: 6, name: "Adedayo Tofunmi Moses", staffId: "HC/2025/01327", sex: "M", role: "Class Teacher JSS 3" },
-    { id: 7, name: "Abdulafeez Simbiat Rukayat", staffId: "HC/2025/01424", sex: "F", role: "Class Teacher Primary 5" },
-    { id: 8, name: "Luke Demilade Mary", staffId: "HCS/2025/01320", sex: "F", role: "Class Teacher SSS 2" },
-    { id: 9, name: "Adedayo Tofunmi Moses", staffId: "HCS/2025/01328", sex: "M", role: "Class Teacher SSS 1" },
-    { id: 10, name: "Tijesunimi Irede Dorcas", staffId: "HPS/2025/01340", sex: "F", role: "Class Teacher SSS 3" },
-];
-
 const emptyForm = { surname: "", otherNames: "", sex: "", role: "" };
 
 export default function AdminStaffList() {
-    const [staffList, setStaffList] = useState(initialStaff);
+    const [staffList, setStaffList] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editingStaff, setEditingStaff] = useState(null);
     const [form, setForm] = useState(emptyForm);
+    const [submitting, setSubmitting] = useState(false);
+    const [formError, setFormError] = useState("");
 
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [resetTarget, setResetTarget] = useState(null);
 
+    const token = localStorage.getItem("token");
+
+    const loadStaff = () => {
+        setLoading(true);
+        setError("");
+        fetch(`${BASE_URL}/api/admin/staff`, {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load staff.");
+                return res.json();
+            })
+            .then((data) => setStaffList(data.staff || data || []))
+            .catch(() => setError("Failed to load staff."))
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        loadStaff();
+    }, []);
+
     const openAddModal = () => {
         setEditingStaff(null);
         setForm(emptyForm);
+        setFormError("");
         setModalOpen(true);
     };
 
     const openEditModal = (staff) => {
-        const [surname, ...rest] = staff.name.split(" ");
+        let surname = staff.surname || "";
+        let otherNames = staff.otherNames || "";
+
+        // Fallback: if backend only returns a combined "name" field, split it
+        if (!surname && !otherNames && staff.name) {
+            const [first, ...rest] = staff.name.split(" ");
+            surname = first || "";
+            otherNames = rest.join(" ");
+        }
+
         setEditingStaff(staff);
         setForm({
-            surname: surname || "",
-            otherNames: rest.join(" "),
-            sex: staff.sex === "M" ? "Male" : staff.sex === "F" ? "Female" : "",
+            surname,
+            otherNames,
+            sex: staff.sex === "M" ? "Male" : staff.sex === "F" ? "Female" : (staff.sex || ""),
             role: staff.role,
         });
+        setFormError("");
         setModalOpen(true);
     };
 
@@ -72,49 +97,79 @@ export default function AdminStaffList() {
         setForm((prev) => ({ ...prev, [field]: value }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        const fullName = `${form.surname} ${form.otherNames}`.trim();
-        const sexLetter = form.sex === "Male" ? "M" : form.sex === "Female" ? "F" : "";
+        const sexLetter = form.sex === "Male" ? "M" : form.sex === "Female" ? "F" : form.sex;
+        const payload = {
+            surname: form.surname,
+            otherNames: form.otherNames,
+            sex: sexLetter,
+            role: form.role,
+        };
 
-        if (editingStaff) {
-            // Backend dev go PUT/PATCH update here
-            setStaffList((prev) =>
-                prev.map((s) =>
-                    s.id === editingStaff.id
-                        ? { ...s, name: fullName, sex: sexLetter, role: form.role }
-                        : s
-                )
-            );
-        } else {
-            // Backend dev go POST new staff here, then use the real returned staffId.
-            // This should also create the corresponding entry in the relevant portal
-            // (e.g. show up under "Class Teacher" for that class on the staff dashboard).
-            const newStaff = {
-                id: Date.now(),
-                name: fullName,
-                staffId: "Pending",
-                sex: sexLetter,
-                role: form.role,
-            };
-            setStaffList((prev) => [...prev, newStaff]);
+        setSubmitting(true);
+        setFormError("");
+        try {
+            if (editingStaff) {
+                const res = await fetch(`${BASE_URL}/api/admin/staff/${editingStaff._id || editingStaff.id}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || "Failed to update staff.");
+            } else {
+                const res = await fetch(`${BASE_URL}/api/admin/staff`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`,
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || "Failed to add staff.");
+            }
+            closeModal();
+            loadStaff(); // refresh from server so we get the real staffId
+        } catch (err) {
+            setFormError(err.message || "Something went wrong. Please try again.");
+        } finally {
+            setSubmitting(false);
         }
-
-        closeModal();
     };
 
-    const confirmDelete = () => {
-        // Backend dev go DELETE request here
-        setStaffList((prev) => prev.filter((s) => s.id !== deleteTarget.id));
-        setDeleteTarget(null);
+    const confirmDelete = async () => {
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/staff/${deleteTarget._id || deleteTarget.id}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` },
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.message || "Failed to remove staff.");
+            }
+            setStaffList((prev) => prev.filter((s) => (s._id || s.id) !== (deleteTarget._id || deleteTarget.id)));
+        } catch (err) {
+            setError(err.message || "Failed to remove staff.");
+        } finally {
+            setDeleteTarget(null);
+        }
     };
 
     const isEditing = Boolean(editingStaff);
+
+    if (loading) return <div className="adst-page"><p>Loading staff...</p></div>;
 
     return (
         <div className="adst-page">
             <h1 className="adst-title">Staff</h1>
             <p className="adst-sub">Add, assign role and manage staff details</p>
+
+            {error && <p className="adst-error">{error}</p>}
 
             <div className="adst-table-card">
                 <div className="adst-table-wrap">
@@ -130,8 +185,8 @@ export default function AdminStaffList() {
                         </thead>
                         <tbody>
                             {staffList.map((s) => (
-                                <tr key={s.id}>
-                                    <td className="adst-name">{s.name}</td>
+                                <tr key={s._id || s.id}>
+                                    <td className="adst-name">{s.name || `${s.surname} ${s.otherNames}`}</td>
                                     <td>{s.staffId}</td>
                                     <td>{s.sex}</td>
                                     <td className="adst-role">{s.role}</td>
@@ -172,6 +227,11 @@ export default function AdminStaffList() {
                                     </td>
                                 </tr>
                             ))}
+                            {staffList.length === 0 && (
+                                <tr>
+                                    <td colSpan={5} className="adst-empty-row">No staff added yet.</td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -263,8 +323,10 @@ export default function AdminStaffList() {
                                 </div>
                             </div>
 
-                            <button type="submit" className="adst-submit-btn">
-                                {isEditing ? "Save Changes" : "Add Staff"}
+                            {formError && <p className="adst-error">{formError}</p>}
+
+                            <button type="submit" className="adst-submit-btn" disabled={submitting}>
+                                {submitting ? "Saving..." : isEditing ? "Save Changes" : "Add Staff"}
                                 <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
                                     <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                                 </svg>
@@ -280,7 +342,7 @@ export default function AdminStaffList() {
                     <div className="adst-confirm-modal" onClick={(e) => e.stopPropagation()}>
                         <h3 className="adst-confirm-title">Remove Staff?</h3>
                         <p className="adst-confirm-text">
-                            Are you sure you want to remove <strong>{deleteTarget.name}</strong> from the staff list? This cannot be undone.
+                            Are you sure you want to remove <strong>{deleteTarget.name || `${deleteTarget.surname} ${deleteTarget.otherNames}`}</strong> from the staff list? This cannot be undone.
                         </p>
                         <div className="adst-confirm-actions">
                             <button
@@ -304,6 +366,7 @@ export default function AdminStaffList() {
             {resetTarget && (
                 <ResetStaffPasswordModal
                     staff={resetTarget}
+                    token={token}
                     onClose={() => setResetTarget(null)}
                 />
             )}
@@ -311,24 +374,46 @@ export default function AdminStaffList() {
     );
 }
 
-function ResetStaffPasswordModal({ staff, onClose }) {
+function ResetStaffPasswordModal({ staff, token, onClose }) {
     const [newPassword, setNewPassword] = useState("");
     const [status, setStatus] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
 
     const generatePassword = () => {
-        // Simple readable mock password — backend dev go generate this securely server-side
         const generated = `Hc${Math.floor(1000 + Math.random() * 9000)}`;
         setNewPassword(generated);
         setStatus(null);
     };
 
-    const handleReset = () => {
+    const handleReset = async () => {
         if (!newPassword.trim()) {
             setStatus({ type: "error", message: "Please enter or generate a password first." });
             return;
         }
-        // Backend dev go POST this new password for `staff.id` here
-        setStatus({ type: "success", message: `Password reset for ${staff.name}.` });
+
+        setSubmitting(true);
+        setStatus(null);
+        try {
+            const res = await fetch(
+                `${BASE_URL}/api/admin/staff/${staff._id || staff.id}/reset-password`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ newPassword }),
+                }
+            );
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to reset password.");
+
+            setStatus({ type: "success", message: `Password reset for ${staff.name || staff.surname}.` });
+        } catch (err) {
+            setStatus({ type: "error", message: err.message || "Failed to reset password." });
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -342,7 +427,7 @@ function ResetStaffPasswordModal({ staff, onClose }) {
 
                 <h3 className="adst-reset-title">Reset Password</h3>
                 <p className="adst-reset-sub">
-                    Set a new password for <strong>{staff.name}</strong> ({staff.staffId})
+                    Set a new password for <strong>{staff.name || `${staff.surname} ${staff.otherNames}`}</strong> ({staff.staffId})
                 </p>
 
                 <div className="adst-reset-field-row">
@@ -364,8 +449,8 @@ function ResetStaffPasswordModal({ staff, onClose }) {
                     </p>
                 )}
 
-                <button className="adst-submit-btn" onClick={handleReset}>
-                    Reset Password
+                <button className="adst-submit-btn" onClick={handleReset} disabled={submitting}>
+                    {submitting ? "Resetting..." : "Reset Password"}
                 </button>
             </div>
         </div>
