@@ -20,6 +20,20 @@ const roleOptions = [
     "Class Teacher SSS 3",
 ];
 
+// Mock staff data — fallback/demo data shown if API fails or returns empty
+const initialStaff = [
+    { id: 1, name: "Adedayo Tofunmi Moses", staffId: "HCS/2025/01324", sex: "M", role: "Admin" },
+    { id: 2, name: "Adekoya Bimbo Mosunmola", staffId: "HCS/2025/01325", sex: "F", role: "Class Teacher JSS 2" },
+    { id: 3, name: "Temidire Audu Ali", staffId: "HCS/2025/01326", sex: "M", role: "Class Teacher JSS 1" },
+    { id: 4, name: "Richard Judith emenembo", staffId: "HPS/2025/01314", sex: "F", role: "Teacher" },
+    { id: 5, name: "Adedayo Tofunmi Moses", staffId: "HC/2025/01354", sex: "M", role: "Class Teacher Primary 2" },
+    { id: 6, name: "Adedayo Tofunmi Moses", staffId: "HC/2025/01327", sex: "M", role: "Class Teacher JSS 3" },
+    { id: 7, name: "Abdulafeez Simbiat Rukayat", staffId: "HC/2025/01424", sex: "F", role: "Class Teacher Primary 5" },
+    { id: 8, name: "Luke Demilade Mary", staffId: "HCS/2025/01320", sex: "F", role: "Class Teacher SSS 2" },
+    { id: 9, name: "Adedayo Tofunmi Moses", staffId: "HCS/2025/01328", sex: "M", role: "Class Teacher SSS 1" },
+    { id: 10, name: "Tijesunimi Irede Dorcas", staffId: "HPS/2025/01340", sex: "F", role: "Class Teacher SSS 3" },
+];
+
 const emptyForm = { surname: "", otherNames: "", sex: "", role: "" };
 
 export default function AdminStaffList() {
@@ -49,8 +63,15 @@ export default function AdminStaffList() {
                 if (!res.ok) throw new Error("Failed to load staff.");
                 return res.json();
             })
-            .then((data) => setStaffList(data.staff || data || []))
-            .catch(() => setError("Failed to load staff."))
+            .then((data) => {
+                const fetched = data.staff || data || [];
+                // Fall back to mock data if API returns an empty list
+                setStaffList(fetched.length > 0 ? fetched : initialStaff);
+            })
+            .catch(() => {
+                setError("Failed to load staff. Showing sample data.");
+                setStaffList(initialStaff);
+            })
             .finally(() => setLoading(false));
     };
 

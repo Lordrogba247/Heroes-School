@@ -10,6 +10,20 @@ const classOptions = [
     "SSS 1", "SSS 2", "SSS 3",
 ];
 
+// Mock students data — fallback/demo data shown if API fails or returns empty
+const initialStudents = [
+    { id: 1, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01324", sex: "M", class: "JSS2" },
+    { id: 2, name: "Adekoya Bimbo Mosunmola", studentId: "HC/2025/01325", sex: "F", class: "JSS2" },
+    { id: 3, name: "Temidire Audu Ali", studentId: "HC/2025/01326", sex: "M", class: "JSS2" },
+    { id: 4, name: "Richard Judith emenembo", studentId: "HC/2025/01314", sex: "F", class: "JSS2" },
+    { id: 5, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01354", sex: "M", class: "JSS2" },
+    { id: 6, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01327", sex: "M", class: "JSS2" },
+    { id: 7, name: "Abdulafeez Simbiat Rukayat", studentId: "HC/2025/01424", sex: "F", class: "JSS2" },
+    { id: 8, name: "Luke Demilade Mary", studentId: "HC/2025/01320", sex: "F", class: "JSS2" },
+    { id: 9, name: "Adedayo Tofunmi Moses", studentId: "HC/2025/01328", sex: "M", class: "JSS2" },
+    { id: 10, name: "Tijesunimi Irede Dorcas", studentId: "HC/2025/01340", sex: "F", class: "JSS2" },
+];
+
 export default function AdminStudentsList() {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -35,8 +49,21 @@ export default function AdminStudentsList() {
                 if (!res.ok) throw new Error("Failed to load students.");
                 return res.json();
             })
-            .then((data) => setStudents(data.students || data || []))
-            .catch(() => setError("Failed to load students."))
+            .then((data) => {
+                const fetched = data.students || data || [];
+                if (fetched.length > 0) {
+                    setStudents(fetched);
+                } else {
+                    // Fall back to mock data (filtered by the selected class) if API returns empty
+                    const mockForClass = initialStudents.filter((s) => s.class === cls.replace(" ", ""));
+                    setStudents(mockForClass);
+                }
+            })
+            .catch(() => {
+                setError("Failed to load students. Showing sample data.");
+                const mockForClass = initialStudents.filter((s) => s.class === cls.replace(" ", ""));
+                setStudents(mockForClass);
+            })
             .finally(() => setLoading(false));
     };
 
