@@ -49,12 +49,12 @@ export default function AdminStudentsList() {
                 if (!res.ok) throw new Error("Failed to load students.");
                 return res.json();
             })
-            .then((data) => {
-                const fetched = data.students || data || [];
+            .then((result) => {
+                // Response shape: { success, data: [...] } — data is a plain array
+                const fetched = result.data || [];
                 if (fetched.length > 0) {
                     setStudents(fetched);
                 } else {
-                    // Fall back to mock data (filtered by the selected class) if API returns empty
                     const mockForClass = initialStudents.filter((s) => s.class === cls.replace(" ", ""));
                     setStudents(mockForClass);
                 }
@@ -100,7 +100,7 @@ export default function AdminStudentsList() {
         setActionError("");
         try {
             if (editingStudent) {
-                const res = await fetch(`${BASE_URL}/api/admin/students/${editingStudent._id || editingStudent.id}`, {
+                const res = await fetch(`${BASE_URL}/api/admin/students/${editingStudent.id}`, {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
@@ -123,7 +123,7 @@ export default function AdminStudentsList() {
                 if (!res.ok) throw new Error(data.message || "Failed to add student.");
             }
             closeModal();
-            loadStudents(classFilter); // refresh — also picks up class changes/moves
+            loadStudents(classFilter);
         } catch (err) {
             setActionError(err.message || "Something went wrong. Please try again.");
         }
@@ -131,7 +131,7 @@ export default function AdminStudentsList() {
 
     const confirmDelete = async () => {
         try {
-            const res = await fetch(`${BASE_URL}/api/admin/students/${deleteTarget._id || deleteTarget.id}`, {
+            const res = await fetch(`${BASE_URL}/api/admin/students/${deleteTarget.id}`, {
                 method: "DELETE",
                 headers: { "Authorization": `Bearer ${token}` },
             });
@@ -139,7 +139,7 @@ export default function AdminStudentsList() {
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.message || "Failed to remove student.");
             }
-            setStudents((prev) => prev.filter((s) => (s._id || s.id) !== (deleteTarget._id || deleteTarget.id)));
+            setStudents((prev) => prev.filter((s) => s.id !== deleteTarget.id));
         } catch (err) {
             setError(err.message || "Failed to remove student.");
         } finally {
@@ -180,11 +180,11 @@ export default function AdminStudentsList() {
                         </thead>
                         <tbody>
                             {students.map((s) => (
-                                <tr key={s._id || s.id}>
-                                    <td className="stu-name">{s.name || `${s.surname} ${s.otherNames}`}</td>
+                                <tr key={s.id}>
+                                    <td className="stu-name">{s.name}</td>
                                     <td>{s.studentId}</td>
                                     <td>{s.sex}</td>
-                                    <td>{s.class || s.studentClass}</td>
+                                    <td>{s.class}</td>
                                     <td>
                                         <div className="stu-actions">
                                             <span>Edit details</span>
@@ -246,7 +246,6 @@ export default function AdminStudentsList() {
 
             {actionError && <p className="stu-error">{actionError}</p>}
 
-            {/* Add / Edit modal */}
             <AddStudentModal
                 isOpen={modalOpen}
                 onClose={closeModal}
@@ -256,13 +255,12 @@ export default function AdminStudentsList() {
                 classOptions={classOptions}
             />
 
-            {/* Delete confirmation */}
             {deleteTarget && (
                 <div className="stu-modal-overlay" onClick={() => setDeleteTarget(null)}>
                     <div className="stu-confirm-modal" onClick={(e) => e.stopPropagation()}>
                         <h3 className="stu-confirm-title">Remove Student?</h3>
                         <p className="stu-confirm-text">
-                            Are you sure you want to remove <strong>{deleteTarget.name || `${deleteTarget.surname} ${deleteTarget.otherNames}`}</strong> from the student list? This cannot be undone.
+                            Are you sure you want to remove <strong>{deleteTarget.name}</strong> from the student list? This cannot be undone.
                         </p>
                         <div className="stu-confirm-actions">
                             <button
@@ -282,7 +280,6 @@ export default function AdminStudentsList() {
                 </div>
             )}
 
-            {/* Reset password modal */}
             {resetTarget && (
                 <ResetPasswordModal
                     student={resetTarget}
@@ -299,36 +296,33 @@ function ResetPasswordModal({ student, token, onClose }) {
     const [status, setStatus] = useState(null);
     const [submitting, setSubmitting] = useState(false);
 
-    const generatePassword = () => {
-        const generated = `Hc${Math.floor(1000 + Math.random() * 9000)}`;
-        setNewPassword(generated);
-        setStatus(null);
-    };
-
     const handleReset = async () => {
-        if (!newPassword.trim()) {
-            setStatus({ type: "error", message: "Please enter or generate a password first." });
-            return;
-        }
-
         setSubmitting(true);
         setStatus(null);
         try {
+            const trimmed = newPassword.trim();
+            const usingCustomPassword = trimmed.length >= 6;
+            const body = usingCustomPassword ? { newPassword: trimmed } : {};
+
             const res = await fetch(
-                `${BASE_URL}/api/admin/students/${student._id || student.id}/reset-password`,
+                `${BASE_URL}/api/admin/students/${student.id}/reset-password`,
                 {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${token}`,
                     },
-                    body: JSON.stringify({ newPassword }),
+                    body: JSON.stringify(body),
                 }
             );
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Failed to reset password.");
 
-            setStatus({ type: "success", message: `Password reset for ${student.name || student.surname}.` });
+            setStatus({
+                type: "success",
+                message: `Password reset for ${student.name}.`,
+                password: data.data?.newPassword || trimmed,
+            });
         } catch (err) {
             setStatus({ type: "error", message: err.message || "Failed to reset password." });
         } finally {
@@ -347,21 +341,29 @@ function ResetPasswordModal({ student, token, onClose }) {
 
                 <h3 className="stu-reset-title">Reset Password</h3>
                 <p className="stu-reset-sub">
-                    Set a new password for <strong>{student.name || `${student.surname} ${student.otherNames}`}</strong> ({student.studentId})
+                    Set a new password for <strong>{student.name}</strong> ({student.studentId})
+                </p>
+                <p className="stu-reset-hint">
+                    Leave blank to auto-generate a password, or type one (min. 6 characters).
                 </p>
 
                 <div className="stu-reset-field-row">
                     <input
                         type="text"
                         className="stu-input"
-                        placeholder="New password"
+                        placeholder="New password (optional)"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
+                        disabled={status?.type === "success"}
                     />
-                    <button className="stu-generate-btn" onClick={generatePassword}>
-                        Generate
-                    </button>
                 </div>
+
+                {status?.type === "success" && (
+                    <div className="stu-reset-result">
+                        <p className="stu-reset-result-label">New password:</p>
+                        <p className="stu-reset-result-value">{status.password}</p>
+                    </div>
+                )}
 
                 {status && (
                     <p className={`stu-reset-status stu-reset-status--${status.type}`}>
@@ -369,8 +371,8 @@ function ResetPasswordModal({ student, token, onClose }) {
                     </p>
                 )}
 
-                <button className="stu-submit-btn" onClick={handleReset} disabled={submitting}>
-                    {submitting ? "Resetting..." : "Reset Password"}
+                <button className="stu-submit-btn" onClick={handleReset} disabled={submitting || status?.type === "success"}>
+                    {submitting ? "Resetting..." : status?.type === "success" ? "Password Reset" : "Reset Password"}
                 </button>
             </div>
         </div>

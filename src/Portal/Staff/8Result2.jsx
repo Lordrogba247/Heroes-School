@@ -56,6 +56,7 @@ export default function StaffResultEntry() {
 
     // Load the student's info by re-fetching the class list and matching the route param.
     // (No single-student endpoint exists in the docs, so this is the safest option.)
+    // studentId here is the Mongo ObjectId — matches StaffResultsList's navigate call.
     useEffect(() => {
         fetch(`${BASE_URL}/api/staff/results/students`, {
             method: "GET",
@@ -66,8 +67,8 @@ export default function StaffResultEntry() {
                 return res.json();
             })
             .then((data) => {
-                const list = data.students || data || [];
-                const found = list.find((s) => String(s._id || s.id) === studentId);
+                const list = data.data || [];
+                const found = list.find((s) => s.studentId === studentId);
                 setStudent(found || null);
                 if (!found) setLoadError("Student not found.");
             })
@@ -150,7 +151,7 @@ export default function StaffResultEntry() {
         setSubmitError("");
         try {
             const payload = {
-                studentId: student._id || student.id,
+                studentId: student.studentId,
                 session,
                 term,
                 subjects: results.map((r) => ({
@@ -192,9 +193,9 @@ export default function StaffResultEntry() {
                 ← Back to Students
             </button>
 
-            <h1 className="sre-title">{student.name || `${student.surname} ${student.otherNames}`}</h1>
+            <h1 className="sre-title">{student.name}</h1>
             <p className="sre-sub">
-                {student.studentId} &nbsp; {student.sex} &nbsp; {student.classLabel || student.class}
+                {student.registrationId} &nbsp; {student.sex} &nbsp; {student.classLabel || student.class}
             </p>
 
             {/* Session / Term */}

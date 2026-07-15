@@ -32,8 +32,9 @@ export default function StaffProfile() {
                 return res.json();
             })
             .then((data) => {
-                setStaffInfo(data);
-                localStorage.setItem("user", JSON.stringify(data));
+                // Confirmed shape: { success, data: { name, initials, role, staffId, email, phone, sex, profileImage, department, assignedClass } }
+                setStaffInfo(data.data);
+                localStorage.setItem("user", JSON.stringify(data.data));
             })
             .catch(() => {
                 // Silent fail — falls back to whatever was cached in localStorage
@@ -111,6 +112,15 @@ export default function StaffProfile() {
 
             {/* Staff info */}
             <div className="sp-info">
+                <div className="sp-avatar-row">
+                    <div className="sp-avatar">
+                        {staffInfo.profileImage ? (
+                            <img src={staffInfo.profileImage} alt={staffInfo.name} className="sp-avatar-img" />
+                        ) : (
+                            <span className="sp-avatar-initials">{staffInfo.initials}</span>
+                        )}
+                    </div>
+                </div>
                 <div className="sp-info-row">
                     <span className="sp-info-label">Name:</span>
                     <span className="sp-info-value">{staffInfo.name}</span>
@@ -126,6 +136,22 @@ export default function StaffProfile() {
                 <div className="sp-info-row">
                     <span className="sp-info-label">Sex:</span>
                     <span className="sp-info-value">{staffInfo.sex}</span>
+                </div>
+                <div className="sp-info-row">
+                    <span className="sp-info-label">Email:</span>
+                    <span className="sp-info-value">{staffInfo.email}</span>
+                </div>
+                <div className="sp-info-row">
+                    <span className="sp-info-label">Phone:</span>
+                    <span className="sp-info-value">{staffInfo.phone}</span>
+                </div>
+                <div className="sp-info-row">
+                    <span className="sp-info-label">Department:</span>
+                    <span className="sp-info-value">{staffInfo.department}</span>
+                </div>
+                <div className="sp-info-row">
+                    <span className="sp-info-label">Assigned Class:</span>
+                    <span className="sp-info-value">{staffInfo.assignedClass}</span>
                 </div>
             </div>
 

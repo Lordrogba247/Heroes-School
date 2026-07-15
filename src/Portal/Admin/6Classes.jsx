@@ -2,50 +2,26 @@ import { useEffect, useState } from "react";
 import "./6Classes.css";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
-const STUDENTS_ENDPOINT = `${BASE_URL}/api/admin/students`;
+const CLASSES_ENDPOINT = `${BASE_URL}/api/admin/classes`;
 const STAFF_ENDPOINT = `${BASE_URL}/api/admin/staff`;
 
-// The fixed list of classes the school runs. Order shown = order on screen.
-// Consider replacing this with GET /api/admin/meta's `classes[]` if the backend
-// exposes it, so this list stays in sync with the school's actual configuration.
-const CLASS_LIST = [
-    "Primary 1",
-    "Primary 2",
-    "Primary 3",
-    "Primary 4",
-    "Primary 5",
-    "JSS 1",
-    "JSS 2",
-    "JSS 3",
-    "SSS 1",
-    "SSS 2",
-    "SSS 3",
+// Mock classes data — fallback/demo data shown if API fails or returns empty
+const initialClasses = [
+    { id: "c1", name: "Primary 1", code: "P1", classTeacher: null, studentCount: 22, capacity: 40 },
+    { id: "c2", name: "Primary 2", code: "P2", classTeacher: null, studentCount: 19, capacity: 40 },
+    { id: "c3", name: "Primary 3", code: "P3", classTeacher: null, studentCount: 25, capacity: 40 },
+    { id: "c4", name: "Primary 4", code: "P4", classTeacher: null, studentCount: 20, capacity: 40 },
+    { id: "c5", name: "Primary 5", code: "P5", classTeacher: null, studentCount: 18, capacity: 40 },
+    { id: "c6", name: "JSS 1", code: "JSS1", classTeacher: null, studentCount: 30, capacity: 40 },
+    { id: "c7", name: "JSS 2", code: "JSS2", classTeacher: null, studentCount: 28, capacity: 40 },
+    { id: "c8", name: "JSS 3", code: "JSS3", classTeacher: null, studentCount: 26, capacity: 40 },
+    { id: "c9", name: "SSS 1", code: "SSS1", classTeacher: null, studentCount: 24, capacity: 40 },
+    { id: "c10", name: "SSS 2", code: "SSS2", classTeacher: null, studentCount: 21, capacity: 40 },
+    { id: "c11", name: "SSS 3", code: "SSS3", classTeacher: null, studentCount: 19, capacity: 40 },
 ];
 
-// Pulls the class a given student record belongs to.
-// Checks both `class` and `studentClass` since the exact field name returned
-// by GET /api/admin/students is unconfirmed (see Staff Portal doc notes).
-function mapStudentToClass(student) {
-    return student.class || student.studentClass;
-}
-
-// Pulls the class a given staff record is assigned to teach, and their name.
-// Checks both `name` and split surname/otherNames, since the exact shape
-// returned by GET /api/admin/staff is unconfirmed.
-function mapStaffToClass(staffMember) {
-    const name = staffMember.name || `${staffMember.surname || ""} ${staffMember.otherNames || ""}`.trim();
-    return {
-        name,
-        assignedClass: staffMember.assignedClass,
-    };
-}
-
 export default function AdminClasses() {
-    const [classes, setClasses] = useState(
-        // Render the table immediately with empty counts/teachers
-        // so the layout doesn't jump once real data arrives.
-        CLASS_LIST.map((name) => ({ name, teacher: "—", count: 0 }))
-    );
+    const [classes, setClasses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -60,47 +36,45 @@ export default function AdminClasses() {
                 const token = localStorage.getItem("token");
                 const headers = { "Authorization": `Bearer ${token}` };
 
-                const [studentsRes, staffRes] = await Promise.all([
-                    fetch(STUDENTS_ENDPOINT, { method: "GET", headers }),
+                const [classesRes, staffRes] = await Promise.all([
+                    fetch(CLASSES_ENDPOINT, { method: "GET", headers }),
                     fetch(STAFF_ENDPOINT, { method: "GET", headers }),
                 ]);
 
-                if (!studentsRes.ok || !staffRes.ok) {
+                if (!classesRes.ok || !staffRes.ok) {
                     throw new Error("Failed to load class data");
                 }
 
-                const studentsData = await studentsRes.json();
-                const staffData = await staffRes.json();
+                const classesResult = await classesRes.json();
+                const staffResult = await staffRes.json();
 
-                // Handle either a plain array or a { students: [...] } / { staff: [...] } wrapper
-                const students = studentsData.students || studentsData || [];
-                const staff = staffData.staff || staffData || [];
+                // Both endpoints return { success, data: [...] } — data is a plain array
+                const fetchedClasses = classesResult.data || [];
+                const staffList = staffResult.data || [];
 
-                // Count students per class
-                const countByClass = {};
-                students.forEach((student) => {
-                    const className = mapStudentToClass(student);
-                    if (className) countByClass[className] = (countByClass[className] || 0) + 1;
+                if (fetchedClasses.length === 0) {
+                    if (isMounted) setClasses(initialClasses);
+                    return;
+                }
+
+                // classTeacher on the class record is a staffId string (or null) — look up
+                // the matching staff member's name to display instead of the raw ID.
+                const nameByStaffId = {};
+                staffList.forEach((s) => {
+                    nameByStaffId[s.staffId] = s.name;
                 });
 
-                // Find the assigned class teacher per class
-                const teacherByClass = {};
-                staff.forEach((staffMember) => {
-                    const { name, assignedClass } = mapStaffToClass(staffMember);
-                    if (assignedClass) {
-                        teacherByClass[assignedClass] = name;
-                    }
-                });
-
-                const merged = CLASS_LIST.map((className) => ({
-                    name: className,
-                    teacher: teacherByClass[className] || "Not assigned",
-                    count: countByClass[className] || 0,
+                const merged = fetchedClasses.map((c) => ({
+                    ...c,
+                    teacherName: c.classTeacher ? (nameByStaffId[c.classTeacher] || c.classTeacher) : "Not assigned",
                 }));
 
                 if (isMounted) setClasses(merged);
             } catch (err) {
-                if (isMounted) setError(err.message);
+                if (isMounted) {
+                    setError(err.message);
+                    setClasses(initialClasses);
+                }
             } finally {
                 if (isMounted) setLoading(false);
             }
@@ -135,13 +109,17 @@ export default function AdminClasses() {
                         </tr>
                     </thead>
                     <tbody>
-                        {classes.map((c) => (
-                            <tr key={c.name}>
-                                <td>{c.name}</td>
-                                <td>{loading ? "Loading…" : c.teacher}</td>
-                                <td>{loading ? "—" : c.count}</td>
-                            </tr>
-                        ))}
+                        {loading ? (
+                            <tr><td colSpan={3}>Loading…</td></tr>
+                        ) : (
+                            classes.map((c) => (
+                                <tr key={c.id}>
+                                    <td>{c.name}</td>
+                                    <td>{c.teacherName || (c.classTeacher ? c.classTeacher : "Not assigned")}</td>
+                                    <td>{c.studentCount ?? c.count ?? 0}{c.capacity ? ` / ${c.capacity}` : ""}</td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>

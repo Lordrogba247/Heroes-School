@@ -3,7 +3,6 @@ import "./5Staff.css";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
-// Staff role options — Admin, generic Teacher, or Class Teacher for a specific class
 const roleOptions = [
     "Admin",
     "Teacher",
@@ -20,7 +19,6 @@ const roleOptions = [
     "Class Teacher SSS 3",
 ];
 
-// Mock staff data — fallback/demo data shown if API fails or returns empty
 const initialStaff = [
     { id: 1, name: "Adedayo Tofunmi Moses", staffId: "HCS/2025/01324", sex: "M", role: "Admin" },
     { id: 2, name: "Adekoya Bimbo Mosunmola", staffId: "HCS/2025/01325", sex: "F", role: "Class Teacher JSS 2" },
@@ -63,9 +61,9 @@ export default function AdminStaffList() {
                 if (!res.ok) throw new Error("Failed to load staff.");
                 return res.json();
             })
-            .then((data) => {
-                const fetched = data.staff || data || [];
-                // Fall back to mock data if API returns an empty list
+            .then((result) => {
+                // Response shape: { success, data: [...] } — data is a plain array
+                const fetched = result.data || [];
                 setStaffList(fetched.length > 0 ? fetched : initialStaff);
             })
             .catch(() => {
@@ -87,20 +85,13 @@ export default function AdminStaffList() {
     };
 
     const openEditModal = (staff) => {
-        let surname = staff.surname || "";
-        let otherNames = staff.otherNames || "";
-
-        // Fallback: if backend only returns a combined "name" field, split it
-        if (!surname && !otherNames && staff.name) {
-            const [first, ...rest] = staff.name.split(" ");
-            surname = first || "";
-            otherNames = rest.join(" ");
-        }
+        // Backend always returns a single combined "name" field — split it for the form
+        const [surname, ...rest] = (staff.name || "").split(" ");
 
         setEditingStaff(staff);
         setForm({
-            surname,
-            otherNames,
+            surname: surname || "",
+            otherNames: rest.join(" "),
             sex: staff.sex === "M" ? "Male" : staff.sex === "F" ? "Female" : (staff.sex || ""),
             role: staff.role,
         });
@@ -132,7 +123,7 @@ export default function AdminStaffList() {
         setFormError("");
         try {
             if (editingStaff) {
-                const res = await fetch(`${BASE_URL}/api/admin/staff/${editingStaff._id || editingStaff.id}`, {
+                const res = await fetch(`${BASE_URL}/api/admin/staff/${editingStaff.id}`, {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
@@ -155,7 +146,7 @@ export default function AdminStaffList() {
                 if (!res.ok) throw new Error(data.message || "Failed to add staff.");
             }
             closeModal();
-            loadStaff(); // refresh from server so we get the real staffId
+            loadStaff();
         } catch (err) {
             setFormError(err.message || "Something went wrong. Please try again.");
         } finally {
@@ -165,7 +156,7 @@ export default function AdminStaffList() {
 
     const confirmDelete = async () => {
         try {
-            const res = await fetch(`${BASE_URL}/api/admin/staff/${deleteTarget._id || deleteTarget.id}`, {
+            const res = await fetch(`${BASE_URL}/api/admin/staff/${deleteTarget.id}`, {
                 method: "DELETE",
                 headers: { "Authorization": `Bearer ${token}` },
             });
@@ -173,7 +164,7 @@ export default function AdminStaffList() {
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.message || "Failed to remove staff.");
             }
-            setStaffList((prev) => prev.filter((s) => (s._id || s.id) !== (deleteTarget._id || deleteTarget.id)));
+            setStaffList((prev) => prev.filter((s) => s.id !== deleteTarget.id));
         } catch (err) {
             setError(err.message || "Failed to remove staff.");
         } finally {
@@ -206,8 +197,8 @@ export default function AdminStaffList() {
                         </thead>
                         <tbody>
                             {staffList.map((s) => (
-                                <tr key={s._id || s.id}>
-                                    <td className="adst-name">{s.name || `${s.surname} ${s.otherNames}`}</td>
+                                <tr key={s.id}>
+                                    <td className="adst-name">{s.name}</td>
                                     <td>{s.staffId}</td>
                                     <td>{s.sex}</td>
                                     <td className="adst-role">{s.role}</td>
@@ -267,7 +258,6 @@ export default function AdminStaffList() {
                 </button>
             </div>
 
-            {/* Add / Edit modal — inline (no separate file for Staff) */}
             {modalOpen && (
                 <div className="adst-modal-overlay" onClick={closeModal}>
                     <div className="adst-modal" onClick={(e) => e.stopPropagation()}>
@@ -357,13 +347,12 @@ export default function AdminStaffList() {
                 </div>
             )}
 
-            {/* Delete confirmation */}
             {deleteTarget && (
                 <div className="adst-modal-overlay" onClick={() => setDeleteTarget(null)}>
                     <div className="adst-confirm-modal" onClick={(e) => e.stopPropagation()}>
                         <h3 className="adst-confirm-title">Remove Staff?</h3>
                         <p className="adst-confirm-text">
-                            Are you sure you want to remove <strong>{deleteTarget.name || `${deleteTarget.surname} ${deleteTarget.otherNames}`}</strong> from the staff list? This cannot be undone.
+                            Are you sure you want to remove <strong>{deleteTarget.name}</strong> from the staff list? This cannot be undone.
                         </p>
                         <div className="adst-confirm-actions">
                             <button
@@ -383,7 +372,6 @@ export default function AdminStaffList() {
                 </div>
             )}
 
-            {/* Reset password modal */}
             {resetTarget && (
                 <ResetStaffPasswordModal
                     staff={resetTarget}
@@ -400,36 +388,33 @@ function ResetStaffPasswordModal({ staff, token, onClose }) {
     const [status, setStatus] = useState(null);
     const [submitting, setSubmitting] = useState(false);
 
-    const generatePassword = () => {
-        const generated = `Hc${Math.floor(1000 + Math.random() * 9000)}`;
-        setNewPassword(generated);
-        setStatus(null);
-    };
-
     const handleReset = async () => {
-        if (!newPassword.trim()) {
-            setStatus({ type: "error", message: "Please enter or generate a password first." });
-            return;
-        }
-
         setSubmitting(true);
         setStatus(null);
         try {
+            const trimmed = newPassword.trim();
+            const usingCustomPassword = trimmed.length >= 6;
+            const body = usingCustomPassword ? { newPassword: trimmed } : {};
+
             const res = await fetch(
-                `${BASE_URL}/api/admin/staff/${staff._id || staff.id}/reset-password`,
+                `${BASE_URL}/api/admin/staff/${staff.id}/reset-password`,
                 {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${token}`,
                     },
-                    body: JSON.stringify({ newPassword }),
+                    body: JSON.stringify(body),
                 }
             );
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Failed to reset password.");
 
-            setStatus({ type: "success", message: `Password reset for ${staff.name || staff.surname}.` });
+            setStatus({
+                type: "success",
+                message: `Password reset for ${staff.name}.`,
+                password: data.data?.newPassword || trimmed,
+            });
         } catch (err) {
             setStatus({ type: "error", message: err.message || "Failed to reset password." });
         } finally {
@@ -448,21 +433,29 @@ function ResetStaffPasswordModal({ staff, token, onClose }) {
 
                 <h3 className="adst-reset-title">Reset Password</h3>
                 <p className="adst-reset-sub">
-                    Set a new password for <strong>{staff.name || `${staff.surname} ${staff.otherNames}`}</strong> ({staff.staffId})
+                    Set a new password for <strong>{staff.name}</strong> ({staff.staffId})
+                </p>
+                <p className="adst-reset-hint">
+                    Leave blank to auto-generate a password, or type one (min. 6 characters).
                 </p>
 
                 <div className="adst-reset-field-row">
                     <input
                         type="text"
                         className="adst-input"
-                        placeholder="New password"
+                        placeholder="New password (optional)"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
+                        disabled={status?.type === "success"}
                     />
-                    <button className="adst-generate-btn" onClick={generatePassword}>
-                        Generate
-                    </button>
                 </div>
+
+                {status?.type === "success" && (
+                    <div className="adst-reset-result">
+                        <p className="adst-reset-result-label">New password:</p>
+                        <p className="adst-reset-result-value">{status.password}</p>
+                    </div>
+                )}
 
                 {status && (
                     <p className={`adst-reset-status adst-reset-status--${status.type}`}>
@@ -470,8 +463,8 @@ function ResetStaffPasswordModal({ staff, token, onClose }) {
                     </p>
                 )}
 
-                <button className="adst-submit-btn" onClick={handleReset} disabled={submitting}>
-                    {submitting ? "Resetting..." : "Reset Password"}
+                <button className="adst-submit-btn" onClick={handleReset} disabled={submitting || status?.type === "success"}>
+                    {submitting ? "Resetting..." : status?.type === "success" ? "Password Reset" : "Reset Password"}
                 </button>
             </div>
         </div>

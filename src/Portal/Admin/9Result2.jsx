@@ -1,4 +1,3 @@
-// AdminResultView (file 30)
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import "./9Result2.css";
@@ -39,10 +38,10 @@ export default function AdminResultView() {
                 return res.json();
             })
             .then((data) => {
-                // Expected shape mirrors the Student Portal's result endpoint:
-                // { studentInfo: {...}, subjects: [...], totalScore, percentage, comment }
-                setStudent(data.studentInfo || data.student || null);
-                setResultData(data);
+                // Confirmed shape: { success, data: { studentInfo, subjects, totalScore, percentage, comment } }
+                const result = data.data || null;
+                setStudent(result?.studentInfo || null);
+                setResultData(result);
             })
             .catch((err) => setError(err.message || "Failed to load result."))
             .finally(() => setLoading(false));
@@ -81,7 +80,9 @@ export default function AdminResultView() {
 
                 {/* Student info */}
                 <div className="adr2-info-grid">
-                    <p className="adr2-info-item"><span className="adr2-info-label">Name:</span> {student?.name || `${student?.surname} ${student?.otherNames}`}</p>
+                    <p className="adr2-info-item"><span className="adr2-info-label">Name:</span> {student?.name}</p>
+                    {/* Note: for this endpoint studentInfo.studentId is the human-readable
+                        registration ID (e.g. HC/2026/XXXX), not the Mongo ObjectId */}
                     <p className="adr2-info-item"><span className="adr2-info-label">Student ID:</span> {student?.studentId}</p>
                     <p className="adr2-info-item"><span className="adr2-info-label">Sex:</span> {student?.sex}</p>
                     <p className="adr2-info-item"><span className="adr2-info-label">Session:</span> {session}</p>
@@ -144,3 +145,4 @@ export default function AdminResultView() {
         </div>
     );
 }
+

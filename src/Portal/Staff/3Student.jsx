@@ -27,13 +27,22 @@ export default function StudentsList() {
                 if (!res.ok) throw new Error("Failed to load students.");
                 return res.json();
             })
-            .then((data) => setStudents(data.students || data || []))
+            .then((data) => {
+                // Confirmed shape: { success, data: [ { id, name, studentId, sex, class } ], assignedClass }
+                setStudents(data.data || []);
+                // The endpoint itself returns assignedClass — prefer this fresh value
+                // over the cached localStorage copy used as the initial/fallback state.
+                if (data.assignedClass) {
+                    setStaff({ assignedClass: data.assignedClass });
+                }
+            })
             .catch(() => setError("Failed to load students. Please try again."))
             .finally(() => setLoading(false));
     };
 
     useEffect(() => {
-        // Staff profile (for assignedClass) — falls back to whatever StaffLayout already cached
+        // Staff profile (for assignedClass) — used as an initial fallback until
+        // loadStudents() returns the server-confirmed assignedClass value.
         const saved = localStorage.getItem("user");
         if (saved) {
             const parsed = JSON.parse(saved);
@@ -93,7 +102,7 @@ export default function StudentsList() {
                 if (!res.ok) throw new Error(data.message || "Failed to add student.");
             }
             closeModal();
-            loadStudents(); // refresh list from server so we get the real studentId/_id
+            loadStudents(); // refresh list from server so we get the real studentId/id
         } catch (err) {
             setActionError(err.message || "Something went wrong. Please try again.");
         }
@@ -141,7 +150,7 @@ export default function StudentsList() {
                         <tbody>
                             {students.map((s) => (
                                 <tr key={s._id || s.id}>
-                                    <td className="stu-name">{s.name || `${s.surname} ${s.otherNames}`}</td>
+                                    <td className="stu-name">{s.name}</td>
                                     <td>{s.studentId}</td>
                                     <td>{s.sex}</td>
                                     <td>{s.class || s.studentClass}</td>
@@ -205,7 +214,7 @@ export default function StudentsList() {
                     <div className="stu-confirm-modal" onClick={(e) => e.stopPropagation()}>
                         <h3 className="stu-confirm-title">Remove Student?</h3>
                         <p className="stu-confirm-text">
-                            Are you sure you want to remove <strong>{deleteTarget.name || `${deleteTarget.surname} ${deleteTarget.otherNames}`}</strong> from your class list? This cannot be undone.
+                            Are you sure you want to remove <strong>{deleteTarget.name}</strong> from your class list? This cannot be undone.
                         </p>
                         <div className="stu-confirm-actions">
                             <button

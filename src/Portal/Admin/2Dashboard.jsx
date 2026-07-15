@@ -29,15 +29,16 @@ export default function AdminDashboard() {
                 const name = meRes.data.name || meRes.data.fullName || "";
                 setFirstName(name.split(" ")[0]);
 
-                // Map dashboard stats — handles different possible key names from backend
-                const d = dashRes.data;
+                // Response is wrapped: { success, data: { stats, recentAssignment, recentCbt } }
+                const d = dashRes.data.data;
+
                 setStats({
-                    activeStudents: d.totalStudents ?? d.activeStudents ?? 0,
-                    onlineClasses: d.onlineClasses ?? 0,
-                    upcomingCbt: d.upcomingCbt ?? 0,
-                    activeStaff: d.totalStaff ?? d.activeStaff ?? 0,
-                    classesAvailable: d.classesAvailable ?? d.totalClasses ?? 0,
-                    activeAssignments: d.activeAssignments ?? d.totalAssignments ?? 0,
+                    activeStudents: d.stats.activeStudents,
+                    onlineClasses: d.stats.onlineClasses,
+                    upcomingCbt: d.stats.upcomingCbt,
+                    activeStaff: d.stats.activeStaff,
+                    classesAvailable: d.stats.classesAvailable,
+                    activeAssignments: d.stats.activeAssignments,
                 });
                 setRecentAssignment(d.recentAssignment || null);
                 setRecentCbt(d.recentCbt || null);

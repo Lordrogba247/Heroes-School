@@ -43,7 +43,9 @@ export default function StaffCBT() {
     const loadTests = () => {
         setLoading(true);
         setError("");
-        fetch(`${BASE_URL}/api/staff/cbt`, {
+        // Staff CRUD for CBT lives under /api/teacher/cbt, not /api/staff/cbt
+        // (confirmed by Victor: GET/POST/DELETE /api/teacher/cbt, roleCheck('teacher','admin'))
+        fetch(`${BASE_URL}/api/teacher/cbt`, {
             method: "GET",
             headers: { "Authorization": `Bearer ${token}` },
         })
@@ -51,7 +53,7 @@ export default function StaffCBT() {
                 if (!res.ok) throw new Error("Failed to load CBT tests.");
                 return res.json();
             })
-            .then((data) => setTests(data.tests || data || []))
+            .then((data) => setTests(data.data || []))
             .catch(() => setError("Failed to load CBT tests."))
             .finally(() => setLoading(false));
     };
@@ -99,7 +101,7 @@ export default function StaffCBT() {
             formData.append("date", form.date);
             formData.append("excelFile", file);
 
-            const res = await fetch(`${BASE_URL}/api/staff/cbt`, {
+            const res = await fetch(`${BASE_URL}/api/teacher/cbt`, {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${token}` },
                 body: formData,
@@ -122,7 +124,7 @@ export default function StaffCBT() {
 
     const handleDelete = async (test) => {
         try {
-            const res = await fetch(`${BASE_URL}/api/staff/cbt/${test._id || test.id}`, {
+            const res = await fetch(`${BASE_URL}/api/teacher/cbt/${test._id || test.id}`, {
                 method: "DELETE",
                 headers: { "Authorization": `Bearer ${token}` },
             });

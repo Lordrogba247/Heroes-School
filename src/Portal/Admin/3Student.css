@@ -369,7 +369,34 @@
 .stu-submit-btn:hover {
   background: #001b48;
 }
+.stu-reset-result {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 12px 0;
+  text-align: center;
+}
 
+.stu-reset-result-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0 0 4px;
+}
+
+.stu-reset-result-value {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #15803d;
+  font-family: "Consolas", "Courier New", monospace;
+  margin: 0;
+}
+.stu-reset-hint {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 4px 0 12px;
+}
 /* ===== Responsive ===== */
 
 @media (max-width: 480px) {

@@ -1,24 +1,20 @@
-// AdminResultsList (file 29)
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useMeta } from "../../hooks/useMeta";
 import "./9Result.css";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
-const sessions = ["2024/2025", "2025/2026"];
+// Terms are hardcoded/stable per the backend docs, so no need to pull these from meta.
 const terms = ["First Term", "Second Term", "Third Term"];
-const classOptions = [
-    "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5",
-    "JSS 1", "JSS 2", "JSS 3",
-    "SSS 1", "SSS 2", "SSS 3",
-];
 
 export default function AdminResultsList() {
     const navigate = useNavigate();
+    const { classes, sessions: metaSessions, loading: metaLoading, refetch: refetchMeta } = useMeta();
 
-    const [session, setSession] = useState(sessions[1]);
+    const [session, setSession] = useState("");
     const [term, setTerm] = useState(terms[2]);
-    const [classLabel, setClassLabel] = useState(classOptions[6]); // JSS 2
+    const [classLabel, setClassLabel] = useState("");
 
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -26,24 +22,44 @@ export default function AdminResultsList() {
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [uploadStatus, setUploadStatus] = useState(null);
     const [publishing, setPublishing] = useState(false);
+    const [publishingId, setPublishingId] = useState(null);
+
+    // Add Session modal state
+    const [showSessionModal, setShowSessionModal] = useState(false);
+    const [newSessionName, setNewSessionName] = useState("");
+    const [newSessionStart, setNewSessionStart] = useState("");
+    const [newSessionEnd, setNewSessionEnd] = useState("");
+    const [addingSession, setAddingSession] = useState(false);
+    const [addSessionError, setAddSessionError] = useState("");
 
     const token = localStorage.getItem("token");
+
+    // Once meta loads, default session to whichever one is marked current,
+    // and default class to the first one in the live list.
+    useEffect(() => {
+        if (metaSessions.length > 0 && !session) {
+            const current = metaSessions.find((s) => s.isCurrent) || metaSessions[0];
+            setSession(current.name);
+        }
+        if (classes.length > 0 && !classLabel) {
+            setClassLabel(classes[0]);
+        }
+    }, [metaSessions, classes, session, classLabel]);
 
     const handleGetClassResults = async () => {
         setLoading(true);
         setLoadError("");
         setUploadStatus(null);
         try {
-            const params = new URLSearchParams({ session, term, class: classLabel });
+            const params = new URLSearchParams({ session, term, classLabel });
             const res = await fetch(`${BASE_URL}/api/admin/results?${params}`, {
                 method: "GET",
                 headers: { "Authorization": `Bearer ${token}` },
             });
             if (!res.ok) throw new Error("Failed to load class results.");
             const data = await res.json();
-            // Response shape is unconfirmed by the docs — assumes a `students` array
-            // or plain array of { studentId (Mongo _id), name, studentId (human), sex }
-            setStudents(data.students || data || []);
+            // Confirmed shape: { success, data: [ { studentId, name, registrationId, sex, class, totalScore, subjectCount, isSubmitted, isFinal } ] }
+            setStudents(data.data || []);
         } catch (err) {
             setLoadError(err.message || "Failed to load class results.");
             setStudents([]);
@@ -63,8 +79,6 @@ export default function AdminResultsList() {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`,
                 },
-                // Docs example body only shows { session, term } — classLabel added since
-                // this action is clearly scoped to the selected class. Confirm with backend.
                 body: JSON.stringify({ session, term, classLabel }),
             });
             const data = await res.json();
@@ -74,6 +88,7 @@ export default function AdminResultsList() {
                 type: "success",
                 message: `All results for ${classLabel} (${session}, ${term}) have been uploaded.`,
             });
+            setStudents((prev) => prev.map((s) => ({ ...s, isFinal: true })));
         } catch (err) {
             setUploadStatus({ type: "error", message: err.message || "Failed to publish results." });
         } finally {
@@ -81,8 +96,41 @@ export default function AdminResultsList() {
         }
     };
 
+    // Publish a single student's result instead of the whole class.
+    const handlePublishOne = async (student) => {
+        setPublishingId(student.studentId);
+        setUploadStatus(null);
+        try {
+            const res = await fetch(
+                `${BASE_URL}/api/admin/results/${student.studentId}/publish`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ session, term }),
+                }
+            );
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to publish result.");
+
+            setStudents((prev) =>
+                prev.map((s) => (s.studentId === student.studentId ? { ...s, isFinal: true } : s))
+            );
+            setUploadStatus({
+                type: "success",
+                message: data.message || "Result published.",
+            });
+        } catch (err) {
+            setUploadStatus({ type: "error", message: err.message || "Failed to publish result." });
+        } finally {
+            setPublishingId(null);
+        }
+    };
+
     const handleViewResult = (student) => {
-        navigate(`/portal/admin/results/${student._id || student.id}`, {
+        navigate(`/portal/admin/results/${student.studentId}`, {
             state: { session, term, classLabel },
         });
     };
@@ -91,7 +139,7 @@ export default function AdminResultsList() {
         try {
             const params = new URLSearchParams({ session, term });
             const res = await fetch(
-                `${BASE_URL}/api/admin/results/${deleteTarget._id || deleteTarget.id}?${params}`,
+                `${BASE_URL}/api/admin/results/${deleteTarget.studentId}?${params}`,
                 {
                     method: "DELETE",
                     headers: { "Authorization": `Bearer ${token}` },
@@ -101,11 +149,54 @@ export default function AdminResultsList() {
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.message || "Failed to delete result.");
             }
-            setStudents((prev) => prev.filter((s) => (s._id || s.id) !== (deleteTarget._id || deleteTarget.id)));
+            setStudents((prev) => prev.filter((s) => s.studentId !== deleteTarget.studentId));
         } catch (err) {
             setLoadError(err.message || "Failed to delete result.");
         } finally {
             setDeleteTarget(null);
+        }
+    };
+
+    // Add Session: opens a small form, POSTs to /api/admin/sessions, then
+    // refreshes the shared meta cache so every page's dropdown updates immediately.
+    const openSessionModal = () => {
+        setNewSessionName("");
+        setNewSessionStart("");
+        setNewSessionEnd("");
+        setAddSessionError("");
+        setShowSessionModal(true);
+    };
+
+    const handleAddSession = async () => {
+        if (!newSessionName.trim() || !newSessionStart || !newSessionEnd) {
+            setAddSessionError("Please fill in the session name, start year, and end year.");
+            return;
+        }
+        setAddingSession(true);
+        setAddSessionError("");
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/sessions`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    name: newSessionName.trim(),
+                    startYear: Number(newSessionStart),
+                    endYear: Number(newSessionEnd),
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to create session.");
+
+            await refetchMeta();
+            setSession(newSessionName.trim());
+            setShowSessionModal(false);
+        } catch (err) {
+            setAddSessionError(err.message || "Failed to create session.");
+        } finally {
+            setAddingSession(false);
         }
     };
 
@@ -119,11 +210,16 @@ export default function AdminResultsList() {
                     className="adr-select"
                     value={session}
                     onChange={(e) => setSession(e.target.value)}
+                    disabled={metaLoading}
                 >
-                    {sessions.map((s) => (
-                        <option key={s} value={s}>{s}</option>
+                    {metaSessions.map((s) => (
+                        <option key={s.name} value={s.name}>{s.name}</option>
                     ))}
                 </select>
+
+                <button type="button" className="adr-add-session-btn" onClick={openSessionModal}>
+                    + Add Session
+                </button>
 
                 <select
                     className="adr-select"
@@ -139,15 +235,16 @@ export default function AdminResultsList() {
                     className="adr-select"
                     value={classLabel}
                     onChange={(e) => setClassLabel(e.target.value)}
+                    disabled={metaLoading}
                 >
-                    {classOptions.map((c) => (
+                    {classes.map((c) => (
                         <option key={c} value={c}>{c}</option>
                     ))}
                 </select>
             </div>
 
             <div className="adr-action-row">
-                <button className="adr-get-btn" onClick={handleGetClassResults} disabled={loading}>
+                <button className="adr-get-btn" onClick={handleGetClassResults} disabled={loading || metaLoading}>
                     {loading ? "Loading..." : "Get Class Results"}
                 </button>
                 <button
@@ -155,7 +252,7 @@ export default function AdminResultsList() {
                     onClick={handleUploadResults}
                     disabled={students.length === 0 || publishing}
                 >
-                    {publishing ? "Uploading..." : "Upload Results"}
+                    {publishing ? "Uploading..." : "Publish All"}
                 </button>
             </div>
 
@@ -180,9 +277,9 @@ export default function AdminResultsList() {
                             </thead>
                             <tbody>
                                 {students.map((s) => (
-                                    <tr key={s._id || s.id}>
+                                    <tr key={s.studentId}>
                                         <td className="adr-name">{s.name || `${s.surname} ${s.otherNames}`}</td>
-                                        <td>{s.studentId}</td>
+                                        <td>{s.registrationId}</td>
                                         <td>{s.sex}</td>
                                         <td>
                                             <div className="adr-actions">
@@ -191,6 +288,17 @@ export default function AdminResultsList() {
                                                     onClick={() => handleViewResult(s)}
                                                 >
                                                     View Result
+                                                </button>
+                                                <button
+                                                    className="adr-publish-btn"
+                                                    onClick={() => handlePublishOne(s)}
+                                                    disabled={s.isFinal || publishingId === s.studentId}
+                                                >
+                                                    {s.isFinal
+                                                        ? "Published ✓"
+                                                        : publishingId === s.studentId
+                                                            ? "Publishing..."
+                                                            : "Publish"}
                                                 </button>
                                                 <button
                                                     className="adr-icon-btn adr-icon-btn--delete"
@@ -219,7 +327,7 @@ export default function AdminResultsList() {
                     <div className="adr-confirm-modal" onClick={(e) => e.stopPropagation()}>
                         <h3 className="adr-confirm-title">Delete Result?</h3>
                         <p className="adr-confirm-text">
-                            Are you sure you want to delete the result for <strong>{deleteTarget.name || `${deleteTarget.surname} ${deleteTarget.otherNames}`}</strong>? This cannot be undone.
+                            Are you sure you want to delete the result for <strong>{deleteTarget.name}</strong>? This cannot be undone.
                         </p>
                         <div className="adr-confirm-actions">
                             <button
@@ -233,6 +341,69 @@ export default function AdminResultsList() {
                                 onClick={confirmDelete}
                             >
                                 Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Session modal */}
+            {showSessionModal && (
+                <div className="adr-modal-overlay" onClick={() => setShowSessionModal(false)}>
+                    <div className="adr-confirm-modal" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="adr-confirm-title">Add Academic Session</h3>
+
+                        <div className="adr-session-form">
+                            <label className="adr-session-label">
+                                Session name
+                                <input
+                                    type="text"
+                                    className="adr-session-input"
+                                    placeholder="e.g. 2026/2027"
+                                    value={newSessionName}
+                                    onChange={(e) => setNewSessionName(e.target.value)}
+                                />
+                            </label>
+
+                            <label className="adr-session-label">
+                                Start year
+                                <input
+                                    type="number"
+                                    className="adr-session-input"
+                                    placeholder="e.g. 2026"
+                                    value={newSessionStart}
+                                    onChange={(e) => setNewSessionStart(e.target.value)}
+                                />
+                            </label>
+
+                            <label className="adr-session-label">
+                                End year
+                                <input
+                                    type="number"
+                                    className="adr-session-input"
+                                    placeholder="e.g. 2027"
+                                    value={newSessionEnd}
+                                    onChange={(e) => setNewSessionEnd(e.target.value)}
+                                />
+                            </label>
+                        </div>
+
+                        {addSessionError && <p className="adr-status adr-status--error">{addSessionError}</p>}
+
+                        <div className="adr-confirm-actions">
+                            <button
+                                className="adr-confirm-btn adr-confirm-btn--cancel"
+                                onClick={() => setShowSessionModal(false)}
+                                disabled={addingSession}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="adr-confirm-btn"
+                                onClick={handleAddSession}
+                                disabled={addingSession}
+                            >
+                                {addingSession ? "Adding..." : "Add Session"}
                             </button>
                         </div>
                     </div>
