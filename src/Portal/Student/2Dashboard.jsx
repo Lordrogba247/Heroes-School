@@ -59,7 +59,10 @@ export default function StudentDashboard() {
             // Assuming { success, data: {...} } — same convention as every other confirmed
             // endpoint. This was previously setting dashData to the whole envelope, which
             // crashed the page when stats/recentAssignments/cbtTests/student came back undefined.
-            .then((data) => setDashData(data.data || data))
+            .then((data) => {
+                console.log("Dashboard response:", data);
+                setDashData(data.data || data);
+            })
             .catch(() => setError("Failed to load dashboard. Please try again."))
             .finally(() => setLoading(false));
     }, []);
