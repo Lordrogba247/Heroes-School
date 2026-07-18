@@ -16,9 +16,12 @@ const subjectOptions = [
 ];
 
 const sessions = ["2024/2025", "2025/2026"];
-const terms = ["First Term", "Second Term", "Third Term"];
+const TERM_OPTIONS = [
+    { value: "first", label: "First Term" },
+    { value: "second", label: "Second Term" },
+    { value: "third", label: "Third Term" },
+];
 
-// Local-only preview grading — server recalculates the official grade on submit
 function getGrade(total) {
     if (total >= 75) return { grade: "A1", remark: "Excellent" };
     if (total >= 70) return { grade: "B2", remark: "V.Good" };
@@ -36,7 +39,6 @@ const emptyRowInput = { subject: "", ca1: "", ca2: "", exam: "" };
 export default function StaffResultEntry() {
     const { studentId } = useParams();
     const navigate = useNavigate();
-
     const token = localStorage.getItem("token");
 
     const [student, setStudent] = useState(null);
@@ -44,37 +46,57 @@ export default function StaffResultEntry() {
     const [loadError, setLoadError] = useState("");
 
     const [session, setSession] = useState(sessions[1]);
-    const [term, setTerm] = useState(terms[2]);
+    const [term, setTerm] = useState(TERM_OPTIONS[2].value);
     const [rowInput, setRowInput] = useState(emptyRowInput);
     const [results, setResults] = useState([]);
     const [editingId, setEditingId] = useState(null);
+
     const [comments, setComments] = useState([]);
+    const [loadingComments, setLoadingComments] = useState(true);
     const [commentInput, setCommentInput] = useState("");
+    const [postingComment, setPostingComment] = useState(false);
+    const [commentError, setCommentError] = useState("");
+
     const [submitted, setSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
 
-    // Load the student's info by re-fetching the class list and matching the route param.
-    // (No single-student endpoint exists in the docs, so this is the safest option.)
-    // studentId here is the Mongo ObjectId — matches StaffResultsList's navigate call.
+    // Load the student's info directly by ID (no more full-list fetch + filter)
     useEffect(() => {
-        fetch(`${BASE_URL}/api/staff/results/students`, {
+        fetch(`${BASE_URL}/api/staff/students/${studentId}`, {
             method: "GET",
             headers: { "Authorization": `Bearer ${token}` },
         })
             .then((res) => {
-                if (!res.ok) throw new Error("Failed to load student.");
+                if (!res.ok) throw new Error("Student not found.");
                 return res.json();
             })
-            .then((data) => {
-                const list = data.data || [];
-                const found = list.find((s) => s.studentId === studentId);
-                setStudent(found || null);
-                if (!found) setLoadError("Student not found.");
-            })
+            .then((data) => setStudent(data.data || null))
             .catch(() => setLoadError("Failed to load student details."))
             .finally(() => setLoadingStudent(false));
     }, [studentId]);
+
+    // Load existing comments for this student + session + term
+    const loadComments = () => {
+        setLoadingComments(true);
+        const params = new URLSearchParams({ session, term });
+        fetch(`${BASE_URL}/api/staff/results/${studentId}/comments?${params}`, {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load comments.");
+                return res.json();
+            })
+            .then((data) => setComments(data.data || []))
+            .catch(() => setComments([]))
+            .finally(() => setLoadingComments(false));
+    };
+
+    useEffect(() => {
+        loadComments();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [studentId, session, term]);
 
     const handleRowChange = (field, value) => {
         setRowInput((prev) => ({ ...prev, [field]: value }));
@@ -128,13 +150,30 @@ export default function StaffResultEntry() {
         if (editingId === id) resetRowInput();
     };
 
-    const handleAddComment = () => {
+    const handleAddComment = async () => {
         if (!commentInput.trim()) return;
-        setComments((prev) => [
-            ...prev,
-            { id: Date.now(), text: commentInput, timestamp: new Date().toLocaleString() }
-        ]);
-        setCommentInput("");
+
+        setPostingComment(true);
+        setCommentError("");
+        try {
+            const res = await fetch(`${BASE_URL}/api/staff/results/${studentId}/comments`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                body: JSON.stringify({ text: commentInput.trim(), session, term }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to add comment.");
+
+            setCommentInput("");
+            loadComments();
+        } catch (err) {
+            setCommentError(err.message || "Failed to add comment. Please try again.");
+        } finally {
+            setPostingComment(false);
+        }
     };
 
     const livePreview = (() => {
@@ -151,7 +190,7 @@ export default function StaffResultEntry() {
         setSubmitError("");
         try {
             const payload = {
-                studentId: student.studentId,
+                studentId: student.id,
                 session,
                 term,
                 subjects: results.map((r) => ({
@@ -160,8 +199,6 @@ export default function StaffResultEntry() {
                     ca2: r.ca2,
                     exam: r.exam,
                 })),
-                // Backend expects a single comment string — combining the comment thread into one.
-                comment: comments.map((c) => c.text).join(" | "),
             };
 
             const res = await fetch(`${BASE_URL}/api/staff/results`, {
@@ -195,7 +232,7 @@ export default function StaffResultEntry() {
 
             <h1 className="sre-title">{student.name}</h1>
             <p className="sre-sub">
-                {student.registrationId} &nbsp; {student.sex} &nbsp; {student.classLabel || student.class}
+                {student.studentId} &nbsp; {student.sex} &nbsp; {student.classLabel || student.class}
             </p>
 
             {/* Session / Term */}
@@ -217,8 +254,8 @@ export default function StaffResultEntry() {
                     onChange={(e) => setTerm(e.target.value)}
                     disabled={submitted}
                 >
-                    {terms.map((t) => (
-                        <option key={t} value={t}>{t}</option>
+                    {TERM_OPTIONS.map((t) => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
                     ))}
                 </select>
             </div>
@@ -356,7 +393,7 @@ export default function StaffResultEntry() {
                 </div>
             )}
 
-            {/* Comment */}
+            {/* Comment thread */}
             <div className="sre-comment-row">
                 <input
                     type="text"
@@ -364,29 +401,34 @@ export default function StaffResultEntry() {
                     placeholder="Add a comment on this student's performance..."
                     value={commentInput}
                     onChange={(e) => setCommentInput(e.target.value)}
-                    disabled={submitted}
+                    disabled={postingComment}
                 />
                 <button
                     className="sre-comment-btn"
                     onClick={handleAddComment}
-                    disabled={submitted || !commentInput.trim()}
+                    disabled={postingComment || !commentInput.trim()}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
                         <path d="M0 0h24v24H0z" fill="none" />
                         <path fill="currentColor" d="M12 2A10 10 0 0 0 2 12a9.9 9.9 0 0 0 2.26 6.33l-2 2a1 1 0 0 0-.21 1.09A1 1 0 0 0 3 22h9a10 10 0 0 0 0-20m0 18H5.41l.93-.93a1 1 0 0 0 0-1.41A8 8 0 1 1 12 20m3-9h-2V9a1 1 0 0 0-2 0v2H9a1 1 0 0 0 0 2h2v2a1 1 0 0 0 2 0v-2h2a1 1 0 0 0 0-2" />
                     </svg>
-                    Add Comment
-
+                    {postingComment ? "Posting..." : "Add Comment"}
                 </button>
             </div>
 
+            {commentError && <p className="sre-error">{commentError}</p>}
+
             {/* Comments list */}
-            {comments.length > 0 && (
+            {!loadingComments && comments.length > 0 && (
                 <div className="sre-comments-list">
-                    {comments.map((c) => (
-                        <div key={c.id} className="sre-comment-item">
+                    {comments.map((c, i) => (
+                        <div key={c._id || i} className="sre-comment-item">
                             <p className="sre-comment-text">{c.text}</p>
-                            <span className="sre-comment-time">{c.timestamp}</span>
+                            <span className="sre-comment-time">
+                                {c.author ? `${c.author.firstName} ${c.author.lastName}` : ""}
+                                {c.author && c.createdAt ? " — " : ""}
+                                {c.createdAt ? new Date(c.createdAt).toLocaleString() : ""}
+                            </span>
                         </div>
                     ))}
                 </div>

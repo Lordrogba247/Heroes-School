@@ -422,3 +422,138 @@
   background: #fdeaea;
   color: #c0392b;
 }
+
+/* --- Add Session button --- */
+.adr-add-session-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 1px dashed #4a90d9;
+  border-radius: 8px;
+  background: transparent;
+  color: #4a90d9;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+  white-space: nowrap;
+}
+
+.adr-add-session-btn:hover {
+  background: #4a90d9;
+  color: #fff;
+}
+
+/* --- Add Session modal form --- */
+.adr-session-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 16px 0;
+  text-align: left;
+}
+
+.adr-session-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #444;
+}
+
+.adr-session-input {
+  padding: 10px 12px;
+  border: 1px solid #d6d9de;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: #1a1a1a;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.adr-session-input:focus {
+  border-color: #4a90d9;
+}
+
+/* --- Publish button on student rows --- */
+.adr-publish-btn,
+.srl-publish-btn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #2fa84f;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.adr-publish-btn:hover:not(:disabled),
+.srl-publish-btn:hover:not(:disabled) {
+  background: #24893f;
+}
+
+.adr-publish-btn:disabled,
+.srl-publish-btn:disabled {
+  background: #b7d9c1;
+  cursor: default;
+}
+
+/* Session/term selectors row on the staff side, matching adr-selectors */
+.srl-selectors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.srl-select {
+  padding: 10px 14px;
+  border: 1px solid #d6d9de;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #1a1a1a;
+  background: #fff;
+}
+
+.srl-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.srl-status {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+}
+
+.srl-status--success {
+  background: #e6f6ea;
+  color: #1e7a37;
+}
+
+.srl-status--error {
+  background: #fdeaea;
+  color: #c0392b;
+}
+
+.adr-retry-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #4a90d9;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+}

@@ -122,7 +122,10 @@ export default function StudentAssignment() {
 
     useEffect(() => {
         api.get("/api/student/assignments")
-            .then((res) => setAssignments(res.data))
+            // Assuming { success, data: [...] } — same convention as every other confirmed
+            // endpoint. Was previously setting assignments to the whole response object,
+            // which crashed .map() below since that object has no .map method.
+            .then((res) => setAssignments(res.data?.data || res.data || []))
             .catch(() => setError("Failed to load assignments."))
             .finally(() => setLoading(false));
     }, []);

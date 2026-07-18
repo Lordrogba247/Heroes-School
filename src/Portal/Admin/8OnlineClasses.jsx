@@ -46,7 +46,8 @@ export default function AdminOnlineClass() {
                 if (!res.ok) throw new Error("Failed to load sessions.");
                 return res.json();
             })
-            .then((data) => setSessions(data.classes || data || []))
+            // Confirmed shape: { success, data: [ { id, subject, classLabel, date, time, link, accent } ] }
+            .then((data) => setSessions(data.data || []))
             .catch(() => setError("Failed to load online classes."))
             .finally(() => setLoading(false));
     };

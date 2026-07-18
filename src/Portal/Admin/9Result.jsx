@@ -6,14 +6,19 @@ import "./9Result.css";
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 // Terms are hardcoded/stable per the backend docs, so no need to pull these from meta.
-const terms = ["First Term", "Second Term", "Third Term"];
+const TERM_OPTIONS = [
+    { value: "first", label: "First Term" },
+    { value: "second", label: "Second Term" },
+    { value: "third", label: "Third Term" },
+];
+const TERM_LABELS = Object.fromEntries(TERM_OPTIONS.map((t) => [t.value, t.label]));
 
 export default function AdminResultsList() {
     const navigate = useNavigate();
-    const { classes, sessions: metaSessions, loading: metaLoading, refetch: refetchMeta } = useMeta();
+    const { classes, sessions: metaSessions, loading: metaLoading, error: metaError, refetch: refetchMeta } = useMeta();
 
     const [session, setSession] = useState("");
-    const [term, setTerm] = useState(terms[2]);
+    const [term, setTerm] = useState(TERM_OPTIONS[2].value);
     const [classLabel, setClassLabel] = useState("");
 
     const [students, setStudents] = useState([]);
@@ -51,7 +56,7 @@ export default function AdminResultsList() {
         setLoadError("");
         setUploadStatus(null);
         try {
-            const params = new URLSearchParams({ session, term, classLabel });
+            const params = new URLSearchParams({ session, term: TERM_LABELS[term], classLabel });
             const res = await fetch(`${BASE_URL}/api/admin/results?${params}`, {
                 method: "GET",
                 headers: { "Authorization": `Bearer ${token}` },
@@ -79,14 +84,14 @@ export default function AdminResultsList() {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`,
                 },
-                body: JSON.stringify({ session, term, classLabel }),
+                body: JSON.stringify({ session, term: TERM_LABELS[term], classLabel }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Failed to publish results.");
 
             setUploadStatus({
                 type: "success",
-                message: `All results for ${classLabel} (${session}, ${term}) have been uploaded.`,
+                message: `All results for ${classLabel} (${session}, ${TERM_LABELS[term]}) have been uploaded.`,
             });
             setStudents((prev) => prev.map((s) => ({ ...s, isFinal: true })));
         } catch (err) {
@@ -109,7 +114,7 @@ export default function AdminResultsList() {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${token}`,
                     },
-                    body: JSON.stringify({ session, term }),
+                    body: JSON.stringify({ session, term: TERM_LABELS[term] }),
                 }
             );
             const data = await res.json();
@@ -131,13 +136,13 @@ export default function AdminResultsList() {
 
     const handleViewResult = (student) => {
         navigate(`/portal/admin/results/${student.studentId}`, {
-            state: { session, term, classLabel },
+            state: { session, term: TERM_LABELS[term], classLabel },
         });
     };
 
     const confirmDelete = async () => {
         try {
-            const params = new URLSearchParams({ session, term });
+            const params = new URLSearchParams({ session, term: TERM_LABELS[term] });
             const res = await fetch(
                 `${BASE_URL}/api/admin/results/${deleteTarget.studentId}?${params}`,
                 {
@@ -205,6 +210,15 @@ export default function AdminResultsList() {
             <h1 className="adr-title">Results</h1>
             <p className="adr-sub">See below the available results by session, term and classes</p>
 
+            {metaError && (
+                <p className="adr-status adr-status--error">
+                    Couldn't load sessions/classes ({metaError}).{" "}
+                    <button type="button" className="adr-retry-link" onClick={refetchMeta}>
+                        Retry
+                    </button>
+                </p>
+            )}
+
             <div className="adr-selectors">
                 <select
                     className="adr-select"
@@ -212,6 +226,9 @@ export default function AdminResultsList() {
                     onChange={(e) => setSession(e.target.value)}
                     disabled={metaLoading}
                 >
+                    {metaSessions.length === 0 && !metaLoading && (
+                        <option value="" disabled>No sessions found — add one</option>
+                    )}
                     {metaSessions.map((s) => (
                         <option key={s.name} value={s.name}>{s.name}</option>
                     ))}
@@ -226,8 +243,8 @@ export default function AdminResultsList() {
                     value={term}
                     onChange={(e) => setTerm(e.target.value)}
                 >
-                    {terms.map((t) => (
-                        <option key={t} value={t}>{t}</option>
+                    {TERM_OPTIONS.map((t) => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
                     ))}
                 </select>
 
@@ -237,6 +254,9 @@ export default function AdminResultsList() {
                     onChange={(e) => setClassLabel(e.target.value)}
                     disabled={metaLoading}
                 >
+                    {classes.length === 0 && !metaLoading && (
+                        <option value="" disabled>No classes found</option>
+                    )}
                     {classes.map((c) => (
                         <option key={c} value={c}>{c}</option>
                     ))}

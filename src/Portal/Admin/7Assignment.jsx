@@ -50,7 +50,9 @@ export default function AdminAssignment() {
                 if (!res.ok) throw new Error("Failed to load assignments.");
                 return res.json();
             })
-            .then((data) => setAssignments(data.assignments || data || []))
+            // Assuming { success, data: [...] } — same convention as every other confirmed
+            // endpoint. Flag to Victor if this still comes back empty after this fix.
+            .then((data) => setAssignments(data.data || []))
             .catch(() => setError("Failed to load assignments."))
             .finally(() => setLoading(false));
     };

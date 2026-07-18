@@ -56,7 +56,10 @@ export default function StudentDashboard() {
                 if (!res.ok) throw new Error("Failed to load dashboard.");
                 return res.json();
             })
-            .then((data) => setDashData(data))
+            // Assuming { success, data: {...} } — same convention as every other confirmed
+            // endpoint. This was previously setting dashData to the whole envelope, which
+            // crashed the page when stats/recentAssignments/cbtTests/student came back undefined.
+            .then((data) => setDashData(data.data || data))
             .catch(() => setError("Failed to load dashboard. Please try again."))
             .finally(() => setLoading(false));
     }, []);
@@ -64,10 +67,16 @@ export default function StudentDashboard() {
     if (loading) return <div className="sd-loading">Loading...</div>;
     if (error) return <div className="sd-error">{error}</div>;
 
-    const { stats, recentAssignments, cbtTests, student } = dashData;
+    const { stats, recentAssignments, cbtTests, student } = dashData || {};
+
+    // Guard against any of these still being missing/undefined, in case the
+    // confirmed shape assumption above turns out to be wrong for this endpoint.
+    if (!stats || !recentAssignments || !cbtTests) {
+        return <div className="sd-error">Dashboard data is incomplete. Please contact support.</div>;
+    }
 
     // Merge API counts into static icon config
-    const statCards = statConfig.map((s, i) => ({ ...s, count: stats[i].count }));
+    const statCards = statConfig.map((s, i) => ({ ...s, count: stats[i]?.count ?? 0 }));
 
     return (
         <div className="sd-page">

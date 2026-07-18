@@ -21,7 +21,11 @@ export default function StudentCBT() {
                 if (!res.ok) throw new Error("Failed to load CBT tests.");
                 return res.json();
             })
-            .then((data) => setTests(data.tests || data || []))
+            // Confirmed: /api/cbt is the shared read-only endpoint for all authenticated
+            // users. Assuming { success, data: [...] } — same convention as every other
+            // confirmed endpoint. Was previously crashing when it fell through to the
+            // whole response object, since that object has no .map method.
+            .then((data) => setTests(data.data || []))
             .catch((err) => setError(err.message || "Failed to load CBT tests."))
             .finally(() => setLoading(false));
     }, []);

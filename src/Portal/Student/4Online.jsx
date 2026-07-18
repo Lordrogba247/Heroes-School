@@ -21,7 +21,10 @@ export default function StudentOnlineClass() {
                 if (!res.ok) throw new Error("Failed to load online classes.");
                 return res.json();
             })
-            .then((data) => setClasses(data.classes || data || []))
+            // Assuming { success, data: [...] } — same convention as every other
+            // confirmed endpoint (matches the shape Victor confirmed for the admin
+            // online-classes endpoint: id, subject, classLabel, date, time, link, accent).
+            .then((data) => setClasses(data.data || []))
             .catch(() => setError("Failed to load online classes."))
             .finally(() => setLoading(false));
     }, []);

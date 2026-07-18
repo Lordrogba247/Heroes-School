@@ -80,8 +80,11 @@ export default function StudentLayout() {
     useEffect(() => {
         api.get("/api/student/me")
             .then((res) => {
-                setStudent(res.data);
-                localStorage.setItem("user", JSON.stringify(res.data));
+                // Assuming { success, data: {...} } convention, matching every other confirmed
+                // endpoint — fall back to res.data itself if this endpoint isn't wrapped the same way.
+                const studentData = res.data?.data || res.data;
+                setStudent(studentData);
+                localStorage.setItem("user", JSON.stringify(studentData));
             })
             .catch(() => {
                 // Token invalid or expired — interceptor in api.js handles redirect

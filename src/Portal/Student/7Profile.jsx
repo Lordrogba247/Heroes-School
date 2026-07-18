@@ -1,24 +1,48 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./7Profile.css";
 
-const CHANGE_PASSWORD_API_URL = "https://heroesschool-management-backend.vercel.app/api/auth/change-password";
-
-// Mock student data — backend dev go replace with real user from auth context
-const studentInfo = {
-    name: "Chukwuemeka Jemima",
-    class: "SSS 2",
-    studentId: "HC/2025/01348",
-    sex: "Female",
-};
+const BASE_URL = "https://heroesschool-management-backend.vercel.app";
+const CHANGE_PASSWORD_API_URL = `${BASE_URL}/api/auth/change-password`;
 
 const MIN_PASSWORD_LENGTH = 6;
 
 export default function StudentProfile() {
+    // Load from localStorage first (already populated by StudentLayout's /api/student/me
+    // fetch) so this page doesn't flash empty, then refresh independently below in case
+    // this page is ever loaded on its own.
+    const [studentInfo, setStudentInfo] = useState(() => {
+        const saved = localStorage.getItem("user");
+        return saved ? JSON.parse(saved) : { name: "", class: "", studentId: "", sex: "" };
+    });
+
     const [oldPassword, setOldPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [status, setStatus] = useState(null); // { type: "error" | "success", message: string }
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        fetch(`${BASE_URL}/api/student/me`, {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load profile.");
+                return res.json();
+            })
+            .then((data) => {
+                // Assuming { success, data: {...} } — same convention as every other
+                // confirmed endpoint. Falls back to res.data itself if this endpoint
+                // isn't wrapped the same way.
+                const fresh = data.data || data;
+                setStudentInfo(fresh);
+                localStorage.setItem("user", JSON.stringify(fresh));
+            })
+            .catch(() => {
+                // Silent fail — falls back to whatever was cached in localStorage
+            });
+    }, []);
 
     const resetForm = () => {
         setOldPassword("");
