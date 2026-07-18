@@ -3,10 +3,11 @@ import "./2Dashboard.css";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
-// Static icon config — counts come from API
+// Static icon config — counts come from API. `key` maps to the matching stats field name.
 const statConfig = [
     {
         id: "assignments",
+        key: "activeAssignments",
         label: "Active\nAssignments",
         accent: "purple",
         icon: (
@@ -18,6 +19,7 @@ const statConfig = [
     },
     {
         id: "online",
+        key: "onlineClasses",
         label: "Online Classes",
         accent: "navy",
         icon: (
@@ -28,6 +30,7 @@ const statConfig = [
     },
     {
         id: "cbt",
+        key: "upcomingCbt",
         label: "upcoming\nCBT Tests/Exam",
         accent: "red",
         icon: (
@@ -43,6 +46,13 @@ export default function StudentDashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    // The dashboard response has no `student` field — read the cached profile
+    // that StudentLayout already fetches from /api/student/me instead.
+    const cachedUser = (() => {
+        const saved = localStorage.getItem("user");
+        return saved ? JSON.parse(saved) : {};
+    })();
+
     useEffect(() => {
         const token = localStorage.getItem("token");
 
@@ -56,13 +66,7 @@ export default function StudentDashboard() {
                 if (!res.ok) throw new Error("Failed to load dashboard.");
                 return res.json();
             })
-            // Assuming { success, data: {...} } — same convention as every other confirmed
-            // endpoint. This was previously setting dashData to the whole envelope, which
-            // crashed the page when stats/recentAssignments/cbtTests/student came back undefined.
-            .then((data) => {
-                console.log("Dashboard response:", data);
-                setDashData(data.data || data);
-            })
+            .then((data) => setDashData(data.data || data))
             .catch(() => setError("Failed to load dashboard. Please try again."))
             .finally(() => setLoading(false));
     }, []);
@@ -70,20 +74,19 @@ export default function StudentDashboard() {
     if (loading) return <div className="sd-loading">Loading...</div>;
     if (error) return <div className="sd-error">{error}</div>;
 
-    const { stats, recentAssignments, cbtTests, student } = dashData || {};
+    // Confirmed shape: { stats: { activeAssignments, onlineClasses, upcomingCbt },
+    //                    recentAssignment: {...} | null, recentCbt: {...} | null }
+    const { stats, recentAssignment, recentCbt } = dashData || {};
 
-    // Guard against any of these still being missing/undefined, in case the
-    // confirmed shape assumption above turns out to be wrong for this endpoint.
-    if (!stats || !recentAssignments || !cbtTests) {
+    if (!stats) {
         return <div className="sd-error">Dashboard data is incomplete. Please contact support.</div>;
     }
 
-    // Merge API counts into static icon config
-    const statCards = statConfig.map((s, i) => ({ ...s, count: stats[i]?.count ?? 0 }));
+    const statCards = statConfig.map((s) => ({ ...s, count: stats[s.key] ?? 0 }));
 
     return (
         <div className="sd-page">
-            <h1 className="sd-welcome">Welcome, {student?.name?.split(" ")[0]}</h1>
+            <h1 className="sd-welcome">Welcome, {cachedUser?.name?.split(" ")[0] || "Student"}</h1>
             <p className="sd-sub">Here's What's happening with your studies today!</p>
 
             {/* Stat cards */}
@@ -116,8 +119,8 @@ export default function StudentDashboard() {
                         </div>
                     </div>
                     <div className="sd-panel-body">
-                        {recentAssignments.map((a) => (
-                            <div className="sd-item" key={a._id || a.id}>
+                        {recentAssignment ? (
+                            <div className="sd-item" key={recentAssignment._id || recentAssignment.id}>
                                 <div className="sd-item-icon sd-item-icon--navy">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 20 20">
                                         <path d="M0 0h20v20H0z" fill="none" />
@@ -125,14 +128,16 @@ export default function StudentDashboard() {
                                     </svg>
                                 </div>
                                 <div className="sd-item-info">
-                                    <p className="sd-item-title">{a.subject}</p>
-                                    <p className="sd-item-meta">{a.dueDate || a.due}</p>
+                                    <p className="sd-item-title">{recentAssignment.subject}</p>
+                                    <p className="sd-item-meta">{recentAssignment.dueDate || recentAssignment.due}</p>
                                 </div>
-                                <span className={`sd-badge sd-badge--${a.status === "Active" ? "active" : "expired"}`}>
-                                    {a.status}
+                                <span className={`sd-badge sd-badge--${recentAssignment.status === "Active" ? "active" : "expired"}`}>
+                                    {recentAssignment.status}
                                 </span>
                             </div>
-                        ))}
+                        ) : (
+                            <p style={{ fontSize: 13, color: "#999", margin: "0 0 16px" }}>No assignments yet.</p>
+                        )}
                         <div className="sd-view-all">
                             <a href="/portal/student/assignments">View all →</a>
                         </div>
@@ -151,22 +156,24 @@ export default function StudentDashboard() {
                         </div>
                     </div>
                     <div className="sd-panel-body">
-                        {cbtTests.map((t) => (
-                            <div className="sd-item" key={t._id || t.id}>
+                        {recentCbt ? (
+                            <div className="sd-item" key={recentCbt._id || recentCbt.id}>
                                 <div className="sd-item-icon sd-item-icon--red">
                                     <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
                                         <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
                                     </svg>
                                 </div>
                                 <div className="sd-item-info">
-                                    <p className="sd-item-title">{t.subject}</p>
-                                    <p className="sd-item-meta">{t.description || t.detail}</p>
+                                    <p className="sd-item-title">{recentCbt.subject}</p>
+                                    <p className="sd-item-meta">{recentCbt.description || recentCbt.type || recentCbt.detail}</p>
                                 </div>
-                                <span className={`sd-badge sd-badge--${t.status === "Active" ? "active" : "expired"}`}>
-                                    {t.status}
+                                <span className={`sd-badge sd-badge--${recentCbt.status === "Active" ? "active" : "expired"}`}>
+                                    {recentCbt.status}
                                 </span>
                             </div>
-                        ))}
+                        ) : (
+                            <p style={{ fontSize: 13, color: "#999", margin: "0 0 16px" }}>No CBT tests yet.</p>
+                        )}
                         <div className="sd-view-all">
                             <a href="/portal/student/cbt">View all →</a>
                         </div>
