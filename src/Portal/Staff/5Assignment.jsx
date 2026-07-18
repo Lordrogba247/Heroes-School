@@ -77,7 +77,10 @@ export default function StaffAssignment() {
                 if (!res.ok) throw new Error("Failed to load assignments.");
                 return res.json();
             })
-            .then((data) => setAssignments(data.assignments || data || []))
+            // Assuming { success, data: [...] } — same convention as every other confirmed
+            // endpoint. Was previously falling through to the whole response object,
+            // which would crash .map() below since that object has no .map method.
+            .then((data) => setAssignments(data.data || []))
             .catch(() => setError("Failed to load assignments."))
             .finally(() => setLoading(false));
     };

@@ -48,7 +48,10 @@ export default function StaffOnlineClass() {
                 if (!res.ok) throw new Error("Failed to load sessions.");
                 return res.json();
             })
-            .then((data) => setSessions(data.classes || data || []))
+            // Assuming { success, data: [...] } — same convention as every other confirmed
+            // endpoint. Was previously crashing with "m.map is not a function" whenever it
+            // fell through to the whole response object instead of the array.
+            .then((data) => setSessions(data.data || []))
             .catch(() => setError("Failed to load online classes."))
             .finally(() => setLoading(false));
     };
