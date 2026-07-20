@@ -1,27 +1,12 @@
 import { useState, useEffect } from "react";
 import "./6OnlineClass.css";
+import { useStaffMeta } from "../../hooks/useStaffMeta";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
-// Reuse the same subject/class lists from Assignment for consistency
-const subjectOptions = [
-    "Mathematics", "English Language", "Basic Science", "Basic Technology",
-    "Civic Education", "Social Studies", "Computer Studies/ICT", "Agricultural Science",
-    "Christian Religious Studies", "Islamic Religious Studies", "Yoruba", "Hausa", "Igbo",
-    "French", "Home Economics", "Physical and Health Education", "Creative and Cultural Arts",
-    "Verbal Reasoning", "Quantitative Reasoning", "Business Studies", "Physics", "Chemistry",
-    "Biology", "Further Mathematics", "Geography", "Government", "Economics",
-    "Literature-in-English", "History", "Financial Account", "Commerce", "Marketing",
-    "Technical Drawing", "Food and Nutrition",
-];
-
-const classOptions = [
-    "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5",
-    "JSS 1", "JSS 2", "JSS 3",
-    "SSS 1", "SSS 2", "SSS 3",
-];
-
 export default function StaffOnlineClass() {
+    const { subjects: subjectOptions, classes: classOptions, loading: metaLoading } = useStaffMeta();
+
     const [date, setDate] = useState("");
     const [time, setTime] = useState("");
     const [classLabel, setClassLabel] = useState("");
@@ -48,9 +33,6 @@ export default function StaffOnlineClass() {
                 if (!res.ok) throw new Error("Failed to load sessions.");
                 return res.json();
             })
-            // Assuming { success, data: [...] } — same convention as every other confirmed
-            // endpoint. Was previously crashing with "m.map is not a function" whenever it
-            // fell through to the whole response object instead of the array.
             .then((data) => setSessions(data.data || []))
             .catch(() => setError("Failed to load online classes."))
             .finally(() => setLoading(false));
@@ -163,6 +145,7 @@ export default function StaffOnlineClass() {
                         className="soc-select"
                         value={classLabel}
                         onChange={(e) => setClassLabel(e.target.value)}
+                        disabled={metaLoading}
                     >
                         <option value="" disabled>Select Class</option>
                         {classOptions.map((c) => (
@@ -174,6 +157,7 @@ export default function StaffOnlineClass() {
                         className="soc-select"
                         value={subject}
                         onChange={(e) => setSubject(e.target.value)}
+                        disabled={metaLoading}
                     >
                         <option value="" disabled>Subject</option>
                         {subjectOptions.map((s) => (

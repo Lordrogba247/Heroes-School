@@ -1,55 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import "./5Assignment.css";
+import { useStaffMeta } from "../../hooks/useStaffMeta";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
-// Standard Nigerian school subjects across Primary, JSS, and SSS levels
-const subjectOptions = [
-    // Core / common across levels
-    "Mathematics",
-    "English Language",
-    "Basic Science",
-    "Basic Technology",
-    "Civic Education",
-    "Social Studies",
-    "Computer Studies/ICT",
-    "Agricultural Science",
-    "Christian Religious Studies",
-    "Islamic Religious Studies",
-    "Yoruba",
-    "Hausa",
-    "Igbo",
-    "French",
-    "Home Economics",
-    "Physical and Health Education",
-    "Creative and Cultural Arts",
-    "Verbal Reasoning",
-    "Quantitative Reasoning",
-    // JSS / SSS
-    "Business Studies",
-    "Physics",
-    "Chemistry",
-    "Biology",
-    "Further Mathematics",
-    "Geography",
-    "Government",
-    "Economics",
-    "Literature-in-English",
-    "History",
-    "Financial Account",
-    "Commerce",
-    "Marketing",
-    "Technical Drawing",
-    "Food and Nutrition",
-];
-
-const classOptions = [
-    "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5",
-    "JSS 1", "JSS 2", "JSS 3",
-    "SSS 1", "SSS 2", "SSS 3",
-];
-
 export default function StaffAssignment() {
+    const { subjects: subjectOptions, classes: classOptions, loading: metaLoading } = useStaffMeta();
+
     const [subject, setSubject] = useState("");
     const [classLabel, setClassLabel] = useState("");
     const [instructions, setInstructions] = useState("");
@@ -77,9 +34,6 @@ export default function StaffAssignment() {
                 if (!res.ok) throw new Error("Failed to load assignments.");
                 return res.json();
             })
-            // Assuming { success, data: [...] } — same convention as every other confirmed
-            // endpoint. Was previously falling through to the whole response object,
-            // which would crash .map() below since that object has no .map method.
             .then((data) => setAssignments(data.data || []))
             .catch(() => setError("Failed to load assignments."))
             .finally(() => setLoading(false));
@@ -167,6 +121,7 @@ export default function StaffAssignment() {
                         value={subject}
                         onChange={(e) => setSubject(e.target.value)}
                         required
+                        disabled={metaLoading}
                     >
                         <option value="" disabled>Subject</option>
                         {subjectOptions.map((s) => (
@@ -179,6 +134,7 @@ export default function StaffAssignment() {
                         value={classLabel}
                         onChange={(e) => setClassLabel(e.target.value)}
                         required
+                        disabled={metaLoading}
                     >
                         <option value="" disabled>Select Class</option>
                         {classOptions.map((c) => (
