@@ -1,23 +1,8 @@
 import { useState, useEffect } from "react";
 import "./5Staff.css";
+import { useMeta } from "../../hooks/useMeta";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
-
-const roleOptions = [
-    "Admin",
-    "Teacher",
-    "Class Teacher Primary 1",
-    "Class Teacher Primary 2",
-    "Class Teacher Primary 3",
-    "Class Teacher Primary 4",
-    "Class Teacher Primary 5",
-    "Class Teacher JSS 1",
-    "Class Teacher JSS 2",
-    "Class Teacher JSS 3",
-    "Class Teacher SSS 1",
-    "Class Teacher SSS 2",
-    "Class Teacher SSS 3",
-];
 
 const initialStaff = [
     { id: 1, name: "Adedayo Tofunmi Moses", staffId: "HCS/2025/01324", sex: "M", role: "Admin" },
@@ -35,6 +20,8 @@ const initialStaff = [
 const emptyForm = { surname: "", otherNames: "", sex: "", role: "" };
 
 export default function AdminStaffList() {
+    const { roles: roleOptions, loading: metaLoading } = useMeta();
+
     const [staffList, setStaffList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -62,7 +49,6 @@ export default function AdminStaffList() {
                 return res.json();
             })
             .then((result) => {
-                // Response shape: { success, data: [...] } — data is a plain array
                 const fetched = result.data || [];
                 setStaffList(fetched.length > 0 ? fetched : initialStaff);
             })
@@ -85,7 +71,6 @@ export default function AdminStaffList() {
     };
 
     const openEditModal = (staff) => {
-        // Backend always returns a single combined "name" field — split it for the form
         const [surname, ...rest] = (staff.name || "").split(" ");
 
         setEditingStaff(staff);
@@ -325,6 +310,7 @@ export default function AdminStaffList() {
                                         value={form.role}
                                         onChange={(e) => handleFormChange("role", e.target.value)}
                                         required
+                                        disabled={metaLoading}
                                     >
                                         <option value="" disabled>Staff Role</option>
                                         {roleOptions.map((r) => (
