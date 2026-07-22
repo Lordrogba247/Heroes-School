@@ -190,3 +190,59 @@
   background: #1f2937;
   color: #fff;
 }
+
+.adc-sessions-section {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e5e5;
+}
+
+.adc-sessions-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.adc-sessions-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.adc-add-btn--secondary {
+  background: transparent;
+  color: #1f2a4a;
+  border: 1px solid #1f2a4a;
+}
+
+.adc-session-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #f0f0f0;
+  color: #666;
+}
+
+.adc-session-badge--current {
+  background: #e6f6ea;
+  color: #1e7a37;
+}
+
+.adc-session-preview {
+  font-size: 0.9rem;
+  color: #444;
+  margin-top: 4px;
+}
+
+.adc-promote-summary {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #e6f6ea;
+  color: #1e7a37;
+  font-size: 0.9rem;
+}

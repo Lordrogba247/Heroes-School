@@ -5,6 +5,8 @@ import { useMeta } from "../../hooks/useMeta";
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 const CLASSES_ENDPOINT = `${BASE_URL}/api/admin/classes`;
 const STAFF_ENDPOINT = `${BASE_URL}/api/admin/staff`;
+const SESSIONS_ENDPOINT = `${BASE_URL}/api/admin/sessions`;
+const PROMOTE_ENDPOINT = `${BASE_URL}/api/admin/promote`;
 
 // Mock classes data — fallback/demo data shown if API fails or returns empty
 const initialClasses = [
@@ -22,6 +24,7 @@ const initialClasses = [
 ];
 
 const emptyForm = { name: "", code: "", level: "", grade: "", academicSession: "" };
+const emptySessionForm = { startYear: "", endYear: "" };
 
 export default function AdminClasses() {
     const { sessions: metaSessions, refetch: refetchMeta } = useMeta();
@@ -34,6 +37,21 @@ export default function AdminClasses() {
     const [form, setForm] = useState(emptyForm);
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState("");
+
+    // ===== Sessions section state =====
+    const [sessions, setSessions] = useState([]);
+    const [sessionsLoading, setSessionsLoading] = useState(true);
+    const [sessionsError, setSessionsError] = useState("");
+
+    const [showSessionModal, setShowSessionModal] = useState(false);
+    const [sessionForm, setSessionForm] = useState(emptySessionForm);
+    const [creatingSession, setCreatingSession] = useState(false);
+    const [sessionFormError, setSessionFormError] = useState("");
+
+    const [showPromotePrompt, setShowPromotePrompt] = useState(false);
+    const [promoting, setPromoting] = useState(false);
+    const [promoteResult, setPromoteResult] = useState(null);
+    const [promoteError, setPromoteError] = useState("");
 
     const token = localStorage.getItem("token");
 
@@ -83,8 +101,27 @@ export default function AdminClasses() {
         }
     }
 
+    async function loadSessions() {
+        setSessionsLoading(true);
+        setSessionsError("");
+        try {
+            const res = await fetch(SESSIONS_ENDPOINT, {
+                method: "GET",
+                headers: { "Authorization": `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error("Failed to load sessions.");
+            const data = await res.json();
+            setSessions(data.data || []);
+        } catch (err) {
+            setSessionsError(err.message || "Failed to load sessions.");
+        } finally {
+            setSessionsLoading(false);
+        }
+    }
+
     useEffect(() => {
         loadClassData();
+        loadSessions();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -137,6 +174,88 @@ export default function AdminClasses() {
         }
     };
 
+    // ===== Sessions: create =====
+    const openSessionModal = () => {
+        setSessionForm(emptySessionForm);
+        setSessionFormError("");
+        setShowSessionModal(true);
+    };
+
+    const handleSessionFormChange = (field, value) => {
+        setSessionForm((prev) => ({ ...prev, [field]: value }));
+    };
+
+    // Auto-generated preview name, e.g. "2026/2027"
+    const previewSessionName =
+        sessionForm.startYear && sessionForm.endYear
+            ? `${sessionForm.startYear}/${sessionForm.endYear}`
+            : "";
+
+    const handleCreateSession = async () => {
+        if (!sessionForm.startYear || !sessionForm.endYear) {
+            setSessionFormError("Please fill in both the start and end year.");
+            return;
+        }
+        const startYear = Number(sessionForm.startYear);
+        const endYear = Number(sessionForm.endYear);
+        if (endYear !== startYear + 1) {
+            setSessionFormError("End year should be exactly one year after the start year.");
+            return;
+        }
+
+        setCreatingSession(true);
+        setSessionFormError("");
+        try {
+            const res = await fetch(SESSIONS_ENDPOINT, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    name: `${startYear}/${endYear}`,
+                    startYear,
+                    endYear,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to create session.");
+
+            setShowSessionModal(false);
+            await refetchMeta(); // Add Class modal's academic session dropdown updates immediately
+            loadSessions();
+            setPromoteResult(null);
+            setPromoteError("");
+            setShowPromotePrompt(true); // ask whether to promote students now that a new session exists
+        } catch (err) {
+            setSessionFormError(err.message || "Failed to create session.");
+        } finally {
+            setCreatingSession(false);
+        }
+    };
+
+    // ===== Sessions: promote =====
+    const handlePromote = async () => {
+        setPromoting(true);
+        setPromoteError("");
+        setPromoteResult(null);
+        try {
+            const res = await fetch(PROMOTE_ENDPOINT, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` },
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to promote students.");
+
+            setPromoteResult(data.data || null);
+            loadClassData(); // class counts will have shifted
+        } catch (err) {
+            setPromoteError(err.message || "Failed to promote students.");
+        } finally {
+            setPromoting(false);
+        }
+    };
+
     return (
         <div className="adc-page">
             <h1 className="adc-title">Classes</h1>
@@ -178,6 +297,74 @@ export default function AdminClasses() {
                     />
                 </svg>
             </button>
+
+            {/* ===== Classes/Sessions ===== */}
+            <div className="adc-sessions-section">
+                <h2 className="adc-sessions-title">Classes/Sessions</h2>
+                <p className="adc-subtitle">Manage academic sessions and promote students to the next class</p>
+
+                {sessionsError && <p className="adc-error">Couldn't load sessions: {sessionsError}</p>}
+
+                <div className="adc-table-wrap">
+                    <table className="adc-table">
+                        <thead>
+                            <tr>
+                                <th>Session</th>
+                                <th>Start Year</th>
+                                <th>End Year</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {sessionsLoading ? (
+                                <tr><td colSpan={4}>Loading…</td></tr>
+                            ) : sessions.length === 0 ? (
+                                <tr><td colSpan={4}>No sessions yet — add one below.</td></tr>
+                            ) : (
+                                sessions.map((s) => (
+                                    <tr key={s._id}>
+                                        <td>{s.name}</td>
+                                        <td>{s.startYear}</td>
+                                        <td>{s.endYear}</td>
+                                        <td>
+                                            {s.isCurrent ? (
+                                                <span className="adc-session-badge adc-session-badge--current">Current</span>
+                                            ) : (
+                                                <span className="adc-session-badge">Past</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="adc-sessions-actions">
+                    <button className="adc-add-btn" onClick={openSessionModal}>
+                        Add Session
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zm-7-9h-2v2H8v2h2v2h2v-2h2v-2h-2z" />
+                        </svg>
+                    </button>
+                    <button
+                        className="adc-add-btn adc-add-btn--secondary"
+                        onClick={() => {
+                            setPromoteResult(null);
+                            setPromoteError("");
+                            setShowPromotePrompt(true);
+                        }}
+                    >
+                        Promote Students
+                    </button>
+                </div>
+
+                {promoteResult && (
+                    <p className="adc-promote-summary">
+                        Promotion complete — {promoteResult.promoted} promoted, {promoteResult.graduated} graduated, {promoteResult.skipped} skipped.
+                    </p>
+                )}
+            </div>
 
             {/* Add Class modal */}
             {showAddModal && (
@@ -244,6 +431,9 @@ export default function AdminClasses() {
                                     value={form.academicSession}
                                     onChange={(e) => handleFormChange("academicSession", e.target.value)}
                                 >
+                                    {metaSessions.length === 0 && (
+                                        <option value="" disabled>No sessions yet — add one first</option>
+                                    )}
                                     {metaSessions.map((s) => {
                                         const name = typeof s === "string" ? s : s.name;
                                         return <option key={name} value={name}>{name}</option>;
@@ -268,6 +458,98 @@ export default function AdminClasses() {
                                 disabled={submitting}
                             >
                                 {submitting ? "Adding..." : "Add Class"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Session modal */}
+            {showSessionModal && (
+                <div className="adc-modal-overlay" onClick={() => setShowSessionModal(false)}>
+                    <div className="adc-modal" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="adc-modal-title">Add Session</h3>
+
+                        <div className="adc-modal-form">
+                            <label className="adc-modal-label">
+                                Start year
+                                <input
+                                    type="number"
+                                    className="adc-modal-input"
+                                    placeholder="e.g. 2026"
+                                    value={sessionForm.startYear}
+                                    onChange={(e) => handleSessionFormChange("startYear", e.target.value)}
+                                />
+                            </label>
+
+                            <label className="adc-modal-label">
+                                End year
+                                <input
+                                    type="number"
+                                    className="adc-modal-input"
+                                    placeholder="e.g. 2027"
+                                    value={sessionForm.endYear}
+                                    onChange={(e) => handleSessionFormChange("endYear", e.target.value)}
+                                />
+                            </label>
+
+                            {previewSessionName && (
+                                <p className="adc-session-preview">Session name: <strong>{previewSessionName}</strong></p>
+                            )}
+                        </div>
+
+                        {sessionFormError && <p className="adc-error">{sessionFormError}</p>}
+
+                        <div className="adc-modal-actions">
+                            <button
+                                className="adc-modal-btn adc-modal-btn--cancel"
+                                onClick={() => setShowSessionModal(false)}
+                                disabled={creatingSession}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="adc-modal-btn adc-modal-btn--submit"
+                                onClick={handleCreateSession}
+                                disabled={creatingSession}
+                            >
+                                {creatingSession ? "Adding..." : "Add Session"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Promote confirmation */}
+            {showPromotePrompt && (
+                <div className="adc-modal-overlay" onClick={() => setShowPromotePrompt(false)}>
+                    <div className="adc-modal" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="adc-modal-title">Promote Students to Next Class?</h3>
+                        <p className="adc-modal-text">
+                            This moves every student up one class (e.g. JSS 1 → JSS 2). Students in SSS 3 will be marked as graduated.
+                            Creche/Nursery students are skipped — the backend doesn't have a promotion path for them yet.
+                            This cannot be undone.
+                        </p>
+
+                        {promoteError && <p className="adc-error">{promoteError}</p>}
+
+                        <div className="adc-modal-actions">
+                            <button
+                                className="adc-modal-btn adc-modal-btn--cancel"
+                                onClick={() => setShowPromotePrompt(false)}
+                                disabled={promoting}
+                            >
+                                Not now
+                            </button>
+                            <button
+                                className="adc-modal-btn adc-modal-btn--submit"
+                                onClick={async () => {
+                                    await handlePromote();
+                                    setShowPromotePrompt(false);
+                                }}
+                                disabled={promoting}
+                            >
+                                {promoting ? "Promoting..." : "Promote Students"}
                             </button>
                         </div>
                     </div>
