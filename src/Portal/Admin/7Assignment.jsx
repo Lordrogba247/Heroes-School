@@ -1,29 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import "./7Assignment.css";
+import { useMeta } from "../../hooks/useMeta";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
-
-// Same subject/class lists as Staff's Assignment page, for consistency
-const subjectOptions = [
-    "Mathematics", "English Language", "Basic Science", "Basic Technology",
-    "Civic Education", "Social Studies", "Computer Studies/ICT", "Agricultural Science",
-    "Christian Religious Studies", "Islamic Religious Studies", "Yoruba", "Hausa", "Igbo",
-    "French", "Home Economics", "Physical and Health Education", "Creative and Cultural Arts",
-    "Verbal Reasoning", "Quantitative Reasoning", "Business Studies", "Physics", "Chemistry",
-    "Biology", "Further Mathematics", "Geography", "Government", "Economics",
-    "Literature-in-English", "History", "Financial Account", "Commerce", "Marketing",
-    "Technical Drawing", "Food and Nutrition",
-];
-
-const classOptions = [
-    "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5",
-    "JSS 1", "JSS 2", "JSS 3",
-    "SSS 1", "SSS 2", "SSS 3",
-];
 
 const emptyForm = { subject: "", classLabel: "", instructions: "", dueDate: "" };
 
 export default function AdminAssignment() {
+    const { subjects: subjectOptions, classes: classOptions, loading: metaLoading } = useMeta();
+
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -50,8 +35,6 @@ export default function AdminAssignment() {
                 if (!res.ok) throw new Error("Failed to load assignments.");
                 return res.json();
             })
-            // Assuming { success, data: [...] } — same convention as every other confirmed
-            // endpoint. Flag to Victor if this still comes back empty after this fix.
             .then((data) => setAssignments(data.data || []))
             .catch(() => setError("Failed to load assignments."))
             .finally(() => setLoading(false));
@@ -200,6 +183,7 @@ export default function AdminAssignment() {
                                     value={form.subject}
                                     onChange={(e) => handleFormChange("subject", e.target.value)}
                                     required
+                                    disabled={metaLoading}
                                 >
                                     <option value="" disabled>Subject</option>
                                     {subjectOptions.map((s) => (
@@ -212,6 +196,7 @@ export default function AdminAssignment() {
                                     value={form.classLabel}
                                     onChange={(e) => handleFormChange("classLabel", e.target.value)}
                                     required
+                                    disabled={metaLoading}
                                 >
                                     <option value="" disabled>Select Class</option>
                                     {classOptions.map((c) => (

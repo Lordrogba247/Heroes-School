@@ -210,21 +210,28 @@ export default function AdminClasses() {
 
                             <label className="adc-modal-label">
                                 Level
-                                <input
-                                    type="text"
+                                <select
                                     className="adc-modal-input"
-                                    placeholder="e.g. primary, jss, sss"
                                     value={form.level}
                                     onChange={(e) => handleFormChange("level", e.target.value)}
-                                />
+                                >
+                                    <option value="" disabled>Select level...</option>
+                                    <option value="creche">Creche</option>
+                                    <option value="nursery">Nursery</option>
+                                    <option value="primary">Primary</option>
+                                    <option value="junior-secondary">Junior Secondary (JSS)</option>
+                                    <option value="senior-secondary">Senior Secondary (SSS)</option>
+                                    <option value="other">Other</option>
+                                </select>
                             </label>
 
                             <label className="adc-modal-label">
                                 Grade
                                 <input
                                     type="number"
+                                    min="1"
                                     className="adc-modal-input"
-                                    placeholder="e.g. 1"
+                                    placeholder="e.g. 1 (for Primary 1, JSS 1, etc.)"
                                     value={form.grade}
                                     onChange={(e) => handleFormChange("grade", e.target.value)}
                                 />

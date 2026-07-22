@@ -1,30 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
 import "./10CBT.css";
+import { useMeta } from "../../hooks/useMeta";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
-
-const subjectOptions = [
-    "Mathematics", "English Language", "Basic Science", "Basic Technology",
-    "Civic Education", "Social Studies", "Computer Studies/ICT", "Agricultural Science",
-    "Christian Religious Studies", "Islamic Religious Studies", "Yoruba", "Hausa", "Igbo",
-    "French", "Home Economics", "Physical and Health Education", "Creative and Cultural Arts",
-    "Verbal Reasoning", "Quantitative Reasoning", "Business Studies", "Physics", "Chemistry",
-    "Biology", "Further Mathematics", "Geography", "Government", "Economics",
-    "Literature-in-English", "History", "Financial Account", "Commerce", "Marketing",
-    "Technical Drawing", "Food and Nutrition",
-];
-
-const classOptions = [
-    "JSS 1", "JSS 2", "JSS 3",
-    "SS 1", "SS 2", "SS 3",
-    "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
-];
 
 // Card colors alternate purple/red
 const cardAccents = ["purple", "red"];
 
 export default function AdminCBT() {
+    const { subjects: subjectOptions, classes: classOptions, loading: metaLoading } = useMeta();
+
     const [tests, setTests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -54,7 +40,6 @@ export default function AdminCBT() {
             })
             .then((data) => {
                 const list = data.tests || data || [];
-                // Assign alternating accent colors client-side since this is purely visual
                 const withAccents = list.map((t, i) => ({ ...t, accent: cardAccents[i % 2] }));
                 setTests(withAccents);
             })
@@ -228,13 +213,13 @@ export default function AdminCBT() {
                                     <input ref={fileInputRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={handleFileChange} />
                                 </div>
                                 <div className="acbt-field">
-                                    <select name="classLevel" className="acbt-select" value={form.classLevel} onChange={handleChange}>
+                                    <select name="classLevel" className="acbt-select" value={form.classLevel} onChange={handleChange} disabled={metaLoading}>
                                         <option value="">Select Class</option>
                                         {classOptions.map((c) => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </div>
                                 <div className="acbt-field">
-                                    <select name="subject" className="acbt-select" value={form.subject} onChange={handleChange}>
+                                    <select name="subject" className="acbt-select" value={form.subject} onChange={handleChange} disabled={metaLoading}>
                                         <option value="">Subject</option>
                                         {subjectOptions.map((s) => <option key={s} value={s}>{s}</option>)}
                                     </select>

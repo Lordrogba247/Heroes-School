@@ -1,27 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
 import "./9CBT.css";
+import { useStaffMeta } from "../../hooks/useStaffMeta";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
-const subjectOptions = [
-    "Mathematics", "English Language", "Basic Science", "Basic Technology",
-    "Civic Education", "Social Studies", "Computer Studies/ICT", "Agricultural Science",
-    "Christian Religious Studies", "Islamic Religious Studies", "Yoruba", "Hausa", "Igbo",
-    "French", "Home Economics", "Physical and Health Education", "Creative and Cultural Arts",
-    "Verbal Reasoning", "Quantitative Reasoning", "Business Studies", "Physics", "Chemistry",
-    "Biology", "Further Mathematics", "Geography", "Government", "Economics",
-    "Literature-in-English", "History", "Financial Account", "Commerce", "Marketing",
-    "Technical Drawing", "Food and Nutrition",
-];
-
-const classOptions = [
-    "JSS 1", "JSS 2", "JSS 3",
-    "SS 1", "SS 2", "SS 3",
-    "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
-];
-
 export default function StaffCBT() {
+    const { subjects: subjectOptions, classes: classOptions, loading: metaLoading } = useStaffMeta();
+
     const [form, setForm] = useState({
         duration: "",
         date: "",
@@ -213,6 +199,7 @@ export default function StaffCBT() {
                             className="sc-select"
                             value={form.classLevel}
                             onChange={handleChange}
+                            disabled={metaLoading}
                         >
                             <option value="">Select Class</option>
                             {classOptions.map((c) => (
@@ -228,6 +215,7 @@ export default function StaffCBT() {
                             className="sc-select"
                             value={form.subject}
                             onChange={handleChange}
+                            disabled={metaLoading}
                         >
                             <option value="">Subject</option>
                             {subjectOptions.map((s) => (

@@ -1,28 +1,14 @@
 import { useState, useEffect } from "react";
 import "./8OnlineClasses.css";
+import { useMeta } from "../../hooks/useMeta";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
-
-const subjectOptions = [
-    "Mathematics", "English Language", "Basic Science", "Basic Technology",
-    "Civic Education", "Social Studies", "Computer Studies/ICT", "Agricultural Science",
-    "Christian Religious Studies", "Islamic Religious Studies", "Yoruba", "Hausa", "Igbo",
-    "French", "Home Economics", "Physical and Health Education", "Creative and Cultural Arts",
-    "Verbal Reasoning", "Quantitative Reasoning", "Business Studies", "Physics", "Chemistry",
-    "Biology", "Further Mathematics", "Geography", "Government", "Economics",
-    "Literature-in-English", "History", "Financial Account", "Commerce", "Marketing",
-    "Technical Drawing", "Food and Nutrition",
-];
-
-const classOptions = [
-    "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5",
-    "JSS 1", "JSS 2", "JSS 3",
-    "SSS 1", "SSS 2", "SSS 3",
-];
 
 const emptyForm = { date: "", time: "", classLabel: "", subject: "", meetingLink: "" };
 
 export default function AdminOnlineClass() {
+    const { subjects: subjectOptions, classes: classOptions, loading: metaLoading } = useMeta();
+
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -46,7 +32,6 @@ export default function AdminOnlineClass() {
                 if (!res.ok) throw new Error("Failed to load sessions.");
                 return res.json();
             })
-            // Confirmed shape: { success, data: [ { id, subject, classLabel, date, time, link, accent } ] }
             .then((data) => setSessions(data.data || []))
             .catch(() => setError("Failed to load online classes."))
             .finally(() => setLoading(false));
@@ -247,6 +232,7 @@ export default function AdminOnlineClass() {
                                     className="aoc-select"
                                     value={form.classLabel}
                                     onChange={(e) => handleFormChange("classLabel", e.target.value)}
+                                    disabled={metaLoading}
                                 >
                                     <option value="" disabled>Select Class</option>
                                     {classOptions.map((c) => (
@@ -258,6 +244,7 @@ export default function AdminOnlineClass() {
                                     className="aoc-select"
                                     value={form.subject}
                                     onChange={(e) => handleFormChange("subject", e.target.value)}
+                                    disabled={metaLoading}
                                 >
                                     <option value="" disabled>Subject</option>
                                     {subjectOptions.map((s) => (
