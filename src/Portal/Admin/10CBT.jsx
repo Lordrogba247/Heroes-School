@@ -9,7 +9,7 @@ const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 const cardAccents = ["purple", "red"];
 
 export default function AdminCBT() {
-    const { subjects: subjectOptions, classes: classOptions, loading: metaLoading } = useMeta();
+    const { classes: classOptions, getSubjectsForClass, loading: metaLoading } = useMeta();
 
     const [tests, setTests] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -26,6 +26,9 @@ export default function AdminCBT() {
     const fileInputRef = useRef(null);
 
     const token = localStorage.getItem("token");
+
+    // Subjects available for the currently selected class, derived from level
+    const subjectOptions = form.classLevel ? getSubjectsForClass(form.classLevel) : [];
 
     const loadTests = () => {
         setLoading(true);
@@ -50,6 +53,12 @@ export default function AdminCBT() {
     useEffect(() => {
         loadTests();
     }, []);
+
+    // Reset the selected subject whenever the class changes, since the old
+    // subject may not belong to the new class's level
+    useEffect(() => {
+        setForm((prev) => (prev.subject ? { ...prev, subject: "" } : prev));
+    }, [form.classLevel]);
 
     const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -215,12 +224,18 @@ export default function AdminCBT() {
                                 <div className="acbt-field">
                                     <select name="classLevel" className="acbt-select" value={form.classLevel} onChange={handleChange} disabled={metaLoading}>
                                         <option value="">Select Class</option>
-                                        {classOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                                        {classOptions.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
                                     </select>
                                 </div>
                                 <div className="acbt-field">
-                                    <select name="subject" className="acbt-select" value={form.subject} onChange={handleChange} disabled={metaLoading}>
-                                        <option value="">Subject</option>
+                                    <select
+                                        name="subject"
+                                        className="acbt-select"
+                                        value={form.subject}
+                                        onChange={handleChange}
+                                        disabled={metaLoading || !form.classLevel}
+                                    >
+                                        <option value="">{form.classLevel ? "Subject" : "Select a class first"}</option>
                                         {subjectOptions.map((s) => <option key={s} value={s}>{s}</option>)}
                                     </select>
                                 </div>

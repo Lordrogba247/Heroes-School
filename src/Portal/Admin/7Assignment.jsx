@@ -7,7 +7,7 @@ const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 const emptyForm = { subject: "", classLabel: "", instructions: "", dueDate: "" };
 
 export default function AdminAssignment() {
-    const { subjects: subjectOptions, classes: classOptions, loading: metaLoading } = useMeta();
+    const { classes: classOptions, getSubjectsForClass, loading: metaLoading } = useMeta();
 
     const [assignments, setAssignments] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -23,6 +23,9 @@ export default function AdminAssignment() {
     const [deleteTarget, setDeleteTarget] = useState(null);
 
     const token = localStorage.getItem("token");
+
+    // Subjects available for the currently selected class, derived from level
+    const subjectOptions = form.classLabel ? getSubjectsForClass(form.classLabel) : [];
 
     const loadAssignments = () => {
         setLoading(true);
@@ -43,6 +46,12 @@ export default function AdminAssignment() {
     useEffect(() => {
         loadAssignments();
     }, []);
+
+    // Reset the selected subject whenever the class changes, since the old
+    // subject may not belong to the new class's level
+    useEffect(() => {
+        setForm((prev) => (prev.subject ? { ...prev, subject: "" } : prev));
+    }, [form.classLabel]);
 
     const openAddModal = () => {
         setForm(emptyForm);
@@ -180,19 +189,6 @@ export default function AdminAssignment() {
                             <div className="ada-form-row">
                                 <select
                                     className="ada-select"
-                                    value={form.subject}
-                                    onChange={(e) => handleFormChange("subject", e.target.value)}
-                                    required
-                                    disabled={metaLoading}
-                                >
-                                    <option value="" disabled>Subject</option>
-                                    {subjectOptions.map((s) => (
-                                        <option key={s} value={s}>{s}</option>
-                                    ))}
-                                </select>
-
-                                <select
-                                    className="ada-select"
                                     value={form.classLabel}
                                     onChange={(e) => handleFormChange("classLabel", e.target.value)}
                                     required
@@ -200,7 +196,20 @@ export default function AdminAssignment() {
                                 >
                                     <option value="" disabled>Select Class</option>
                                     {classOptions.map((c) => (
-                                        <option key={c} value={c}>{c}</option>
+                                        <option key={c.name} value={c.name}>{c.name}</option>
+                                    ))}
+                                </select>
+
+                                <select
+                                    className="ada-select"
+                                    value={form.subject}
+                                    onChange={(e) => handleFormChange("subject", e.target.value)}
+                                    required
+                                    disabled={metaLoading || !form.classLabel}
+                                >
+                                    <option value="" disabled>{form.classLabel ? "Subject" : "Select a class first"}</option>
+                                    {subjectOptions.map((s) => (
+                                        <option key={s} value={s}>{s}</option>
                                     ))}
                                 </select>
                             </div>

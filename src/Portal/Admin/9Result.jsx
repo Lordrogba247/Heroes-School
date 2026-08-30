@@ -47,7 +47,7 @@ export default function AdminResultsList() {
             setSession(current.name);
         }
         if (classes.length > 0 && !classLabel) {
-            setClassLabel(classes[0]);
+            setClassLabel(classes[0].name);
         }
     }, [metaSessions, classes, session, classLabel]);
 
@@ -258,7 +258,7 @@ export default function AdminResultsList() {
                         <option value="" disabled>No classes found</option>
                     )}
                     {classes.map((c) => (
-                        <option key={c} value={c}>{c}</option>
+                        <option key={c.name} value={c.name}>{c.name}</option>
                     ))}
                 </select>
             </div>
