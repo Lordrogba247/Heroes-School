@@ -14,6 +14,9 @@ export default function StudentCBTExam() {
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState("");
 
+    // Whether the student has clicked "Begin Exam" and fullscreen/timer has started
+    const [examStarted, setExamStarted] = useState(false);
+
     const [currentIndex, setCurrentIndex] = useState(0);
     const [answers, setAnswers] = useState({}); // { [questionId]: "A" }
 
@@ -24,11 +27,16 @@ export default function StudentCBTExam() {
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
     const [result, setResult] = useState(null); // { score, totalQuestions, percentage, passed }
-    const hasSubmittedRef = useRef(false); // guards against double-submit (manual + timeout race)
+    const hasSubmittedRef = useRef(false); // guards against double-submit
+
+    // Anti-cheat: violation modal + strike counters
+    const [violation, setViolation] = useState(null); // { type: "focus"|"copy", final: boolean, message: string }
+    const focusStrikesRef = useRef(0);
+    const copyStrikesRef = useRef(0);
 
     const token = localStorage.getItem("token");
 
-    // Fetch questions on mount
+    // Fetch questions on mount (does NOT start the timer yet — that happens on "Begin Exam")
     useEffect(() => {
         setLoading(true);
         setLoadError("");
@@ -43,9 +51,7 @@ export default function StudentCBTExam() {
             })
             .then((data) => {
                 setExamData(data.data);
-                const durationSeconds = (data.data.duration || 0) * 60;
-                setSecondsLeft(durationSeconds);
-                startTimeRef.current = Date.now();
+                setSecondsLeft((data.data.duration || 0) * 60);
             })
             .catch((err) => setLoadError(err.message || "Failed to load test questions."))
             .finally(() => setLoading(false));
@@ -83,13 +89,11 @@ export default function StudentCBTExam() {
             const data = await res.json().catch(() => ({}));
 
             if (res.status === 409) {
-                // Already submitted — treat as informational, send them to results
                 setSubmitError(data.message || "You have already submitted this test.");
                 setResult(null);
                 return;
             }
             if (res.status === 400) {
-                // Time expired per server check
                 setSubmitError(data.message || "Time expired for this test.");
                 setResult(null);
                 return;
@@ -106,9 +110,50 @@ export default function StudentCBTExam() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [testId, buildAnswersPayload, getElapsedSeconds]);
 
-    // Countdown timer — auto-submits when it hits zero
+    // Strike 1: warn. Strike 2: auto-submit. Used for leaving fullscreen / switching tabs.
+    const handleFocusViolation = useCallback(() => {
+        if (hasSubmittedRef.current || !examStarted || result) return;
+        focusStrikesRef.current += 1;
+        if (focusStrikesRef.current >= 2) {
+            setViolation({
+                type: "focus",
+                final: true,
+                message: "You left the test screen a second time. Your test is being submitted automatically.",
+            });
+            submitTest();
+        } else {
+            setViolation({
+                type: "focus",
+                final: false,
+                message: "You left the test screen. Return to fullscreen now — doing this again will auto-submit your test.",
+            });
+        }
+    }, [examStarted, result, submitTest]);
+
+    // Strike 1: warn. Strike 2: auto-submit. Used for copy/cut attempts.
+    const handleCopyAttempt = useCallback((e) => {
+        e.preventDefault();
+        if (hasSubmittedRef.current || !examStarted || result) return;
+        copyStrikesRef.current += 1;
+        if (copyStrikesRef.current >= 2) {
+            setViolation({
+                type: "copy",
+                final: true,
+                message: "You attempted to copy test content a second time. Your test is being submitted automatically.",
+            });
+            submitTest();
+        } else {
+            setViolation({
+                type: "copy",
+                final: false,
+                message: "Copying is not allowed during the test. Attempting to copy again will auto-submit your test.",
+            });
+        }
+    }, [examStarted, result, submitTest]);
+
+    // Countdown timer — starts once examStarted is true, auto-submits at zero
     useEffect(() => {
-        if (secondsLeft === null || result || loadError) return;
+        if (!examStarted || secondsLeft === null || result || loadError) return;
 
         timerRef.current = setInterval(() => {
             setSecondsLeft((prev) => {
@@ -123,7 +168,95 @@ export default function StudentCBTExam() {
 
         return () => clearInterval(timerRef.current);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [secondsLeft !== null]);
+    }, [examStarted, secondsLeft !== null]);
+
+    // Detect leaving fullscreen
+    useEffect(() => {
+        if (!examStarted) return;
+        const onFsChange = () => {
+            const inFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+            if (!inFullscreen) handleFocusViolation();
+        };
+        document.addEventListener("fullscreenchange", onFsChange);
+        document.addEventListener("webkitfullscreenchange", onFsChange);
+        return () => {
+            document.removeEventListener("fullscreenchange", onFsChange);
+            document.removeEventListener("webkitfullscreenchange", onFsChange);
+        };
+    }, [examStarted, handleFocusViolation]);
+
+    // Detect tab switch / minimizing
+    useEffect(() => {
+        if (!examStarted) return;
+        const onVisibility = () => {
+            if (document.hidden) handleFocusViolation();
+        };
+        document.addEventListener("visibilitychange", onVisibility);
+        return () => document.removeEventListener("visibilitychange", onVisibility);
+    }, [examStarted, handleFocusViolation]);
+
+    // Block copy/cut, right-click, and a few keyboard shortcuts during the exam
+    useEffect(() => {
+        if (!examStarted) return;
+
+        const onContextMenu = (e) => e.preventDefault();
+        const onKeyDown = (e) => {
+            const key = e.key.toLowerCase();
+            const blockedCombo = (e.ctrlKey || e.metaKey) && ["u", "s", "p"].includes(key);
+            const devToolsCombo = (e.ctrlKey || e.metaKey) && e.shiftKey && ["i", "j", "c"].includes(key);
+            if (e.key === "F12" || blockedCombo || devToolsCombo) e.preventDefault();
+        };
+
+        document.addEventListener("copy", handleCopyAttempt);
+        document.addEventListener("cut", handleCopyAttempt);
+        document.addEventListener("contextmenu", onContextMenu);
+        document.addEventListener("keydown", onKeyDown);
+        return () => {
+            document.removeEventListener("copy", handleCopyAttempt);
+            document.removeEventListener("cut", handleCopyAttempt);
+            document.removeEventListener("contextmenu", onContextMenu);
+            document.removeEventListener("keydown", onKeyDown);
+        };
+    }, [examStarted, handleCopyAttempt]);
+
+    // Exit fullscreen once the test is done, and on unmount
+    useEffect(() => {
+        if (result && (document.fullscreenElement || document.webkitFullscreenElement)) {
+            (document.exitFullscreen || document.webkitExitFullscreen)?.call(document).catch(() => { });
+        }
+    }, [result]);
+
+    useEffect(() => {
+        return () => {
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                (document.exitFullscreen || document.webkitExitFullscreen)?.call(document).catch(() => { });
+            }
+        };
+    }, []);
+
+    const handleBeginExam = async () => {
+        try {
+            const el = document.documentElement;
+            const request = el.requestFullscreen || el.webkitRequestFullscreen;
+            if (request) await request.call(el);
+        } catch {
+            // Some browsers/devices (notably iOS Safari) don't support fullscreen —
+            // proceed anyway; tab-switch/copy detection still works.
+        }
+        startTimeRef.current = Date.now();
+        setExamStarted(true);
+    };
+
+    const handleReturnToFullscreen = async () => {
+        try {
+            const el = document.documentElement;
+            const request = el.requestFullscreen || el.webkitRequestFullscreen;
+            if (request) await request.call(el);
+        } catch {
+            // ignore
+        }
+        setViolation(null);
+    };
 
     const formatTime = (secs) => {
         const m = Math.floor(secs / 60).toString().padStart(2, "0");
@@ -166,7 +299,9 @@ export default function StudentCBTExam() {
         );
     }
 
-    // Result screen (successful submission)
+    const questions = examData?.questions || [];
+
+    // Result screen (successful submission) — takes priority over everything else
     if (result) {
         return (
             <div className="cbtx-page">
@@ -201,7 +336,7 @@ export default function StudentCBTExam() {
     }
 
     // Submit blocked (409 already submitted, or 400 time expired) with no result payload
-    if (submitError && !examData) {
+    if (submitError && !examStarted) {
         return (
             <div className="cbtx-page">
                 <p className="cbtx-error">{submitError}</p>
@@ -212,12 +347,34 @@ export default function StudentCBTExam() {
         );
     }
 
-    const questions = examData?.questions || [];
+    // Ready screen — shown before fullscreen/timer starts
+    if (examData && !examStarted) {
+        return (
+            <div className="cbtx-page">
+                <div className="cbtx-ready-card">
+                    <h2 className="cbtx-ready-title">{examData.subject}</h2>
+                    <p className="cbtx-ready-sub">
+                        {questions.length} questions · {examData.duration} minutes
+                    </p>
+                    <div className="cbtx-ready-rules">
+                        <p>⚠ Once you begin, the test opens in fullscreen.</p>
+                        <p>⚠ Leaving fullscreen or switching tabs twice auto-submits your test.</p>
+                        <p>⚠ Attempting to copy test content twice auto-submits your test.</p>
+                        <p>⚠ Right-click and copy/paste are disabled during the test.</p>
+                    </div>
+                    <button className="cbtx-begin-btn" onClick={handleBeginExam}>
+                        Begin Exam
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     const currentQuestion = questions[currentIndex];
     const answeredCount = Object.keys(answers).length;
 
     return (
-        <div className="cbtx-page">
+        <div className="cbtx-page cbtx-page--locked">
             <div className="cbtx-header">
                 <div>
                     <h1 className="cbtx-subject">{examData?.subject}</h1>
@@ -228,16 +385,13 @@ export default function StudentCBTExam() {
                 <div className="cbtx-timer">{formatTime(secondsLeft)}</div>
             </div>
 
-            {submitError && (
-                <p className="cbtx-error">{submitError}</p>
-            )}
+            {submitError && <p className="cbtx-error">{submitError}</p>}
 
             {currentQuestion && (
                 <div className="cbtx-question-card">
                     <p className="cbtx-question-text">{currentQuestion.text}</p>
                     <div className="cbtx-options">
                         {currentQuestion.options.map((opt) => {
-                            // Options come as "A. Water" — derive the letter for the payload
                             const letter = opt.trim().charAt(0);
                             const isSelected = answers[currentQuestion.id] === letter;
                             return (
@@ -271,11 +425,7 @@ export default function StudentCBTExam() {
                         Next
                     </button>
                 ) : (
-                    <button
-                        className="cbtx-submit-btn"
-                        onClick={handleManualSubmit}
-                        disabled={submitting}
-                    >
+                    <button className="cbtx-submit-btn" onClick={handleManualSubmit} disabled={submitting}>
                         {submitting ? "Submitting..." : "Submit Test"}
                     </button>
                 )}
@@ -292,6 +442,29 @@ export default function StudentCBTExam() {
                     </button>
                 ))}
             </div>
+
+            {/* Violation warning modal */}
+            {violation && !violation.final && (
+                <div className="cbtx-violation-overlay">
+                    <div className="cbtx-violation-modal">
+                        <h3 className="cbtx-violation-title">⚠ Warning</h3>
+                        <p className="cbtx-violation-text">{violation.message}</p>
+                        <button className="cbtx-violation-btn" onClick={handleReturnToFullscreen}>
+                            Return to Fullscreen & Continue
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Final violation — submission already triggered, just inform them */}
+            {violation && violation.final && (
+                <div className="cbtx-violation-overlay">
+                    <div className="cbtx-violation-modal cbtx-violation-modal--final">
+                        <h3 className="cbtx-violation-title">Test Submitted</h3>
+                        <p className="cbtx-violation-text">{violation.message}</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
