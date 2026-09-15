@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./6CBT.css";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 export default function StudentCBT() {
+    const navigate = useNavigate();
     const [tests, setTests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -21,18 +23,13 @@ export default function StudentCBT() {
                 if (!res.ok) throw new Error("Failed to load CBT tests.");
                 return res.json();
             })
-            // Confirmed: /api/cbt is the shared read-only endpoint for all authenticated
-            // users. Assuming { success, data: [...] } — same convention as every other
-            // confirmed endpoint. Was previously crashing when it fell through to the
-            // whole response object, since that object has no .map method.
             .then((data) => setTests(data.data || []))
             .catch((err) => setError(err.message || "Failed to load CBT tests."))
             .finally(() => setLoading(false));
     }, []);
 
     const handleStartTest = (test) => {
-        // Backend dev go wire this to the CBT test-taking screen when it's ready
-        alert(`Starting: ${test.subject} — ${test.description}`);
+        navigate(`/portal/student/cbt/${test._id || test.id}`, { state: { test } });
     };
 
     if (loading) return (
@@ -70,7 +67,6 @@ export default function StudentCBT() {
                 </div>
             ) : (
                 <div className="cbt-list">
-                    {/* Warning banner */}
                     <div className="cbt-warning">
                         <span className="cbt-warning-icon">
                             <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">

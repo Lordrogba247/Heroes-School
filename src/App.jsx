@@ -20,6 +20,7 @@ import StudentOnlineClass from './Portal/Student/4Online'
 import StudentResults from './Portal/Student/5Result'
 import StudentCBT from './Portal/Student/6CBT'
 import StudentProfile from './Portal/Student/7Profile'
+import StudentCBTExam from './Portal/Student/8CBTExam'
 
 import StaffLogin from './Portal/Staff/1Login'
 import StaffLayout from './Portal/Staff/StaffLayout'
@@ -88,6 +89,7 @@ function App() {
           <Route path="results" element={<StudentResults />} />
           <Route path="cbt" element={<StudentCBT />} />
           <Route path="profile" element={<StudentProfile />} />
+          <Route path="cbt/:testId" element={<StudentCBTExam />} />
         </Route>
 
         {/*  Staff Portal  */}
