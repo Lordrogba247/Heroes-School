@@ -27,7 +27,7 @@ export default function StudentCBTExam() {
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
     const [result, setResult] = useState(null); // { score, totalQuestions, percentage, passed }
-    const hasSubmittedRef = useRef(false); // guards against double-submit
+    const hasSubmittedRef = useRef(false); // guards against double-submit (manual + timeout race)
 
     // Anti-cheat: violation modal + strike counters
     const [violation, setViolation] = useState(null); // { type: "focus"|"copy", final: boolean, message: string }
@@ -88,11 +88,6 @@ export default function StudentCBTExam() {
             });
             const data = await res.json().catch(() => ({}));
 
-            if (res.status === 409) {
-                setSubmitError(data.message || "You have already submitted this test.");
-                setResult(null);
-                return;
-            }
             if (res.status === 400) {
                 setSubmitError(data.message || "Time expired for this test.");
                 setResult(null);
@@ -335,7 +330,7 @@ export default function StudentCBTExam() {
         );
     }
 
-    // Submit blocked (409 already submitted, or 400 time expired) with no result payload
+    // Submit blocked (400 time expired) with no result payload
     if (submitError && !examStarted) {
         return (
             <div className="cbtx-page">
