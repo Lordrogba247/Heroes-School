@@ -232,7 +232,8 @@ export default function StaffResultEntry() {
 
             <h1 className="sre-title">{student.name}</h1>
             <p className="sre-sub">
-                {student.studentId} &nbsp; {student.sex} &nbsp; {student.classLabel || student.class}
+                {student.studentId} &nbsp; {student.sex} &nbsp; {student.classLabel?.name || student.classLabel || student.class?.name || student.class}
+
             </p>
 
             {/* Session / Term */}
@@ -261,137 +262,141 @@ export default function StaffResultEntry() {
             </div>
 
             {/* Row input table */}
-            {!submitted && (
-                <div className="sre-input-table-wrap">
-                    <table className="sre-table">
-                        <thead>
-                            <tr>
-                                <th>Subject</th>
-                                <th>1st C.A (20)</th>
-                                <th>2nd C.A (20)</th>
-                                <th>Exam (60)</th>
-                                <th>Total (100)</th>
-                                <th>Grade</th>
-                                <th>Remark</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <select
-                                        className="sre-cell-select"
-                                        value={rowInput.subject}
-                                        onChange={(e) => handleRowChange("subject", e.target.value)}
-                                    >
-                                        <option value="" disabled>Subject</option>
-                                        {subjectOptions.map((s) => (
-                                            <option key={s} value={s}>{s}</option>
-                                        ))}
-                                    </select>
-                                </td>
-                                <td>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="20"
-                                        className="sre-cell-input"
-                                        value={rowInput.ca1}
-                                        onChange={(e) => handleRowChange("ca1", e.target.value)}
-                                    />
-                                </td>
-                                <td>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="20"
-                                        className="sre-cell-input"
-                                        value={rowInput.ca2}
-                                        onChange={(e) => handleRowChange("ca2", e.target.value)}
-                                    />
-                                </td>
-                                <td>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="60"
-                                        className="sre-cell-input"
-                                        value={rowInput.exam}
-                                        onChange={(e) => handleRowChange("exam", e.target.value)}
-                                    />
-                                </td>
-                                <td className="sre-readonly-cell">{livePreview ? livePreview.total : "—"}</td>
-                                <td className="sre-readonly-cell">{livePreview ? livePreview.grade : "—"}</td>
-                                <td className="sre-readonly-cell">{livePreview ? livePreview.remark : "—"}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+            {
+                !submitted && (
+                    <div className="sre-input-table-wrap">
+                        <table className="sre-table">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>1st C.A (20)</th>
+                                    <th>2nd C.A (20)</th>
+                                    <th>Exam (60)</th>
+                                    <th>Total (100)</th>
+                                    <th>Grade</th>
+                                    <th>Remark</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <select
+                                            className="sre-cell-select"
+                                            value={rowInput.subject}
+                                            onChange={(e) => handleRowChange("subject", e.target.value)}
+                                        >
+                                            <option value="" disabled>Subject</option>
+                                            {subjectOptions.map((s) => (
+                                                <option key={s} value={s}>{s}</option>
+                                            ))}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="20"
+                                            className="sre-cell-input"
+                                            value={rowInput.ca1}
+                                            onChange={(e) => handleRowChange("ca1", e.target.value)}
+                                        />
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="20"
+                                            className="sre-cell-input"
+                                            value={rowInput.ca2}
+                                            onChange={(e) => handleRowChange("ca2", e.target.value)}
+                                        />
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="60"
+                                            className="sre-cell-input"
+                                            value={rowInput.exam}
+                                            onChange={(e) => handleRowChange("exam", e.target.value)}
+                                        />
+                                    </td>
+                                    <td className="sre-readonly-cell">{livePreview ? livePreview.total : "—"}</td>
+                                    <td className="sre-readonly-cell">{livePreview ? livePreview.grade : "—"}</td>
+                                    <td className="sre-readonly-cell">{livePreview ? livePreview.remark : "—"}</td>
+                                </tr>
+                            </tbody>
+                        </table>
 
-                    <button className="sre-add-result-btn" onClick={handleAddResult}>
-                        {editingId ? "Save Result" : "Add result"}
-                    </button>
-                </div>
-            )}
+                        <button className="sre-add-result-btn" onClick={handleAddResult}>
+                            {editingId ? "Save Result" : "Add result"}
+                        </button>
+                    </div>
+                )
+            }
 
             {/* Results table */}
-            {results.length > 0 && (
-                <div className="sre-results-table-wrap">
-                    <table className="sre-table">
-                        <thead>
-                            <tr>
-                                <th>Subject</th>
-                                <th>1st C.A (20)</th>
-                                <th>2nd C.A (20)</th>
-                                <th>Exam (60)</th>
-                                <th>Total (100)</th>
-                                <th>Grade</th>
-                                <th>Remark</th>
-                                {!submitted && <th>Action</th>}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {results.map((r) => (
-                                <tr key={r.id}>
-                                    <td className="sre-subject-cell">{r.subject}</td>
-                                    <td>{r.ca1}</td>
-                                    <td>{r.ca2}</td>
-                                    <td>{r.exam}</td>
-                                    <td>{r.total}</td>
-                                    <td>{r.grade}</td>
-                                    <td>{r.remark}</td>
-                                    {!submitted && (
-                                        <td>
-                                            <div className="sre-row-actions">
-                                                <button
-                                                    className="sre-icon-btn sre-icon-btn--edit"
-                                                    onClick={() => handleEditRow(r)}
-                                                    aria-label="Edit result"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 1024 1024">
-                                                        <path d="M0 0h1024v1024H0z" fill="none" />
-                                                        <path fill="currentColor" d="M257.7 752c2 0 4-.2 6-.5L431.9 722c2-.4 3.9-1.3 5.3-2.8l423.9-423.9a9.96 9.96 0 0 0 0-14.1L694.9 114.9c-1.9-1.9-4.4-2.9-7.1-2.9s-5.2 1-7.1 2.9L256.8 538.8c-1.5 1.5-2.4 3.3-2.8 5.3l-29.5 168.2a33.5 33.5 0 0 0 9.4 29.8c6.6 6.4 14.9 9.9 23.8 9.9m67.4-174.4L687.8 215l73.3 73.3l-362.7 362.6l-88.9 15.7zM880 836H144c-17.7 0-32 14.3-32 32v36c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-36c0-17.7-14.3-32-32-32" />
-                                                    </svg>
-
-                                                </button>
-                                                <button
-                                                    className="sre-icon-btn sre-icon-btn--delete"
-                                                    onClick={() => handleDeleteRow(r.id)}
-                                                    aria-label="Delete result"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
-                                                        <path d="M0 0h24v24H0z" fill="none" />
-                                                        <path fill="currentColor" d="M7 21q-.825 0-1.412-.587T5 19V6H4V4h5V3h6v1h5v2h-1v13q0 .825-.587 1.413T17 21zm2-4h2V8H9zm4 0h2V8h-2z" />
-                                                    </svg>
-
-                                                </button>
-                                            </div>
-                                        </td>
-                                    )}
+            {
+                results.length > 0 && (
+                    <div className="sre-results-table-wrap">
+                        <table className="sre-table">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>1st C.A (20)</th>
+                                    <th>2nd C.A (20)</th>
+                                    <th>Exam (60)</th>
+                                    <th>Total (100)</th>
+                                    <th>Grade</th>
+                                    <th>Remark</th>
+                                    {!submitted && <th>Action</th>}
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+                            </thead>
+                            <tbody>
+                                {results.map((r) => (
+                                    <tr key={r.id}>
+                                        <td className="sre-subject-cell">{r.subject}</td>
+                                        <td>{r.ca1}</td>
+                                        <td>{r.ca2}</td>
+                                        <td>{r.exam}</td>
+                                        <td>{r.total}</td>
+                                        <td>{r.grade}</td>
+                                        <td>{r.remark}</td>
+                                        {!submitted && (
+                                            <td>
+                                                <div className="sre-row-actions">
+                                                    <button
+                                                        className="sre-icon-btn sre-icon-btn--edit"
+                                                        onClick={() => handleEditRow(r)}
+                                                        aria-label="Edit result"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 1024 1024">
+                                                            <path d="M0 0h1024v1024H0z" fill="none" />
+                                                            <path fill="currentColor" d="M257.7 752c2 0 4-.2 6-.5L431.9 722c2-.4 3.9-1.3 5.3-2.8l423.9-423.9a9.96 9.96 0 0 0 0-14.1L694.9 114.9c-1.9-1.9-4.4-2.9-7.1-2.9s-5.2 1-7.1 2.9L256.8 538.8c-1.5 1.5-2.4 3.3-2.8 5.3l-29.5 168.2a33.5 33.5 0 0 0 9.4 29.8c6.6 6.4 14.9 9.9 23.8 9.9m67.4-174.4L687.8 215l73.3 73.3l-362.7 362.6l-88.9 15.7zM880 836H144c-17.7 0-32 14.3-32 32v36c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-36c0-17.7-14.3-32-32-32" />
+                                                        </svg>
+
+                                                    </button>
+                                                    <button
+                                                        className="sre-icon-btn sre-icon-btn--delete"
+                                                        onClick={() => handleDeleteRow(r.id)}
+                                                        aria-label="Delete result"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+                                                            <path d="M0 0h24v24H0z" fill="none" />
+                                                            <path fill="currentColor" d="M7 21q-.825 0-1.412-.587T5 19V6H4V4h5V3h6v1h5v2h-1v13q0 .825-.587 1.413T17 21zm2-4h2V8H9zm4 0h2V8h-2z" />
+                                                        </svg>
+
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        )}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )
+            }
 
             {/* Comment thread */}
             <div className="sre-comment-row">
@@ -419,20 +424,22 @@ export default function StaffResultEntry() {
             {commentError && <p className="sre-error">{commentError}</p>}
 
             {/* Comments list */}
-            {!loadingComments && comments.length > 0 && (
-                <div className="sre-comments-list">
-                    {comments.map((c, i) => (
-                        <div key={c._id || i} className="sre-comment-item">
-                            <p className="sre-comment-text">{c.text}</p>
-                            <span className="sre-comment-time">
-                                {c.author ? `${c.author.firstName} ${c.author.lastName}` : ""}
-                                {c.author && c.createdAt ? " — " : ""}
-                                {c.createdAt ? new Date(c.createdAt).toLocaleString() : ""}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            )}
+            {
+                !loadingComments && comments.length > 0 && (
+                    <div className="sre-comments-list">
+                        {comments.map((c, i) => (
+                            <div key={c._id || i} className="sre-comment-item">
+                                <p className="sre-comment-text">{c.text}</p>
+                                <span className="sre-comment-time">
+                                    {c.author ? `${c.author.firstName} ${c.author.lastName}` : ""}
+                                    {c.author && c.createdAt ? " — " : ""}
+                                    {c.createdAt ? new Date(c.createdAt).toLocaleString() : ""}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                )
+            }
 
             {/* Warning */}
             <div className="sre-warning">
@@ -457,6 +464,6 @@ export default function StaffResultEntry() {
             >
                 {submitted ? "✓ Result Submitted" : submitting ? "Submitting..." : "Submit result"}
             </button>
-        </div>
+        </div >
     );
 }

@@ -6,7 +6,7 @@ import { useStaffMeta } from "../../hooks/useStaffMeta";
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 export default function StaffCBT() {
-    const { subjects: subjectOptions, classes: classOptions, loading: metaLoading } = useStaffMeta();
+    const { classes: classOptions, getSubjectsForClass, loading: metaLoading } = useStaffMeta();
 
     const [form, setForm] = useState({
         duration: "",
@@ -25,6 +25,9 @@ export default function StaffCBT() {
     const fileInputRef = useRef(null);
 
     const token = localStorage.getItem("token");
+
+    // Subjects available for the currently selected class, derived from level
+    const subjectOptions = form.classLevel ? getSubjectsForClass(form.classLevel) : [];
 
     const loadTests = () => {
         setLoading(true);
@@ -47,6 +50,12 @@ export default function StaffCBT() {
     useEffect(() => {
         loadTests();
     }, []);
+
+    // Reset the selected subject whenever the class changes, since the old
+    // subject may not belong to the new class's level
+    useEffect(() => {
+        setForm((prev) => (prev.subject ? { ...prev, subject: "" } : prev));
+    }, [form.classLevel]);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -203,7 +212,7 @@ export default function StaffCBT() {
                         >
                             <option value="">Select Class</option>
                             {classOptions.map((c) => (
-                                <option key={c} value={c}>{c}</option>
+                                <option key={c.name} value={c.name}>{c.name}</option>
                             ))}
                         </select>
                     </div>
@@ -215,9 +224,9 @@ export default function StaffCBT() {
                             className="sc-select"
                             value={form.subject}
                             onChange={handleChange}
-                            disabled={metaLoading}
+                            disabled={metaLoading || !form.classLevel}
                         >
-                            <option value="">Subject</option>
+                            <option value="">{form.classLevel ? "Subject" : "Select a class first"}</option>
                             {subjectOptions.map((s) => (
                                 <option key={s} value={s}>{s}</option>
                             ))}

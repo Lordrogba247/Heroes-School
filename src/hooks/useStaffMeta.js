@@ -38,13 +38,34 @@ export function useStaffMeta() {
         fetchMeta();
     }, [fetchMeta]);
 
+    // Given a class name (e.g. "Primary 1"), return its level (e.g. "primary")
+    const getLevelForClass = useCallback(
+        (className) => {
+            const classes = meta?.classes || [];
+            return classes.find((c) => c.name === className)?.level || null;
+        },
+        [meta]
+    );
+
+    // Given a class name, return the subjects available at that class's level
+    const getSubjectsForClass = useCallback(
+        (className) => {
+            const level = getLevelForClass(className);
+            return level ? (meta?.subjectsByLevel?.[level] || []) : [];
+        },
+        [meta, getLevelForClass]
+    );
+
     return {
         subjects: meta?.subjects || [],
+        subjectsByLevel: meta?.subjectsByLevel || {},
         classes: meta?.classes || [],
         sessions: meta?.sessions || [],
         terms: meta?.terms || [],
         loading,
         error,
+        getLevelForClass,
+        getSubjectsForClass,
         refetch: () => fetchMeta(true),
     };
 }

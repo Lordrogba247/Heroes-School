@@ -5,7 +5,7 @@ import { useStaffMeta } from "../../hooks/useStaffMeta";
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 export default function StaffAssignment() {
-    const { subjects: subjectOptions, classes: classOptions, loading: metaLoading } = useStaffMeta();
+    const { classes: classOptions, getSubjectsForClass, loading: metaLoading } = useStaffMeta();
 
     const [subject, setSubject] = useState("");
     const [classLabel, setClassLabel] = useState("");
@@ -22,6 +22,9 @@ export default function StaffAssignment() {
     const [deleteTarget, setDeleteTarget] = useState(null);
 
     const token = localStorage.getItem("token");
+
+    // Subjects available for the currently selected class, derived from level
+    const subjectOptions = classLabel ? getSubjectsForClass(classLabel) : [];
 
     const loadAssignments = () => {
         setLoading(true);
@@ -42,6 +45,12 @@ export default function StaffAssignment() {
     useEffect(() => {
         loadAssignments();
     }, []);
+
+    // Reset the selected subject whenever the class changes, since the old
+    // subject may not belong to the new class's level
+    useEffect(() => {
+        setSubject((prev) => (prev ? "" : prev));
+    }, [classLabel]);
 
     const resetForm = () => {
         setSubject("");
@@ -118,19 +127,6 @@ export default function StaffAssignment() {
                 <div className="sga-form-row">
                     <select
                         className="sga-select"
-                        value={subject}
-                        onChange={(e) => setSubject(e.target.value)}
-                        required
-                        disabled={metaLoading}
-                    >
-                        <option value="" disabled>Subject</option>
-                        {subjectOptions.map((s) => (
-                            <option key={s} value={s}>{s}</option>
-                        ))}
-                    </select>
-
-                    <select
-                        className="sga-select"
                         value={classLabel}
                         onChange={(e) => setClassLabel(e.target.value)}
                         required
@@ -138,7 +134,20 @@ export default function StaffAssignment() {
                     >
                         <option value="" disabled>Select Class</option>
                         {classOptions.map((c) => (
-                            <option key={c} value={c}>{c}</option>
+                            <option key={c.name} value={c.name}>{c.name}</option>
+                        ))}
+                    </select>
+
+                    <select
+                        className="sga-select"
+                        value={subject}
+                        onChange={(e) => setSubject(e.target.value)}
+                        required
+                        disabled={metaLoading || !classLabel}
+                    >
+                        <option value="" disabled>{classLabel ? "Subject" : "Select a class first"}</option>
+                        {subjectOptions.map((s) => (
+                            <option key={s} value={s}>{s}</option>
                         ))}
                     </select>
                 </div>

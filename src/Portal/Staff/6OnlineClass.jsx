@@ -5,7 +5,7 @@ import { useStaffMeta } from "../../hooks/useStaffMeta";
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 export default function StaffOnlineClass() {
-    const { subjects: subjectOptions, classes: classOptions, loading: metaLoading } = useStaffMeta();
+    const { classes: classOptions, getSubjectsForClass, loading: metaLoading } = useStaffMeta();
 
     const [date, setDate] = useState("");
     const [time, setTime] = useState("");
@@ -21,6 +21,9 @@ export default function StaffOnlineClass() {
     const [deleteTarget, setDeleteTarget] = useState(null);
 
     const token = localStorage.getItem("token");
+
+    // Subjects available for the currently selected class, derived from level
+    const subjectOptions = classLabel ? getSubjectsForClass(classLabel) : [];
 
     const loadSessions = () => {
         setLoading(true);
@@ -41,6 +44,12 @@ export default function StaffOnlineClass() {
     useEffect(() => {
         loadSessions();
     }, []);
+
+    // Reset the selected subject whenever the class changes, since the old
+    // subject may not belong to the new class's level
+    useEffect(() => {
+        setSubject((prev) => (prev ? "" : prev));
+    }, [classLabel]);
 
     const resetForm = () => {
         setDate("");
@@ -149,7 +158,7 @@ export default function StaffOnlineClass() {
                     >
                         <option value="" disabled>Select Class</option>
                         {classOptions.map((c) => (
-                            <option key={c} value={c}>{c}</option>
+                            <option key={c.name} value={c.name}>{c.name}</option>
                         ))}
                     </select>
 
@@ -157,9 +166,9 @@ export default function StaffOnlineClass() {
                         className="soc-select"
                         value={subject}
                         onChange={(e) => setSubject(e.target.value)}
-                        disabled={metaLoading}
+                        disabled={metaLoading || !classLabel}
                     >
-                        <option value="" disabled>Subject</option>
+                        <option value="" disabled>{classLabel ? "Subject" : "Select a class first"}</option>
                         {subjectOptions.map((s) => (
                             <option key={s} value={s}>{s}</option>
                         ))}
