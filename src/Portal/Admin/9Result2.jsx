@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import "./9Result2.css";
-import schoolLogo from "../../assets/logo2.png";
+import schoolLogo from "../../assets/logo3.png";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
