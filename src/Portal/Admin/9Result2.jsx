@@ -29,7 +29,7 @@ export default function AdminResultView() {
         const token = localStorage.getItem("token");
         const params = new URLSearchParams({ session, term });
 
-        fetch(`${BASE_URL}/api/admin/results/${studentId}?${params}`, {
+        fetch(`${BASE_URL}/api/admin/results/${encodeURIComponent(studentId)}?${params}`, {
             method: "GET",
             headers: { "Authorization": `Bearer ${token}` },
         })
@@ -145,4 +145,3 @@ export default function AdminResultView() {
         </div>
     );
 }
-

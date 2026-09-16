@@ -1,185 +1,462 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useMeta } from "../../hooks/useMeta";
-import "./7Result.css";
+import { useParams, useNavigate } from "react-router-dom";
+import "./8Result2.css";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
-// Fallback only — used if the staff token can't access /api/admin/meta (likely admin-only).
-// If useMeta succeeds, these are ignored and the live data from the DB is used instead.
-const fallbackSessions = ["2024/2025", "2025/2026"];
-const fallbackTerms = ["First Term", "Second Term", "Third Term"];
+const subjectOptions = [
+    "Mathematics", "English Language", "Basic Science", "Basic Technology",
+    "Civic Education", "Social Studies", "Computer Studies/ICT", "Agricultural Science",
+    "Christian Religious Studies", "Islamic Religious Studies", "Yoruba", "Hausa", "Igbo",
+    "French", "Home Economics", "Physical and Health Education", "Creative and Cultural Arts",
+    "Verbal Reasoning", "Quantitative Reasoning", "Business Studies", "Physics", "Chemistry",
+    "Biology", "Further Mathematics", "Geography", "Government", "Economics",
+    "Literature-in-English", "History", "Financial Account", "Commerce", "Marketing",
+    "Technical Drawing", "Food and Nutrition",
+];
 
-export default function StaffResultsList() {
+const sessions = ["2024/2025", "2025/2026"];
+const TERM_OPTIONS = [
+    { value: "first", label: "First Term" },
+    { value: "second", label: "Second Term" },
+    { value: "third", label: "Third Term" },
+];
+
+function getGrade(total) {
+    if (total >= 75) return { grade: "A1", remark: "Excellent" };
+    if (total >= 70) return { grade: "B2", remark: "V.Good" };
+    if (total >= 65) return { grade: "B3", remark: "Good" };
+    if (total >= 60) return { grade: "C4", remark: "Credit" };
+    if (total >= 55) return { grade: "C5", remark: "Credit" };
+    if (total >= 50) return { grade: "C6", remark: "Credit" };
+    if (total >= 45) return { grade: "D7", remark: "Pass" };
+    if (total >= 40) return { grade: "E8", remark: "Pass" };
+    return { grade: "F9", remark: "Fail" };
+}
+
+const emptyRowInput = { subject: "", ca1: "", ca2: "", exam: "" };
+
+export default function StaffResultEntry() {
+    const { studentId } = useParams();
     const navigate = useNavigate();
-    const { sessions: metaSessions, terms: metaTerms, error: metaError } = useMeta();
-
-    const [students, setStudents] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [publishingId, setPublishingId] = useState(null);
-    const [publishStatus, setPublishStatus] = useState(null);
-
-    const [session, setSession] = useState("");
-    const [term, setTerm] = useState("");
-
     const token = localStorage.getItem("token");
 
-    // Prefer live meta data. If /api/admin/meta 403s or fails for this staff token,
-    // metaSessions/metaTerms stay empty and we drop back to the hardcoded lists.
-    const sessionOptions = metaSessions.length > 0 ? metaSessions.map((s) => s.name) : fallbackSessions;
-    const termOptions = metaTerms.length > 0 ? metaTerms : fallbackTerms;
+    const [student, setStudent] = useState(null);
+    const [loadingStudent, setLoadingStudent] = useState(true);
+    const [loadError, setLoadError] = useState("");
 
-    useEffect(() => {
-        if (sessionOptions.length > 0 && !session) {
-            const current = metaSessions.find((s) => s.isCurrent);
-            setSession(current ? current.name : sessionOptions[sessionOptions.length - 1]);
-        }
-        if (termOptions.length > 0 && !term) {
-            setTerm(termOptions[termOptions.length - 1]);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sessionOptions.length, termOptions.length]);
+    const [session, setSession] = useState(sessions[1]);
+    const [term, setTerm] = useState(TERM_OPTIONS[2].value);
+    const [rowInput, setRowInput] = useState(emptyRowInput);
+    const [results, setResults] = useState([]);
+    const [editingId, setEditingId] = useState(null);
 
+    const [comments, setComments] = useState([]);
+    const [loadingComments, setLoadingComments] = useState(true);
+    const [commentInput, setCommentInput] = useState("");
+    const [postingComment, setPostingComment] = useState(false);
+    const [commentError, setCommentError] = useState("");
+
+    const [submitted, setSubmitted] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState("");
+
+    // Load the student's info directly by ID (no more full-list fetch + filter)
     useEffect(() => {
-        fetch(`${BASE_URL}/api/staff/results/students`, {
+        fetch(`${BASE_URL}/api/staff/students/${encodeURIComponent(studentId)}`, {
             method: "GET",
             headers: { "Authorization": `Bearer ${token}` },
         })
             .then((res) => {
-                if (!res.ok) throw new Error("Failed to load students.");
+                if (!res.ok) throw new Error("Student not found.");
                 return res.json();
             })
-            // NOTE: assuming this follows the same { success, data: [...] } convention
-            // as the confirmed admin endpoints — flag to Victor if this comes back empty.
-            .then((data) => setStudents(data.data || []))
-            .catch(() => setError("Failed to load students."))
-            .finally(() => setLoading(false));
-    }, []);
+            .then((data) => setStudent(data.data || null))
+            .catch(() => setLoadError("Failed to load student details."))
+            .finally(() => setLoadingStudent(false));
+    }, [studentId]);
 
-    const handleUpload = (student) => {
-        navigate(`/portal/staff/results/${student.studentId}`);
+    // Load existing comments for this student + session + term
+    const loadComments = () => {
+        setLoadingComments(true);
+        const params = new URLSearchParams({ session, term });
+        fetch(`${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}/comments?${params}`, {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${token}` },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Failed to load comments.");
+                return res.json();
+            })
+            .then((data) => setComments(data.data || []))
+            .catch(() => setComments([]))
+            .finally(() => setLoadingComments(false));
     };
 
-    const handlePublishOne = async (student) => {
-        setPublishingId(student.studentId);
-        setPublishStatus(null);
-        try {
-            const res = await fetch(
-                `${BASE_URL}/api/staff/results/${student.studentId}/publish`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({ session, term }),
-                }
-            );
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Failed to publish result.");
+    useEffect(() => {
+        loadComments();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [studentId, session, term]);
 
-            setStudents((prev) =>
-                prev.map((s) => (s.studentId === student.studentId ? { ...s, isFinal: true } : s))
+    const handleRowChange = (field, value) => {
+        setRowInput((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const resetRowInput = () => {
+        setRowInput(emptyRowInput);
+        setEditingId(null);
+    };
+
+    const handleAddResult = () => {
+        const { subject, ca1, ca2, exam } = rowInput;
+        if (!subject || ca1 === "" || ca2 === "" || exam === "") return;
+
+        const ca1Num = Number(ca1);
+        const ca2Num = Number(ca2);
+        const examNum = Number(exam);
+        const total = ca1Num + ca2Num + examNum;
+        const { grade, remark } = getGrade(total);
+
+        if (editingId) {
+            setResults((prev) =>
+                prev.map((r) =>
+                    r.id === editingId
+                        ? { ...r, subject, ca1: ca1Num, ca2: ca2Num, exam: examNum, total, grade, remark }
+                        : r
+                )
             );
-            setPublishStatus({ type: "success", message: data.message || "Result published." });
+        } else {
+            setResults((prev) => [
+                ...prev,
+                { id: Date.now(), subject, ca1: ca1Num, ca2: ca2Num, exam: examNum, total, grade, remark },
+            ]);
+        }
+
+        resetRowInput();
+    };
+
+    const handleEditRow = (row) => {
+        setEditingId(row.id);
+        setRowInput({
+            subject: row.subject,
+            ca1: String(row.ca1),
+            ca2: String(row.ca2),
+            exam: String(row.exam),
+        });
+    };
+
+    const handleDeleteRow = (id) => {
+        setResults((prev) => prev.filter((r) => r.id !== id));
+        if (editingId === id) resetRowInput();
+    };
+
+    const handleAddComment = async () => {
+        if (!commentInput.trim()) return;
+
+        setPostingComment(true);
+        setCommentError("");
+        try {
+            const res = await fetch(`${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}/comments`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                body: JSON.stringify({ text: commentInput.trim(), session, term }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to add comment.");
+
+            setCommentInput("");
+            loadComments();
         } catch (err) {
-            setPublishStatus({ type: "error", message: err.message || "Failed to publish result." });
+            setCommentError(err.message || "Failed to add comment. Please try again.");
         } finally {
-            setPublishingId(null);
+            setPostingComment(false);
         }
     };
 
-    if (loading) return <div className="srl-page"><p>Loading students...</p></div>;
-    if (error) return <div className="srl-page"><p className="srl-error">{error}</p></div>;
+    const livePreview = (() => {
+        const { ca1, ca2, exam } = rowInput;
+        if (ca1 === "" || ca2 === "" || exam === "") return null;
+        const total = Number(ca1) + Number(ca2) + Number(exam);
+        return { total, ...getGrade(total) };
+    })();
+
+    const handleSubmitResult = async () => {
+        if (results.length === 0 || !student) return;
+
+        setSubmitting(true);
+        setSubmitError("");
+        try {
+            const payload = {
+                studentId: student.id,
+                session,
+                term,
+                subjects: results.map((r) => ({
+                    subject: r.subject,
+                    ca1: r.ca1,
+                    ca2: r.ca2,
+                    exam: r.exam,
+                })),
+            };
+
+            const res = await fetch(`${BASE_URL}/api/staff/results`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Failed to submit result.");
+
+            setSubmitted(true);
+        } catch (err) {
+            setSubmitError(err.message || "Failed to submit result. Please try again.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    if (loadingStudent) return <div className="sre-page"><p>Loading student...</p></div>;
+    if (loadError || !student) return <div className="sre-page"><p className="sre-error">{loadError || "Student not found."}</p></div>;
 
     return (
-        <div className="srl-page">
-            <h1 className="srl-title">Results</h1>
-            <p className="srl-sub">upload students results and comment on their performances</p>
+        <div className="sre-page">
+            <button className="sre-back-btn" onClick={() => navigate("/portal/staff/results")}>
+                ← Back to Students
+            </button>
 
-            {metaError && (
-                <p className="srl-status srl-status--error">
-                    Couldn't load live sessions/terms — using default list. ({metaError})
-                </p>
-            )}
+            <h1 className="sre-title">{student.name}</h1>
+            <p className="sre-sub">
+                {student.studentId} &nbsp; {student.sex} &nbsp; {student.classLabel?.name || student.classLabel || student.class?.name || student.class}
+            </p>
 
-            <div className="srl-selectors">
+            {/* Session / Term */}
+            <div className="sre-top-row">
                 <select
-                    className="srl-select"
+                    className="sre-select"
                     value={session}
                     onChange={(e) => setSession(e.target.value)}
+                    disabled={submitted}
                 >
-                    {sessionOptions.map((s) => (
+                    {sessions.map((s) => (
                         <option key={s} value={s}>{s}</option>
                     ))}
                 </select>
 
                 <select
-                    className="srl-select"
+                    className="sre-select"
                     value={term}
                     onChange={(e) => setTerm(e.target.value)}
+                    disabled={submitted}
                 >
-                    {termOptions.map((t) => (
-                        <option key={t} value={t}>{t}</option>
+                    {TERM_OPTIONS.map((t) => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
                     ))}
                 </select>
             </div>
 
-            {publishStatus && (
-                <p className={`srl-status srl-status--${publishStatus.type}`}>
-                    {publishStatus.message}
-                </p>
-            )}
-
-            <div className="srl-table-card">
-                <div className="srl-table-wrap">
-                    <table className="srl-table">
+            {/* Row input table */}
+            {!submitted && (
+                <div className="sre-input-table-wrap">
+                    <table className="sre-table">
                         <thead>
                             <tr>
-                                <th>Name</th>
-                                <th>Student ID</th>
-                                <th>Sex</th>
-                                <th>Actions</th>
+                                <th>Subject</th>
+                                <th>1st C.A (20)</th>
+                                <th>2nd C.A (20)</th>
+                                <th>Exam (60)</th>
+                                <th>Total (100)</th>
+                                <th>Grade</th>
+                                <th>Remark</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {students.map((s) => (
-                                <tr key={s.studentId}>
-                                    <td className="srl-name">{s.name}</td>
-                                    <td>{s.registrationId}</td>
-                                    <td>{s.sex}</td>
-                                    <td>
-                                        <div className="srl-actions">
-                                            <button
-                                                className="srl-upload-btn"
-                                                onClick={() => handleUpload(s)}
-                                            >
-                                                Upload Result
-                                            </button>
-                                            <button
-                                                className="srl-publish-btn"
-                                                onClick={() => handlePublishOne(s)}
-                                                disabled={s.isFinal || publishingId === s.studentId}
-                                            >
-                                                {s.isFinal
-                                                    ? "Published ✓"
-                                                    : publishingId === s.studentId
-                                                        ? "Publishing..."
-                                                        : "Publish"}
-                                            </button>
-                                        </div>
-                                    </td>
+                            <tr>
+                                <td>
+                                    <select
+                                        className="sre-cell-select"
+                                        value={rowInput.subject}
+                                        onChange={(e) => handleRowChange("subject", e.target.value)}
+                                    >
+                                        <option value="" disabled>Subject</option>
+                                        {subjectOptions.map((s) => (
+                                            <option key={s} value={s}>{s}</option>
+                                        ))}
+                                    </select>
+                                </td>
+                                <td>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="20"
+                                        className="sre-cell-input"
+                                        value={rowInput.ca1}
+                                        onChange={(e) => handleRowChange("ca1", e.target.value)}
+                                    />
+                                </td>
+                                <td>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="20"
+                                        className="sre-cell-input"
+                                        value={rowInput.ca2}
+                                        onChange={(e) => handleRowChange("ca2", e.target.value)}
+                                    />
+                                </td>
+                                <td>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="60"
+                                        className="sre-cell-input"
+                                        value={rowInput.exam}
+                                        onChange={(e) => handleRowChange("exam", e.target.value)}
+                                    />
+                                </td>
+                                <td className="sre-readonly-cell">{livePreview ? livePreview.total : "—"}</td>
+                                <td className="sre-readonly-cell">{livePreview ? livePreview.grade : "—"}</td>
+                                <td className="sre-readonly-cell">{livePreview ? livePreview.remark : "—"}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <button className="sre-add-result-btn" onClick={handleAddResult}>
+                        {editingId ? "Save Result" : "Add result"}
+                    </button>
+                </div>
+            )}
+
+            {/* Results table */}
+            {results.length > 0 && (
+                <div className="sre-results-table-wrap">
+                    <table className="sre-table">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>1st C.A (20)</th>
+                                <th>2nd C.A (20)</th>
+                                <th>Exam (60)</th>
+                                <th>Total (100)</th>
+                                <th>Grade</th>
+                                <th>Remark</th>
+                                {!submitted && <th>Action</th>}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {results.map((r) => (
+                                <tr key={r.id}>
+                                    <td className="sre-subject-cell">{r.subject}</td>
+                                    <td>{r.ca1}</td>
+                                    <td>{r.ca2}</td>
+                                    <td>{r.exam}</td>
+                                    <td>{r.total}</td>
+                                    <td>{r.grade}</td>
+                                    <td>{r.remark}</td>
+                                    {!submitted && (
+                                        <td>
+                                            <div className="sre-row-actions">
+                                                <button
+                                                    className="sre-icon-btn sre-icon-btn--edit"
+                                                    onClick={() => handleEditRow(r)}
+                                                    aria-label="Edit result"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 1024 1024">
+                                                        <path d="M0 0h1024v1024H0z" fill="none" />
+                                                        <path fill="currentColor" d="M257.7 752c2 0 4-.2 6-.5L431.9 722c2-.4 3.9-1.3 5.3-2.8l423.9-423.9a9.96 9.96 0 0 0 0-14.1L694.9 114.9c-1.9-1.9-4.4-2.9-7.1-2.9s-5.2 1-7.1 2.9L256.8 538.8c-1.5 1.5-2.4 3.3-2.8 5.3l-29.5 168.2a33.5 33.5 0 0 0 9.4 29.8c6.6 6.4 14.9 9.9 23.8 9.9m67.4-174.4L687.8 215l73.3 73.3l-362.7 362.6l-88.9 15.7zM880 836H144c-17.7 0-32 14.3-32 32v36c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-36c0-17.7-14.3-32-32-32" />
+                                                    </svg>
+
+                                                </button>
+                                                <button
+                                                    className="sre-icon-btn sre-icon-btn--delete"
+                                                    onClick={() => handleDeleteRow(r.id)}
+                                                    aria-label="Delete result"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+                                                        <path d="M0 0h24v24H0z" fill="none" />
+                                                        <path fill="currentColor" d="M7 21q-.825 0-1.412-.587T5 19V6H4V4h5V3h6v1h5v2h-1v13q0 .825-.587 1.413T17 21zm2-4h2V8H9zm4 0h2V8h-2z" />
+                                                    </svg>
+
+                                                </button>
+                                            </div>
+                                        </td>
+                                    )}
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
+            )}
+
+            {/* Comment thread */}
+            <div className="sre-comment-row">
+                <input
+                    type="text"
+                    className="sre-comment-input"
+                    placeholder="Add a comment on this student's performance..."
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    disabled={postingComment}
+                />
+                <button
+                    className="sre-comment-btn"
+                    onClick={handleAddComment}
+                    disabled={postingComment || !commentInput.trim()}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none" />
+                        <path fill="currentColor" d="M12 2A10 10 0 0 0 2 12a9.9 9.9 0 0 0 2.26 6.33l-2 2a1 1 0 0 0-.21 1.09A1 1 0 0 0 3 22h9a10 10 0 0 0 0-20m0 18H5.41l.93-.93a1 1 0 0 0 0-1.41A8 8 0 1 1 12 20m3-9h-2V9a1 1 0 0 0-2 0v2H9a1 1 0 0 0 0 2h2v2a1 1 0 0 0 2 0v-2h2a1 1 0 0 0 0-2" />
+                    </svg>
+                    {postingComment ? "Posting..." : "Add Comment"}
+                </button>
             </div>
 
-            {students.length === 0 && (
-                <p className="srl-empty">No students found in your class.</p>
+            {commentError && <p className="sre-error">{commentError}</p>}
+
+            {/* Comments list */}
+            {!loadingComments && comments.length > 0 && (
+                <div className="sre-comments-list">
+                    {comments.map((c, i) => (
+                        <div key={c._id || i} className="sre-comment-item">
+                            <p className="sre-comment-text">{c.text}</p>
+                            <span className="sre-comment-time">
+                                {c.author ? `${c.author.firstName} ${c.author.lastName}` : ""}
+                                {c.author && c.createdAt ? " — " : ""}
+                                {c.createdAt ? new Date(c.createdAt).toLocaleString() : ""}
+                            </span>
+                        </div>
+                    ))}
+                </div>
             )}
+
+            {/* Warning */}
+            <div className="sre-warning">
+                <span className="sre-warning-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none" />
+                        <path fill="currentColor" fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12s4.477 10 10 10s10-4.477 10-10M12 7a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0V8a1 1 0 0 1 1-1m-1 9a1 1 0 0 1 1-1h.008a1 1 0 1 1 0 2H12a1 1 0 0 1-1-1" clipRule="evenodd" />
+                    </svg>
+                </span>
+                <p className="sre-warning-text">
+                    <span className="sre-warning-bold">Important:</span> You cannot Edit this student result after you Submit the result.
+                </p>
+            </div>
+
+            {submitError && <p className="sre-error">{submitError}</p>}
+
+            {/* Submit */}
+            <button
+                className="sre-submit-btn"
+                onClick={handleSubmitResult}
+                disabled={submitted || submitting || results.length === 0}
+            >
+                {submitted ? "✓ Result Submitted" : submitting ? "Submitting..." : "Submit result"}
+            </button>
         </div>
     );
 }

@@ -107,7 +107,7 @@ export default function AdminResultsList() {
         setUploadStatus(null);
         try {
             const res = await fetch(
-                `${BASE_URL}/api/admin/results/${student.studentId}/publish`,
+                `${BASE_URL}/api/admin/results/${encodeURIComponent(student.studentId)}/publish`,
                 {
                     method: "POST",
                     headers: {
@@ -135,7 +135,7 @@ export default function AdminResultsList() {
     };
 
     const handleViewResult = (student) => {
-        navigate(`/portal/admin/results/${student.studentId}`, {
+        navigate(`/portal/admin/results/${encodeURIComponent(student.studentId)}`, {
             state: { session, term: TERM_LABELS[term], classLabel },
         });
     };
@@ -144,7 +144,7 @@ export default function AdminResultsList() {
         try {
             const params = new URLSearchParams({ session, term: TERM_LABELS[term] });
             const res = await fetch(
-                `${BASE_URL}/api/admin/results/${deleteTarget.studentId}?${params}`,
+                `${BASE_URL}/api/admin/results/${encodeURIComponent(deleteTarget.studentId)}?${params}`,
                 {
                     method: "DELETE",
                     headers: { "Authorization": `Bearer ${token}` },

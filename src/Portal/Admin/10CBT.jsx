@@ -208,7 +208,7 @@ export default function AdminCBT() {
                                 </div>
                                 <div className="acbt-field">
                                     <label className="acbt-label">Description</label>
-                                    <input name="description" className="acbt-input" placeholder="First Term CA Test" value={form.description} onChange={handleChange} />
+                                    <input name="description" className="acbt-input" placeholder="First CA Test" value={form.description} onChange={handleChange} />
                                 </div>
                                 <div className="acbt-field">
                                     <label className="acbt-label">Upload file</label>

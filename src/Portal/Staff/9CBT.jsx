@@ -171,7 +171,7 @@ export default function StaffCBT() {
                         <input
                             name="description"
                             className="sc-input"
-                            placeholder="First Term CA Test"
+                            placeholder="First CA Test"
                             value={form.description}
                             onChange={handleChange}
                         />
