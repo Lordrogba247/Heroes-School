@@ -297,7 +297,40 @@
 .acbt-submit-btn:hover {
   background: #855fbd;
 }
+.acbt-card-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
 
+.acbt-reactivate-btn {
+  font-family: "Poppins", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #2d1b4e;
+  color: #fff;
+  cursor: pointer;
+}
+
+.acbt-reactivate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.acbt-status {
+  font-weight: 600;
+}
+
+.acbt-status--live {
+  color: #1e7e34;
+}
+
+.acbt-status--closed {
+  color: #c0392b;
+}
 /* ===== Responsive ===== */
 
 @media (max-width: 600px) {

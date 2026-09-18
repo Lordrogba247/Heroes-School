@@ -14,6 +14,7 @@ export default function AdminCBT() {
     const [tests, setTests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [reactivatingId, setReactivatingId] = useState(null);
 
     const [showModal, setShowModal] = useState(false);
     const [form, setForm] = useState({
@@ -59,6 +60,13 @@ export default function AdminCBT() {
     useEffect(() => {
         setForm((prev) => (prev.subject ? { ...prev, subject: "" } : prev));
     }, [form.classLevel]);
+
+    // A test is "live" if it's active AND either has no expiry, or its expiry hasn't passed yet
+    const isTestLive = (test) => {
+        if (!test.isActive) return false;
+        if (!test.expiresAt) return true;
+        return new Date(test.expiresAt) > new Date();
+    };
 
     const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -132,6 +140,37 @@ export default function AdminCBT() {
         }
     };
 
+    // TODO: confirm exact endpoint/method with Victor — assuming POST /api/admin/cbt/:id/reactivate,
+    // which reopens the test for exactly one day (today) regardless of its original date.
+    const handleReactivate = async (test) => {
+        const id = test._id || test.id;
+        setReactivatingId(id);
+        setError("");
+        try {
+            const res = await fetch(`${BASE_URL}/api/admin/cbt/${id}/reactivate`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` },
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.message || "Failed to reactivate test.");
+
+            // Prefer whatever the server returns for the updated test; fall back to
+            // assuming it's active with an expiry of end-of-today if the shape differs.
+            const updated = data.data || {};
+            setTests((prev) =>
+                prev.map((t) =>
+                    (t._id || t.id) === id
+                        ? { ...t, isActive: true, expiresAt: updated.expiresAt || t.expiresAt || null, ...updated }
+                        : t
+                )
+            );
+        } catch (err) {
+            setError(err.message || "Failed to reactivate test.");
+        } finally {
+            setReactivatingId(null);
+        }
+    };
+
     return (
         <div className="acbt-page">
             <h1 className="acbt-title">CBT Tests/Exams</h1>
@@ -152,39 +191,58 @@ export default function AdminCBT() {
                 {loading && <p className="acbt-empty">Loading tests...</p>}
                 {!loading && tests.length === 0 && <p className="acbt-empty">No tests scheduled yet.</p>}
 
-                {!loading && tests.map((t) => (
-                    <div className="acbt-card" key={t._id || t.id}>
-                        <div className={`acbt-card-header acbt-card-header--${t.accent}`}>
-                            <p className="acbt-card-subject">{t.subject}</p>
-                            <p className="acbt-card-meta-top">{t.classLevel} &nbsp;·&nbsp; {t.description}</p>
-                        </div>
-                        <div className="acbt-card-body">
-                            <div className="acbt-card-info">
-                                <p className="acbt-card-detail">
-                                    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z" />
-                                    </svg>
-                                    Duration: {t.duration}
-                                </p>
-                                <p className="acbt-card-detail">
-                                    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-                                        <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
-                                    </svg>
-                                    Questions: {t.questions}
-                                </p>
-                                <p className="acbt-card-detail">
-                                    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-                                        <path d="M19 4h-1V2h-2v2H8V2H6v2H5C3.9 4 3 4.9 3 6v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h5v5H7z" />
-                                    </svg>
-                                    Date of Test/Exam: {t.date}
-                                </p>
+                {!loading && tests.map((t) => {
+                    const live = isTestLive(t);
+                    const id = t._id || t.id;
+                    return (
+                        <div className="acbt-card" key={id}>
+                            <div className={`acbt-card-header acbt-card-header--${t.accent}`}>
+                                <p className="acbt-card-subject">{t.subject}</p>
+                                <p className="acbt-card-meta-top">{t.classLevel} &nbsp;·&nbsp; {t.description}</p>
                             </div>
-                            <button className="acbt-delete-btn" onClick={() => handleDelete(t)}>
-                                Delete
-                            </button>
+                            <div className="acbt-card-body">
+                                <div className="acbt-card-info">
+                                    <p className="acbt-card-detail">
+                                        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z" />
+                                        </svg>
+                                        Duration: {t.duration}
+                                    </p>
+                                    <p className="acbt-card-detail">
+                                        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                                            <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
+                                        </svg>
+                                        Questions: {t.questions}
+                                    </p>
+                                    <p className="acbt-card-detail">
+                                        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                                            <path d="M19 4h-1V2h-2v2H8V2H6v2H5C3.9 4 3 4.9 3 6v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h5v5H7z" />
+                                        </svg>
+                                        Date of Test/Exam: {t.date}
+                                    </p>
+                                    <p className={`acbt-card-detail acbt-status ${live ? "acbt-status--live" : "acbt-status--closed"}`}>
+                                        {live ? "● Active" : "● Closed"}
+                                        {t.expiresAt && live ? ` (reopened until ${new Date(t.expiresAt).toLocaleString()})` : ""}
+                                    </p>
+                                </div>
+                                <div className="acbt-card-actions">
+                                    {!live && (
+                                        <button
+                                            className="acbt-reactivate-btn"
+                                            onClick={() => handleReactivate(t)}
+                                            disabled={reactivatingId === id}
+                                        >
+                                            {reactivatingId === id ? "Reactivating..." : "Reactivate for a Day"}
+                                        </button>
+                                    )}
+                                    <button className="acbt-delete-btn" onClick={() => handleDelete(t)}>
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* Schedule Modal */}

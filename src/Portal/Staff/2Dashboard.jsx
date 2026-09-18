@@ -21,7 +21,7 @@ export default function StaffDashboard() {
                 if (!res.ok) throw new Error("Failed to load dashboard.");
                 return res.json();
             })
-            .then((data) => setDashData(data))
+            .then((data) => setDashData(data.data))
             .catch(() => setError("Failed to load dashboard. Please try again."))
             .finally(() => setLoading(false));
     }, []);
@@ -29,7 +29,7 @@ export default function StaffDashboard() {
     if (loading) return <div className="sfd-loading">Loading...</div>;
     if (error) return <div className="sfd-error">{error}</div>;
 
-    const { staff, stats, recentAssignments, cbtTests } = dashData;
+    const { staff, stats, recentAssignments, cbtTests } = dashData.data || [];
 
     return (
         <div className="sfd-page">
