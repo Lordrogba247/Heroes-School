@@ -42,7 +42,7 @@ export default function AdminCBT() {
                 return res.json();
             })
             .then((data) => {
-                const list = data.tests || data || [];
+                const list = data.data || data.tests || [];
                 const withAccents = list.map((t, i) => ({ ...t, accent: cardAccents[i % 2] }));
                 setTests(withAccents);
             })
