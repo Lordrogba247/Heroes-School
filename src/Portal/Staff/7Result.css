@@ -60,6 +60,12 @@
   min-width: 160px;
 }
 
+.srl-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .srl-upload-btn {
   background: #7b3fb5;
   color: #ffffff;
@@ -78,6 +84,78 @@
   background: #632f96;
 }
 
+.srl-publish-btn {
+  background: #002662;
+  color: #ffffff;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 12.5px;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.srl-publish-btn:hover:not(:disabled) {
+  background: #001b48;
+}
+
+.srl-publish-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.srl-status {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+.srl-status--success {
+  color: #1e7e34;
+}
+
+.srl-status--error {
+  color: #c0392b;
+}
+
+.srl-error {
+  color: #c0392b;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+}
+
+.srl-empty {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  color: #888;
+  margin-top: 16px;
+}
+
+.srl-selectors {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.srl-select {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #333;
+  background: #ffffff;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  padding: 11px 16px;
+  min-width: 150px;
+  cursor: pointer;
+  outline: none;
+}
+
+.srl-select:focus {
+  border-color: #002662;
+}
+
 /* ===== Responsive ===== */
 
 @media (max-width: 480px) {
@@ -87,5 +165,13 @@
 
   .srl-table-card {
     padding: 14px;
+  }
+
+  .srl-selectors {
+    flex-direction: column;
+  }
+
+  .srl-select {
+    width: 100%;
   }
 }
