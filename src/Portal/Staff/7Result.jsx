@@ -12,7 +12,7 @@ const fallbackTerms = ["First Term", "Second Term", "Third Term"];
 
 export default function StaffResultsList() {
     const navigate = useNavigate();
-    const { sessions: metaSessions, terms: metaTerms, error: metaError } = useMeta();
+    const { sessions: metaSessions, terms: metaTerms, error: metaError } = useStaffMeta();
 
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
