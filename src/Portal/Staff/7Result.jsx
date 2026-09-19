@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMeta } from "../../hooks/useMeta";
+import { useMeta } from "../../hooks/useStaffMeta";
 import "./7Result.css";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
