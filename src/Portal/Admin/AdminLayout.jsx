@@ -108,15 +108,16 @@ export default function AdminLayout() {
 
     useEffect(() => {
         api.get("/api/admin/me")
-            .then(({ data }) => {
-                const name = data.name || data.fullName || "";
-                const initials = name
+            .then((res) => {
+                const raw = res.data?.data || res.data;
+                const name = raw.name || raw.fullName || "";
+                const initials = raw.initials || name
                     .split(" ")
                     .map((n) => n[0])
                     .join("")
                     .slice(0, 2)
                     .toUpperCase();
-                const adminData = { name, initials, role: data.role || "Admin" };
+                const adminData = { name, initials, role: raw.role || "Admin" };
                 setAdmin(adminData);
                 localStorage.setItem("user", JSON.stringify(adminData));
             })

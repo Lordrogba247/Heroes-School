@@ -29,7 +29,7 @@ export default function StaffDashboard() {
     if (loading) return <div className="sfd-loading">Loading...</div>;
     if (error) return <div className="sfd-error">{error}</div>;
 
-    const { staff, stats, recentAssignments, cbtTests } = dashData.data || [];
+    const { staff, stats, recentAssignments, cbtTests } = dashData || [];
 
     return (
         <div className="sfd-page">

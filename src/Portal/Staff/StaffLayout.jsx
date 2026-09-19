@@ -90,8 +90,9 @@ export default function StaffLayout() {
     useEffect(() => {
         api.get("/api/staff/me")
             .then((res) => {
-                setStaff(res.data);
-                localStorage.setItem("user", JSON.stringify(res.data));
+                const staffData = res.data.data || res.data;
+                setStaff(staffData);
+                localStorage.setItem("user", JSON.stringify(staffData));
             })
             .catch(() => {
                 // Token invalid or expired — interceptor in api.js handles redirect
