@@ -5,8 +5,7 @@ import "./7Result.css";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
-// Fallback only — used if the staff token can't access /api/admin/meta (likely admin-only).
-// If useMeta succeeds, these are ignored and the live data from the DB is used instead.
+// Fallback only — used if useStaffMeta fails for some reason.
 const fallbackSessions = ["2024/2025", "2025/2026"];
 const fallbackTerms = ["First Term", "Second Term", "Third Term"];
 
@@ -25,8 +24,6 @@ export default function StaffResultsList() {
 
     const token = localStorage.getItem("token");
 
-    // Prefer live meta data. If /api/admin/meta 403s or fails for this staff token,
-    // metaSessions/metaTerms stay empty and we drop back to the hardcoded lists.
     const sessionOptions = metaSessions.length > 0 ? metaSessions.map((s) => s.name) : fallbackSessions;
     const termOptions = metaTerms.length > 0 ? metaTerms : fallbackTerms;
 
@@ -50,23 +47,22 @@ export default function StaffResultsList() {
                 if (!res.ok) throw new Error("Failed to load students.");
                 return res.json();
             })
-            // NOTE: assuming this follows the same { success, data: [...] } convention
-            // as the confirmed admin endpoints — flag to Victor if this comes back empty.
             .then((data) => setStudents(data.data || []))
             .catch(() => setError("Failed to load students."))
             .finally(() => setLoading(false));
     }, []);
 
+    // Use the real Mongo id for routing/API calls — studentId is just the display registration number
     const handleUpload = (student) => {
-        navigate(`/portal/staff/results/${encodeURIComponent(student.studentId)}`);
+        navigate(`/portal/staff/results/${encodeURIComponent(student.id)}`);
     };
 
     const handlePublishOne = async (student) => {
-        setPublishingId(student.studentId);
+        setPublishingId(student.id);
         setPublishStatus(null);
         try {
             const res = await fetch(
-                `${BASE_URL}/api/staff/results/${encodeURIComponent(student.studentId)}/publish`,
+                `${BASE_URL}/api/staff/results/${encodeURIComponent(student.id)}/publish`,
                 {
                     method: "POST",
                     headers: {
@@ -80,7 +76,7 @@ export default function StaffResultsList() {
             if (!res.ok) throw new Error(data.message || "Failed to publish result.");
 
             setStudents((prev) =>
-                prev.map((s) => (s.studentId === student.studentId ? { ...s, isFinal: true } : s))
+                prev.map((s) => (s.id === student.id ? { ...s, isFinal: true } : s))
             );
             setPublishStatus({ type: "success", message: data.message || "Result published." });
         } catch (err) {
@@ -145,9 +141,9 @@ export default function StaffResultsList() {
                         </thead>
                         <tbody>
                             {students.map((s) => (
-                                <tr key={s.studentId}>
+                                <tr key={s.id}>
                                     <td className="srl-name">{s.name}</td>
-                                    <td>{s.registrationId}</td>
+                                    <td>{s.studentId}</td>
                                     <td>{s.sex}</td>
                                     <td>
                                         <div className="srl-actions">
@@ -160,11 +156,11 @@ export default function StaffResultsList() {
                                             <button
                                                 className="srl-publish-btn"
                                                 onClick={() => handlePublishOne(s)}
-                                                disabled={s.isFinal || publishingId === s.studentId}
+                                                disabled={s.isFinal || publishingId === s.id}
                                             >
                                                 {s.isFinal
                                                     ? "Published ✓"
-                                                    : publishingId === s.studentId
+                                                    : publishingId === s.id
                                                         ? "Publishing..."
                                                         : "Publish"}
                                             </button>
