@@ -301,27 +301,16 @@ export default function StudentCBTExam() {
         return (
             <div className="cbtx-page">
                 <div className="cbtx-result-card">
+                    <div className="cbtx-result-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                        </svg>
+                    </div>
                     <h2 className="cbtx-result-title">Test Submitted</h2>
                     <p className="cbtx-result-subject">{examData?.subject || passedTest?.subject}</p>
-                    <div className="cbtx-result-stats">
-                        <div className="cbtx-stat-box">
-                            <p className="cbtx-stat-value">{result.score}</p>
-                            <p className="cbtx-stat-label">Score</p>
-                        </div>
-                        <div className="cbtx-stat-box">
-                            <p className="cbtx-stat-value">{result.totalQuestions}</p>
-                            <p className="cbtx-stat-label">Total Questions</p>
-                        </div>
-                        <div className="cbtx-stat-box">
-                            <p className="cbtx-stat-value">{result.percentage}%</p>
-                            <p className="cbtx-stat-label">Percentage</p>
-                        </div>
-                    </div>
-                    {typeof result.passed === "boolean" && (
-                        <p className={`cbtx-result-verdict ${result.passed ? "cbtx-pass" : "cbtx-fail"}`}>
-                            {result.passed ? "Passed" : "Not Passed"}
-                        </p>
-                    )}
+                    <p className="cbtx-result-message">
+                        Your answers have been recorded. Your result will be made available by your school.
+                    </p>
                     <button className="cbtx-back-btn" onClick={() => navigate("/portal/student/cbt")}>
                         ← Back to Tests
                     </button>
