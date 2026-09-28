@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
 import "./10CBT.css";
 import { useMeta } from "../../hooks/useMeta";
+import CbtResultsModal from "../CbtResultsModal";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
@@ -15,6 +16,7 @@ export default function AdminCBT() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [reactivatingId, setReactivatingId] = useState(null);
+    const [resultsTest, setResultsTest] = useState(null); // test whose results modal is open
 
     const [showModal, setShowModal] = useState(false);
     const [form, setForm] = useState({
@@ -226,6 +228,9 @@ export default function AdminCBT() {
                                     </p>
                                 </div>
                                 <div className="acbt-card-actions">
+                                    <button className="acbt-results-btn" onClick={() => setResultsTest(t)}>
+                                        View Results
+                                    </button>
                                     {!live && (
                                         <button
                                             className="acbt-reactivate-btn"
@@ -244,6 +249,15 @@ export default function AdminCBT() {
                     );
                 })}
             </div>
+
+            {/* Results modal */}
+            {resultsTest && (
+                <CbtResultsModal
+                    test={resultsTest}
+                    role="admin"
+                    onClose={() => setResultsTest(null)}
+                />
+            )}
 
             {/* Schedule Modal */}
             {showModal && (

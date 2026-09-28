@@ -221,6 +221,28 @@
   background: #ffc8c8;
 }
 
+.sc-card-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.sc-results-btn {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1.5px solid #6b21a8;
+  background: #fff;
+  color: #6b21a8;
+  cursor: pointer;
+}
+
+.sc-results-btn:hover {
+  background: #f0e9fb;
+}
 /* ===== Responsive ===== */
 
 @media (max-width: 600px) {

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
 import "./9CBT.css";
 import { useStaffMeta } from "../../hooks/useStaffMeta";
+import CbtResultsModal from "../CbtResultsModal";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
@@ -22,6 +23,7 @@ export default function StaffCBT() {
     const [error, setError] = useState("");
     const [scheduling, setScheduling] = useState(false);
     const [formError, setFormError] = useState("");
+    const [resultsTest, setResultsTest] = useState(null); // test whose results modal is open
     const fileInputRef = useRef(null);
 
     const token = localStorage.getItem("token");
@@ -171,7 +173,7 @@ export default function StaffCBT() {
                         <input
                             name="description"
                             className="sc-input"
-                            placeholder="First CA Test"
+                            placeholder="First Term CA Test"
                             value={form.description}
                             onChange={handleChange}
                         />
@@ -280,16 +282,33 @@ export default function StaffCBT() {
                                     Date of Test/Exam: {t.date}
                                 </p>
                             </div>
-                            <button
-                                className="sc-delete-btn"
-                                onClick={() => handleDelete(t)}
-                            >
-                                Delete
-                            </button>
+                            <div className="sc-card-actions">
+                                <button
+                                    className="sc-results-btn"
+                                    onClick={() => setResultsTest(t)}
+                                >
+                                    View Results
+                                </button>
+                                <button
+                                    className="sc-delete-btn"
+                                    onClick={() => handleDelete(t)}
+                                >
+                                    Delete
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ))}
             </div>
+
+            {/* Results modal */}
+            {resultsTest && (
+                <CbtResultsModal
+                    test={resultsTest}
+                    role="teacher"
+                    onClose={() => setResultsTest(null)}
+                />
+            )}
         </div>
     );
 }
