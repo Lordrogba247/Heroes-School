@@ -46,6 +46,12 @@ export default function StudentCBTExam() {
         })
             .then(async (res) => {
                 const data = await res.json().catch(() => ({}));
+                // Backend enforces the scheduled-day window: before day D -> 403
+                // "not available yet"; day D+1 onwards -> 403 "closed". Surface
+                // that message with a back button instead of a generic error.
+                if (res.status === 403) {
+                    throw new Error(data.message || "This test is only available on its scheduled date.");
+                }
                 if (!res.ok) throw new Error(data.message || "Failed to load test questions.");
                 return data;
             })
@@ -90,6 +96,13 @@ export default function StudentCBTExam() {
 
             if (res.status === 400) {
                 setSubmitError(data.message || "Time expired for this test.");
+                setResult(null);
+                return;
+            }
+            // Backend day-window enforcement: 403 "not available yet" (before D)
+            // or 403 "closed" (after D). Keep student on an explanatory screen.
+            if (res.status === 403) {
+                setSubmitError(data.message || "This test is only available on its scheduled date.");
                 setResult(null);
                 return;
             }
@@ -345,6 +358,7 @@ export default function StudentCBTExam() {
                         <p>⚠ Leaving fullscreen or switching tabs twice auto-submits your test.</p>
                         <p>⚠ Attempting to copy test content twice auto-submits your test.</p>
                         <p>⚠ Right-click and copy/paste are disabled during the test.</p>
+                        <p>⚠ This test is only available today (its scheduled date).</p>
                     </div>
                     <button className="cbtx-begin-btn" onClick={handleBeginExam}>
                         Begin Exam

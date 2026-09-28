@@ -194,7 +194,7 @@ export default function AdminCBT() {
                 </svg>
             </button>
 
-            {/* Tests list */}
+            {/* Tests list — backend keeps staff/admin history for 7 days after the scheduled date, then deletes it */}
             <div className="acbt-list">
                 {loading && <p className="acbt-empty">Loading tests...</p>}
                 {!loading && tests.length === 0 && <p className="acbt-empty">No tests scheduled yet.</p>}

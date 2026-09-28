@@ -51,7 +51,7 @@ export default function StudentCBT() {
     return (
         <div className="cbt-page">
             <h1 className="cbt-title">CBT Test/Exam</h1>
-            <p className="cbt-sub">Take your computer-based tests and exam</p>
+            <p className="cbt-sub">Tests scheduled for today only — take each test on its scheduled date</p>
 
             {tests.length === 0 ? (
                 <div className="cbt-soon-card">
@@ -60,9 +60,9 @@ export default function StudentCBT() {
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" />
                         </svg>
                     </div>
-                    <h2 className="cbt-soon-title">No Tests Available</h2>
+                    <h2 className="cbt-soon-title">No Tests Today</h2>
                     <p className="cbt-soon-text">
-                        No CBT Tests/Exams have been scheduled for your class yet. Check back soon!
+                        No CBT Tests/Exams are scheduled for today. Each test is only available on its scheduled date — check back on your test day!
                     </p>
                 </div>
             ) : (
@@ -74,7 +74,7 @@ export default function StudentCBT() {
                             </svg>
                         </span>
                         <p className="cbt-warning-text">
-                            <span className="cbt-warning-bold">Important:</span> Once you start an exam, you cannot pause it. Ensure you have a stable internet connection and sufficient time to complete the exam. The timer will start immediately upon clicking "Start Exam".
+                            <span className="cbt-warning-bold">Important:</span> Each test is only available on its scheduled date. Once you start an exam, you cannot pause it. Ensure you have a stable internet connection and sufficient time to complete the exam. The timer will start immediately upon clicking "Start Exam".
                         </p>
                     </div>
 

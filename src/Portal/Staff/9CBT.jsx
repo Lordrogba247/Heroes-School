@@ -247,7 +247,7 @@ export default function StaffCBT() {
                 {formError && <p className="sc-error">{formError}</p>}
             </div>
 
-            {/* Scheduled tests list */}
+            {/* Scheduled tests list — backend keeps staff/admin history for 7 days after the scheduled date, then deletes it */}
             <div className="sc-list">
                 {loading && <p className="sc-empty">Loading tests...</p>}
                 {!loading && error && <p className="sc-error">{error}</p>}
