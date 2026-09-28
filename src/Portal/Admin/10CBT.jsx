@@ -142,10 +142,15 @@ export default function AdminCBT() {
         }
     };
 
-    // TODO: confirm exact endpoint/method with Victor — assuming POST /api/admin/cbt/:id/reactivate,
-    // which reopens the test for exactly one day (today) regardless of its original date.
+    // Reactivate extends availability by one more day from now.
+    // Backend: POST /api/admin/cbt/:id/reactivate -> sets isActive=true,
+    // expiresAt = now + 24h. UI falls back to +1 day optimistically.
     const handleReactivate = async (test) => {
         const id = test._id || test.id;
+        const ok = window.confirm(
+            `Reactivate "${test.subject || "this test"}" for one more day? Students will be able to take it until tomorrow.`
+        );
+        if (!ok) return;
         setReactivatingId(id);
         setError("");
         try {
@@ -157,12 +162,13 @@ export default function AdminCBT() {
             if (!res.ok) throw new Error(data.message || "Failed to reactivate test.");
 
             // Prefer whatever the server returns for the updated test; fall back to
-            // assuming it's active with an expiry of end-of-today if the shape differs.
-            const updated = data.data || {};
+            // +1 day from now so the UI reflects "available for one more day".
+            const updated = data.data || data.test || {};
+            const oneMoreDay = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
             setTests((prev) =>
                 prev.map((t) =>
                     (t._id || t.id) === id
-                        ? { ...t, isActive: true, expiresAt: updated.expiresAt || t.expiresAt || null, ...updated }
+                        ? { ...t, isActive: true, expiresAt: updated.expiresAt || oneMoreDay, ...updated }
                         : t
                 )
             );
@@ -231,15 +237,15 @@ export default function AdminCBT() {
                                     <button className="acbt-results-btn" onClick={() => setResultsTest(t)}>
                                         View Results
                                     </button>
-                                    {!live && (
-                                        <button
-                                            className="acbt-reactivate-btn"
-                                            onClick={() => handleReactivate(t)}
-                                            disabled={reactivatingId === id}
-                                        >
-                                            {reactivatingId === id ? "Reactivating..." : "Reactivate for a Day"}
-                                        </button>
-                                    )}
+                                    {/* Always beside Active/Closed status: extends test by one more day */}
+                                    <button
+                                        className="acbt-reactivate-btn"
+                                        onClick={() => handleReactivate(t)}
+                                        disabled={reactivatingId === id}
+                                        title="Make this CBT available for one more day"
+                                    >
+                                        {reactivatingId === id ? "Reactivating..." : "Reactivate +1 Day"}
+                                    </button>
                                     <button className="acbt-delete-btn" onClick={() => handleDelete(t)}>
                                         Delete
                                     </button>
