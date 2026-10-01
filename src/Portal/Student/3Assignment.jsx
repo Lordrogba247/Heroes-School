@@ -12,31 +12,64 @@ function resolveFileUrl(url) {
 }
 
 function getTeacherAttachments(assignment) {
-    const raw =
-        assignment.teacherAttachment ??
-        assignment.attachment ??
-        assignment.attachments ??
-        assignment.attachmentUrl ??
-        assignment.attachmentURL ??
-        assignment.fileUrl ??
-        assignment.fileURL ??
-        assignment.file ??
-        assignment.files ??
-        assignment.document ??
-        assignment.documentUrl ??
-        null;
-    if (!raw) return [];
-    const list = Array.isArray(raw) ? raw : [raw];
-    return list
+    if (!assignment || typeof assignment !== "object") return [];
+    // 1) Known keys first
+    const knownKeys = [
+        "teacherAttachment", "teacherAttachments", "teacherFile", "teacherFiles",
+        "attachment", "attachments", "attachmentUrl", "attachmentURL",
+        "attachmentPath", "attachment_path",
+        "fileUrl", "fileURL", "filePath", "file", "files",
+        "document", "documents", "documentUrl", "documentURL",
+        "upload", "uploads", "uploadUrl", "media", "mediaUrl", "resource", "resourceUrl",
+    ];
+    let candidates = [];
+    for (const k of knownKeys) {
+        if (assignment[k] !== undefined && assignment[k] !== null && assignment[k] !== "") {
+            candidates.push(assignment[k]);
+        }
+    }
+    // 2) Fallback: scan EVERY key for anything looking like a file/url,
+    //    so an unexpected backend field name still shows up.
+    //    Skip known non-file keys.
+    const skipKeys = new Set([
+        "id", "_id", "subject", "type", "title", "classLabel", "class", "due", "dueDate",
+        "instruction", "instructions", "description", "submitted", "isSubmitted",
+        "hasSubmitted", "status", "createdAt", "updatedAt", "__v",
+    ]);
+    for (const [k, v] of Object.entries(assignment)) {
+        if (skipKeys.has(k) || knownKeys.includes(k)) continue;
+        if (typeof v === "string" && v.length > 3 &&
+            (/^(https?:\/\/|\/|uploads?\/|files?\/|attachments?\/|documents?\/)/i.test(v) ||
+             /\.(pdf|docx?|xlsx?|pptx?|txt|png|jpe?g|gif|webp|zip|rar|csv)$/i.test(v))) {
+            candidates.push(v);
+        } else if (v && typeof v === "object" && !Array.isArray(v) &&
+                   (v.url || v.path || v.link || v.href || v.secure_url || v.secureUrl)) {
+            candidates.push(v);
+        } else if (Array.isArray(v) && v.length > 0 && /attach|file|doc|upload|media|resource/i.test(k)) {
+            candidates.push(...v);
+        }
+    }
+    // flatten one level (attachments could be nested arrays)
+    const flat = [];
+    for (const c of candidates.flat(Infinity)) {
+        if (c === null || c === undefined || c === "") continue;
+        // guard: never treat a plain number/boolean or long prose as a file
+        if (typeof c === "string" && c.length > 500) continue;
+        flat.push(c);
+    }
+    if (flat.length === 0) return [];
+    return flat
         .map((item) => {
-            if (!item) return null;
             if (typeof item === "string") {
                 return { url: resolveFileUrl(item), name: item.split("/").pop() || "Attachment" };
             }
-            const url = item.url || item.path || item.link || item.href || item.secure_url || "";
-            const name = item.originalName || item.originalname || item.name || item.filename || (url ? url.split("/").pop() : "Attachment");
-            if (!url && !name) return null;
-            return { url: url ? resolveFileUrl(url) : "", name: name || "Attachment" };
+            if (typeof item === "object") {
+                const url = item.url || item.path || item.link || item.href || item.secure_url || item.secureUrl || "";
+                const name = item.originalName || item.originalname || item.name || item.filename || item.original_name || (url ? String(url).split("/").pop() : "Attachment");
+                if (!url && !name) return null;
+                return { url: url ? resolveFileUrl(String(url)) : "", name: name || "Attachment" };
+            }
+            return null;
         })
         .filter(Boolean);
 }
@@ -142,7 +175,7 @@ function AssignmentCard({ assignment }) {
                                     <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 015 0v10.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V6H9v9.5a2.5 2.5 0 005 0V5c0-2.21-1.79-4-4-4S6 2.79 6 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1z" />
                                 </svg>
                                 <span className="sa-attach-label">
-                                    {files.length} attachment{files.length !== 1 ? "s" : ""}
+                                    {files.length} attachment{files.length !== 1 ? "s" : ""} — your files to submit
                                 </span>
                             </div>
 
@@ -193,7 +226,13 @@ export default function StudentAssignment() {
             // Assuming { success, data: [...] } — same convention as every other confirmed
             // endpoint. Was previously setting assignments to the whole response object,
             // which crashed .map() below since that object has no .map method.
-            .then((res) => setAssignments(res.data?.data || res.data || []))
+            .then((res) => {
+                const list = res.data?.data || res.data || [];
+                // DEBUG: inspect the real backend shape once so we can lock the
+                // attachment field name. Remove after confirming.
+                if (list.length > 0) console.log("[assignments] sample:", JSON.stringify(list[0], null, 2));
+                setAssignments(Array.isArray(list) ? list : []);
+            })
             .catch(() => setError("Failed to load assignments."))
             .finally(() => setLoading(false));
     }, []);
