@@ -1,8 +1,41 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./6CBT.css";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
+
+// A test is visible only while it is live:
+// - explicitly deactivated (isActive === false) -> hidden
+// - explicit status like "expired"/"closed"/"inactive" -> hidden
+// - past expiresAt -> hidden (covers admin "Reactivate +1 Day" = now + 24h)
+// - past scheduled date (test.date before today) -> hidden
+//   (backend deletes staff/admin history after 7 days, but students must
+//   stop seeing it the day after the scheduled date / expiry)
+// - otherwise (no expiry info) -> show, backend is the source of truth
+const isTestLive = (test) => {
+    if (!test || typeof test !== "object") return false;
+    if (test.isActive === false) return false;
+    if (typeof test.status === "string" && /expir|clos|inactive|archived/i.test(test.status)) return false;
+    if (typeof test.isPublished === "boolean" && test.isPublished === false) return false;
+    for (const key of ["expiresAt", "expires_at", "expiryDate"]) {
+        if (test[key]) {
+            const exp = new Date(test[key]).getTime();
+            if (!Number.isNaN(exp) && exp <= Date.now()) return false;
+        }
+    }
+    // Scheduled-date expiry: a test lives only on its scheduled date (plus any
+    // explicit expiresAt window above, e.g. +24h reactivation).
+    // test.date may be "2026-10-01", ISO string, or display string — parse defensively.
+    if (!test.expiresAt && !test.expires_at && !test.expiryDate && test.date) {
+        const d = new Date(test.date);
+        if (!Number.isNaN(d.getTime())) {
+            const endOfScheduledDay = new Date(d);
+            endOfScheduledDay.setHours(23, 59, 59, 999);
+            if (endOfScheduledDay.getTime() < Date.now()) return false;
+        }
+    }
+    return true;
+};
 
 export default function StudentCBT() {
     const navigate = useNavigate();
@@ -10,9 +43,10 @@ export default function StudentCBT() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
+    const fetchTests = useCallback(() => {
         const token = localStorage.getItem("token");
 
+        setLoading(true);
         fetch(`${BASE_URL}/api/cbt`, {
             method: "GET",
             headers: {
@@ -23,12 +57,34 @@ export default function StudentCBT() {
                 if (!res.ok) throw new Error("Failed to load CBT tests.");
                 return res.json();
             })
-            .then((data) => setTests(data.data || []))
+            .then((data) => setTests((data.data || []).filter(isTestLive)))
             .catch((err) => setError(err.message || "Failed to load CBT tests."))
             .finally(() => setLoading(false));
     }, []);
 
+    useEffect(() => {
+        fetchTests();
+        // Re-check expiry every 60s so a test that just expired disappears
+        // without needing a page reload.
+        const id = setInterval(() => {
+            setTests((prev) => prev.filter(isTestLive));
+        }, 60000);
+        return () => clearInterval(id);
+    }, [fetchTests]);
+
+    // Also re-filter when tab regains focus (student leaves tab open past expiry).
+    useEffect(() => {
+        const onFocus = () => setTests((prev) => prev.filter(isTestLive));
+        window.addEventListener("focus", onFocus);
+        return () => window.removeEventListener("focus", onFocus);
+    }, []);
+
     const handleStartTest = (test) => {
+        // Guard: don't let a stale card (expired while list was open) start.
+        if (!isTestLive(test)) {
+            setTests((prev) => prev.filter((t) => (t._id || t.id) !== (test._id || test.id)));
+            return;
+        }
         navigate(`/portal/student/cbt/${test._id || test.id}`, { state: { test } });
     };
 
