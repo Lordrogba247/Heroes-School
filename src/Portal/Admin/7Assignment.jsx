@@ -38,7 +38,12 @@ export default function AdminAssignment() {
                 if (!res.ok) throw new Error("Failed to load assignments.");
                 return res.json();
             })
-            .then((data) => setAssignments(data.data || []))
+            .then((data) => {
+                const list = data.data || [];
+                // DEBUG: check if backend returns the file URL on create/list
+                if (list.length > 0) console.log("[admin-assignments] sample:", JSON.stringify(list[0], null, 2));
+                setAssignments(list);
+            })
             .catch(() => setError("Failed to load assignments."))
             .finally(() => setLoading(false));
     };
