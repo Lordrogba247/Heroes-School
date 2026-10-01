@@ -6,7 +6,8 @@ import "./7Result.css";
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
 // Fallback only — used if useStaffMeta fails for some reason.
-const fallbackSessions = ["2024/2025", "2025/2026"];
+// Keep in sync with newly created academic sessions.
+const fallbackSessions = ["2024/2025", "2025/2026", "2026/2027"];
 const fallbackTerms = ["First Term", "Second Term", "Third Term"];
 
 export default function StaffResultsList() {
@@ -24,13 +25,23 @@ export default function StaffResultsList() {
 
     const token = localStorage.getItem("token");
 
-    const sessionOptions = metaSessions.length > 0 ? metaSessions.map((s) => s.name) : fallbackSessions;
+    // Union live sessions + known fallback so a newly created session (e.g. 2026/2027)
+    // still shows even if the cached /api/staff/meta response hasn't caught up yet.
+    const sessionOptions = Array.from(
+        new Set([...metaSessions.map((s) => s.name), ...fallbackSessions])
+    ).sort();
     const termOptions = metaTerms.length > 0 ? metaTerms : fallbackTerms;
 
     useEffect(() => {
         if (sessionOptions.length > 0 && !session) {
             const current = metaSessions.find((s) => s.isCurrent);
-            setSession(current ? current.name : sessionOptions[sessionOptions.length - 1]);
+            if (current) {
+                setSession(current.name);
+            } else if (sessionOptions.includes("2026/2027")) {
+                setSession("2026/2027");
+            } else {
+                setSession(sessionOptions[sessionOptions.length - 1]);
+            }
         }
         if (termOptions.length > 0 && !term) {
             setTerm(termOptions[termOptions.length - 1]);

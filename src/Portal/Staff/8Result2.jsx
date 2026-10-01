@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useStaffMeta } from "../../hooks/useStaffMeta";
 import "./8Result2.css";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
@@ -15,7 +16,8 @@ const subjectOptions = [
     "Technical Drawing", "Food and Nutrition",
 ];
 
-const sessions = ["2024/2025", "2025/2026"];
+const fallbackSessions = ["2024/2025", "2025/2026", "2026/2027"];
+const fallbackTerms = ["First Term", "Second Term", "Third Term"];
 const TERM_OPTIONS = [
     { value: "first", label: "First Term" },
     { value: "second", label: "Second Term" },
@@ -41,11 +43,25 @@ export default function StaffResultEntry() {
     const navigate = useNavigate();
     const token = localStorage.getItem("token");
 
+    const { sessions: metaSessions, terms: metaTerms } = useStaffMeta();
+
     const [student, setStudent] = useState(null);
     const [loadingStudent, setLoadingStudent] = useState(true);
     const [loadError, setLoadError] = useState("");
 
-    const [session, setSession] = useState(sessions[1]);
+    const sessionOptions = Array.from(
+        new Set([...metaSessions.map((s) => s.name), ...fallbackSessions])
+    ).sort();
+    // metaTerms come back as labels ("First Term"...), TERM_OPTIONS values are ("first"...).
+    // Normalize so the select value always matches what the backend expects.
+    const labelToValue = Object.fromEntries(TERM_OPTIONS.map((t) => [t.label, t.value]));
+    const valueToLabel = Object.fromEntries(TERM_OPTIONS.map((t) => [t.value, t.label]));
+    const termOptions =
+        metaTerms.length > 0
+            ? metaTerms.map((t) => labelToValue[t] || valueToLabel[t] || t)
+            : fallbackTerms.map((t) => labelToValue[t] || t);
+
+    const [session, setSession] = useState("");
     const [term, setTerm] = useState(TERM_OPTIONS[2].value);
     const [rowInput, setRowInput] = useState(emptyRowInput);
     const [results, setResults] = useState([]);
@@ -60,6 +76,22 @@ export default function StaffResultEntry() {
     const [submitted, setSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
+
+    // Default to the current session once meta loads (falls back to 2026/2027),
+    // so the newest session is always pre-selected and visible.
+    useEffect(() => {
+        if (sessionOptions.length > 0 && !session) {
+            const current = metaSessions.find((s) => s.isCurrent);
+            if (current) {
+                setSession(current.name);
+            } else if (sessionOptions.includes("2026/2027")) {
+                setSession("2026/2027");
+            } else {
+                setSession(sessionOptions[sessionOptions.length - 1]);
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sessionOptions.length]);
 
     // Load the student's info directly by ID (no more full-list fetch + filter)
     useEffect(() => {
@@ -243,7 +275,7 @@ export default function StaffResultEntry() {
                     onChange={(e) => setSession(e.target.value)}
                     disabled={submitted}
                 >
-                    {sessions.map((s) => (
+                    {sessionOptions.map((s) => (
                         <option key={s} value={s}>{s}</option>
                     ))}
                 </select>
@@ -254,8 +286,8 @@ export default function StaffResultEntry() {
                     onChange={(e) => setTerm(e.target.value)}
                     disabled={submitted}
                 >
-                    {TERM_OPTIONS.map((t) => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
+                    {termOptions.map((value) => (
+                        <option key={value} value={value}>{valueToLabel[value] || value}</option>
                     ))}
                 </select>
             </div>
