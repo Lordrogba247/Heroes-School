@@ -89,8 +89,9 @@ function App() {
           <Route path="results" element={<StudentResults />} />
           <Route path="cbt" element={<StudentCBT />} />
           <Route path="profile" element={<StudentProfile />} />
-          <Route path="cbt/:testId" element={<StudentCBTExam />} />
         </Route>
+        {/* CBT exam runs FULLSCREEN — outside StudentLayout so no sidebar/topbar shows */}
+        <Route path="/portal/student/cbt/:testId" element={<StudentCBTExam />} />
 
         {/*  Staff Portal  */}
         <Route path="/portal/staff" element={<StaffLayout />}>

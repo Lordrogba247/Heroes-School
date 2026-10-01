@@ -4,11 +4,20 @@ import "./8CBTExam.css";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
+// Fullscreen exam page — rendered OUTSIDE StudentLayout (see App.jsx),
+// so no sidebar/topbar shows. Includes its own minimal brand header + auth guard.
 export default function StudentCBTExam() {
     const { testId } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
     const passedTest = location.state?.test;
+
+    // Guard: kicked to login if no token (layout no longer does this for us)
+    useEffect(() => {
+        if (!localStorage.getItem("token")) {
+            navigate("/portal/student/login", { replace: true });
+        }
+    }, [navigate]);
 
     const [examData, setExamData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -290,19 +299,29 @@ export default function StudentCBTExam() {
 
     if (loading) {
         return (
-            <div className="cbtx-page">
-                <p>Loading exam...</p>
+            <div className="cbtx-fullscreen">
+                <div className="cbtx-brandbar">
+                    <span className="cbtx-brand-name">Heroes College <em>&amp; Primary School</em></span>
+                </div>
+                <div className="cbtx-page">
+                    <p>Loading exam...</p>
+                </div>
             </div>
         );
     }
 
     if (loadError) {
         return (
-            <div className="cbtx-page">
-                <p className="cbtx-error">{loadError}</p>
-                <button className="cbtx-back-btn" onClick={() => navigate("/portal/student/cbt")}>
-                    ← Back to Tests
-                </button>
+            <div className="cbtx-fullscreen">
+                <div className="cbtx-brandbar">
+                    <span className="cbtx-brand-name">Heroes College <em>&amp; Primary School</em></span>
+                </div>
+                <div className="cbtx-page">
+                    <p className="cbtx-error">{loadError}</p>
+                    <button className="cbtx-back-btn" onClick={() => navigate("/portal/student/cbt")}>
+                        ← Back to Tests
+                    </button>
+                </div>
             </div>
         );
     }
@@ -312,21 +331,26 @@ export default function StudentCBTExam() {
     // Result screen (successful submission) — takes priority over everything else
     if (result) {
         return (
-            <div className="cbtx-page">
-                <div className="cbtx-result-card">
-                    <div className="cbtx-result-icon">
-                        <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
-                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-                        </svg>
+            <div className="cbtx-fullscreen">
+                <div className="cbtx-brandbar">
+                    <span className="cbtx-brand-name">Heroes College <em>&amp; Primary School</em></span>
+                </div>
+                <div className="cbtx-page">
+                    <div className="cbtx-result-card">
+                        <div className="cbtx-result-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
+                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                            </svg>
+                        </div>
+                        <h2 className="cbtx-result-title">Test Submitted</h2>
+                        <p className="cbtx-result-subject">{examData?.subject || passedTest?.subject}</p>
+                        <p className="cbtx-result-message">
+                            Your answers have been recorded. Your result will be made available by your school.
+                        </p>
+                        <button className="cbtx-back-btn" onClick={() => navigate("/portal/student/cbt")}>
+                            ← Back to Tests
+                        </button>
                     </div>
-                    <h2 className="cbtx-result-title">Test Submitted</h2>
-                    <p className="cbtx-result-subject">{examData?.subject || passedTest?.subject}</p>
-                    <p className="cbtx-result-message">
-                        Your answers have been recorded. Your result will be made available by your school.
-                    </p>
-                    <button className="cbtx-back-btn" onClick={() => navigate("/portal/student/cbt")}>
-                        ← Back to Tests
-                    </button>
                 </div>
             </div>
         );
@@ -335,11 +359,16 @@ export default function StudentCBTExam() {
     // Submit blocked (400 time expired) with no result payload
     if (submitError && !examStarted) {
         return (
-            <div className="cbtx-page">
-                <p className="cbtx-error">{submitError}</p>
-                <button className="cbtx-back-btn" onClick={() => navigate("/portal/student/cbt")}>
-                    ← Back to Tests
-                </button>
+            <div className="cbtx-fullscreen">
+                <div className="cbtx-brandbar">
+                    <span className="cbtx-brand-name">Heroes College <em>&amp; Primary School</em></span>
+                </div>
+                <div className="cbtx-page">
+                    <p className="cbtx-error">{submitError}</p>
+                    <button className="cbtx-back-btn" onClick={() => navigate("/portal/student/cbt")}>
+                        ← Back to Tests
+                    </button>
+                </div>
             </div>
         );
     }
@@ -347,22 +376,27 @@ export default function StudentCBTExam() {
     // Ready screen — shown before fullscreen/timer starts
     if (examData && !examStarted) {
         return (
-            <div className="cbtx-page">
-                <div className="cbtx-ready-card">
-                    <h2 className="cbtx-ready-title">{examData.subject}</h2>
-                    <p className="cbtx-ready-sub">
-                        {questions.length} questions · {examData.duration} minutes
-                    </p>
-                    <div className="cbtx-ready-rules">
-                        <p>⚠ Once you begin, the test opens in fullscreen.</p>
-                        <p>⚠ Leaving fullscreen or switching tabs twice auto-submits your test.</p>
-                        <p>⚠ Attempting to copy test content twice auto-submits your test.</p>
-                        <p>⚠ Right-click and copy/paste are disabled during the test.</p>
-                        <p>⚠ This test is only available today (its scheduled date).</p>
+            <div className="cbtx-fullscreen">
+                <div className="cbtx-brandbar">
+                    <span className="cbtx-brand-name">Heroes College <em>&amp; Primary School</em></span>
+                </div>
+                <div className="cbtx-page">
+                    <div className="cbtx-ready-card">
+                        <h2 className="cbtx-ready-title">{examData.subject}</h2>
+                        <p className="cbtx-ready-sub">
+                            {questions.length} questions · {examData.duration} minutes
+                        </p>
+                        <div className="cbtx-ready-rules">
+                            <p>⚠ Once you begin, the test opens in fullscreen.</p>
+                            <p>⚠ Leaving fullscreen or switching tabs twice auto-submits your test.</p>
+                            <p>⚠ Attempting to copy test content twice auto-submits your test.</p>
+                            <p>⚠ Right-click and copy/paste are disabled during the test.</p>
+                            <p>⚠ This test is only available today (its scheduled date).</p>
+                        </div>
+                        <button className="cbtx-begin-btn" onClick={handleBeginExam}>
+                            Begin Exam
+                        </button>
                     </div>
-                    <button className="cbtx-begin-btn" onClick={handleBeginExam}>
-                        Begin Exam
-                    </button>
                 </div>
             </div>
         );
@@ -372,7 +406,12 @@ export default function StudentCBTExam() {
     const answeredCount = Object.keys(answers).length;
 
     return (
-        <div className="cbtx-page cbtx-page--locked">
+        <div className="cbtx-fullscreen">
+            <div className="cbtx-brandbar">
+                <span className="cbtx-brand-name">Heroes College <em>&amp; Primary School</em></span>
+                <span className="cbtx-brand-timer">{formatTime(secondsLeft)}</span>
+            </div>
+            <div className="cbtx-page cbtx-page--locked">
             <div className="cbtx-header">
                 <div>
                     <h1 className="cbtx-subject">{examData?.subject}</h1>
@@ -463,6 +502,7 @@ export default function StudentCBTExam() {
                     </div>
                 </div>
             )}
+            </div>
         </div>
     );
 }
