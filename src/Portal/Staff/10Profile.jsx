@@ -137,14 +137,7 @@ export default function StaffProfile() {
                     <span className="sp-info-label">Sex:</span>
                     <span className="sp-info-value">{staffInfo.sex}</span>
                 </div>
-                <div className="sp-info-row">
-                    <span className="sp-info-label">Email:</span>
-                    <span className="sp-info-value">{staffInfo.email}</span>
-                </div>
-                <div className="sp-info-row">
-                    <span className="sp-info-label">Phone:</span>
-                    <span className="sp-info-value">{staffInfo.phone}</span>
-                </div>
+
                 <div className="sp-info-row">
                     <span className="sp-info-label">Department:</span>
                     <span className="sp-info-value">{staffInfo.department}</span>
