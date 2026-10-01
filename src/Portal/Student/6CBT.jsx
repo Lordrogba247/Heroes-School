@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./6CBT.css";
+import { isTestSubmitted } from "./cbtSubmitGuard";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
@@ -42,6 +43,9 @@ export default function StudentCBT() {
     const [tests, setTests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    // Bumped whenever the tab regains focus / storage changes so a test that
+    // was just submitted (in the exam tab) instantly shows as "Submitted".
+    const [, setAttemptTick] = useState(0);
 
     const fetchTests = useCallback(() => {
         const token = localStorage.getItem("token");
@@ -73,13 +77,29 @@ export default function StudentCBT() {
     }, [fetchTests]);
 
     // Also re-filter when tab regains focus (student leaves tab open past expiry).
+    // Also re-render on focus / storage change so a test submitted in the
+    // exam tab immediately shows its "Submitted" state when coming back here.
     useEffect(() => {
-        const onFocus = () => setTests((prev) => prev.filter(isTestLive));
+        const onFocus = () => {
+            setTests((prev) => prev.filter(isTestLive));
+            setAttemptTick((t) => t + 1);
+        };
+        const onStorage = () => setAttemptTick((t) => t + 1);
         window.addEventListener("focus", onFocus);
-        return () => window.removeEventListener("focus", onFocus);
+        window.addEventListener("storage", onStorage);
+        return () => {
+            window.removeEventListener("focus", onFocus);
+            window.removeEventListener("storage", onStorage);
+        };
     }, []);
 
     const handleStartTest = (test) => {
+        // Single-attempt rule: once submitted, this student can never open
+        // the test again (even via a direct URL / page refresh).
+        if (isTestSubmitted(test)) {
+            alert("You have already submitted this test/exam. You cannot take it again.");
+            return;
+        }
         // Guard: don't let a stale card (expired while list was open) start.
         if (!isTestLive(test)) {
             setTests((prev) => prev.filter((t) => (t._id || t.id) !== (test._id || test.id)));
@@ -134,7 +154,9 @@ export default function StudentCBT() {
                         </p>
                     </div>
 
-                    {tests.map((test) => (
+                    {tests.map((test) => {
+                        const submitted = isTestSubmitted(test);
+                        return (
                         <div className="cbt-card" key={test._id || test.id}>
                             <div className="cbt-card-header">
                                 <p className="cbt-card-subject">{test.subject}</p>
@@ -159,15 +181,30 @@ export default function StudentCBT() {
                                     </svg>
                                     Date of Test/Exam: {test.date}
                                 </p>
+                                {submitted ? (
+                                    <>
+                                        <p className="cbt-submitted-note">
+                                            ✓ You have already submitted this test/exam. You cannot take it again.
+                                        </p>
+                                        <button className="cbt-start-btn cbt-start-btn--submitted" disabled>
+                                            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                                            </svg>
+                                            Submitted
+                                        </button>
+                                    </>
+                                ) : (
                                 <button className="cbt-start-btn" onClick={() => handleStartTest(test)}>
                                     <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
                                         <path d="M8 5v14l11-7z" />
                                     </svg>
                                     Start Test/Exam
                                 </button>
+                                )}
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
         </div>

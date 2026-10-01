@@ -127,6 +127,29 @@
   background: #632f96;
 }
 
+.cbt-start-btn--submitted {
+  background: #e8e4f0;
+  color: #6b21a8;
+  cursor: not-allowed;
+}
+
+.cbt-start-btn--submitted:hover {
+  background: #e8e4f0;
+}
+
+.cbt-submitted-note {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e7e34;
+  background: #e6f4ea;
+  border: 1px solid #bfe3c9;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 8px 0 4px;
+  line-height: 1.5;
+}
+
 /* ===== Test-taking screen ===== */
 
 .cbt-test-header {

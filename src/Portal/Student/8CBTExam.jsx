@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import "./8CBTExam.css";
+import {
+    isTestSubmitted,
+    isTestSubmittedByRecord,
+    isTestSubmittedLocally,
+    isAlreadySubmittedMessage,
+    markTestSubmitted,
+} from "./cbtSubmitGuard";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
@@ -37,6 +44,12 @@ export default function StudentCBTExam() {
     const [submitError, setSubmitError] = useState("");
     const [result, setResult] = useState(null); // { score, totalQuestions, percentage, passed }
     const hasSubmittedRef = useRef(false); // guards against double-submit (manual + timeout race)
+    // True when this student already submitted THIS test before this page
+    // loaded — blocks the exam UI entirely (covers refresh / direct-URL
+    // re-entry after submit). Set from localStorage + backend record/403s.
+    const [alreadySubmitted, setAlreadySubmitted] = useState(() =>
+        isTestSubmittedLocally(testId) || isTestSubmitted(passedTest)
+    );
 
     // Anti-cheat: violation modal + strike counters
     const [violation, setViolation] = useState(null); // { type: "focus"|"copy", final: boolean, message: string }
@@ -46,7 +59,15 @@ export default function StudentCBTExam() {
     const token = localStorage.getItem("token");
 
     // Fetch questions on mount (does NOT start the timer yet — that happens on "Begin Exam")
+    // If the student already submitted this test, they may NOT re-enter it:
+    // power-outage / refresh BEFORE submit still loads fine (answers are not
+    // locked until submit succeeds), but AFTER submit the exam is blocked.
     useEffect(() => {
+        if (isTestSubmittedLocally(testId) || isTestSubmitted(passedTest)) {
+            setAlreadySubmitted(true);
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         setLoadError("");
         fetch(`${BASE_URL}/api/cbt/${testId}/questions`, {
@@ -59,12 +80,40 @@ export default function StudentCBTExam() {
                 // "not available yet"; day D+1 onwards -> 403 "closed". Surface
                 // that message with a back button instead of a generic error.
                 if (res.status === 403) {
-                    throw new Error(data.message || "This test is only available on its scheduled date.");
+                    const msg = data.message || "This test is only available on its scheduled date.";
+                    // Backend single-attempt enforcement: treat "already submitted"
+                    // 403s as a submitted lock, not a generic error.
+                    if (isAlreadySubmittedMessage(msg) || isTestSubmittedByRecord(data.data)) {
+                        markTestSubmitted(testId);
+                        setAlreadySubmitted(true);
+                        return null;
+                    }
+                    throw new Error(msg);
                 }
-                if (!res.ok) throw new Error(data.message || "Failed to load test questions.");
+                if (res.status === 409) {
+                    markTestSubmitted(testId);
+                    setAlreadySubmitted(true);
+                    return null;
+                }
+                if (!res.ok) {
+                    const msg = data.message || "Failed to load test questions.";
+                    if (isAlreadySubmittedMessage(msg)) {
+                        markTestSubmitted(testId);
+                        setAlreadySubmitted(true);
+                        return null;
+                    }
+                    throw new Error(msg);
+                }
+                // Some backends embed the submitted flag in the payload itself.
+                if (isTestSubmittedByRecord(data.data) || isTestSubmittedByRecord(data)) {
+                    markTestSubmitted(testId);
+                    setAlreadySubmitted(true);
+                    return null;
+                }
                 return data;
             })
             .then((data) => {
+                if (!data) return;
                 setExamData(data.data);
                 setSecondsLeft((data.data.duration || 0) * 60);
             })
@@ -83,7 +132,7 @@ export default function StudentCBTExam() {
     }, []);
 
     const submitTest = useCallback(async () => {
-        if (hasSubmittedRef.current) return;
+        if (hasSubmittedRef.current || alreadySubmitted) return;
         hasSubmittedRef.current = true;
         if (timerRef.current) clearInterval(timerRef.current);
 
@@ -103,7 +152,31 @@ export default function StudentCBTExam() {
             });
             const data = await res.json().catch(() => ({}));
 
+            // Backend says "already submitted" (duplicate/retry after success):
+            // lock the student out — the first submit already counted.
+            if (
+                res.status === 409 ||
+                isAlreadySubmittedMessage(data.message) ||
+                isTestSubmittedByRecord(data.data) ||
+                isTestSubmittedByRecord(data)
+            ) {
+                markTestSubmitted(testId);
+                setAlreadySubmitted(true);
+                // Prefer the backend's result payload when it sent one (score
+                // screen); otherwise the already-submitted screen below takes
+                // over and still blocks any re-entry.
+                if (data.data) {
+                    setResult(data.data);
+                    setSubmitError("");
+                }
+                return;
+            }
+
             if (res.status === 400) {
+                // Timer-expired auto-submit: the attempt is consumed, so lock
+                // future re-entry (next visit shows "Already Submitted") while
+                // this visit still shows the expiry message.
+                markTestSubmitted(testId);
                 setSubmitError(data.message || "Time expired for this test.");
                 setResult(null);
                 return;
@@ -117,6 +190,13 @@ export default function StudentCBTExam() {
             }
             if (!res.ok) throw new Error(data.message || "Failed to submit test.");
 
+            // SUCCESS — this is the single attempt. Lock the test for this
+            // student NOW (before showing the result screen) so a refresh,
+            // back-button, or direct URL can never re-open it. A power outage
+            // BEFORE this point leaves no lock, so the student can still
+            // re-enter and finish the test.
+            markTestSubmitted(testId);
+            setAlreadySubmitted(true);
             setResult(data.data);
         } catch (err) {
             setSubmitError(err.message || "Failed to submit test. Please try again.");
@@ -125,7 +205,7 @@ export default function StudentCBTExam() {
             setSubmitting(false);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [testId, buildAnswersPayload, getElapsedSeconds]);
+    }, [testId, buildAnswersPayload, getElapsedSeconds, alreadySubmitted]);
 
     // Strike 1: warn. Strike 2: auto-submit. Used for leaving fullscreen / switching tabs.
     const handleFocusViolation = useCallback(() => {
@@ -252,6 +332,13 @@ export default function StudentCBTExam() {
     }, []);
 
     const handleBeginExam = async () => {
+        // Double-check the single-attempt lock at the last possible moment
+        // (covers the case where another tab submitted while this one sat on
+        // the ready screen).
+        if (alreadySubmitted || isTestSubmittedLocally(testId)) {
+            setAlreadySubmitted(true);
+            return;
+        }
         try {
             const el = document.documentElement;
             const request = el.requestFullscreen || el.webkitRequestFullscreen;
@@ -286,11 +373,17 @@ export default function StudentCBTExam() {
     };
 
     const handleManualSubmit = () => {
-        if (submitting) return;
+        if (submitting || alreadySubmitted) return;
+        // Final confirmation — submitting is permanent and the test can never
+        // be retaken afterwards.
+        const proceedFinal = window.confirm(
+            "Submit this test/exam now? You will NOT be able to take it again."
+        );
+        if (!proceedFinal) return;
         const unanswered = (examData?.questions || []).length - Object.keys(answers).length;
         if (unanswered > 0) {
             const proceed = window.confirm(
-                `You have ${unanswered} unanswered question${unanswered === 1 ? "" : "s"}. Submit anyway?`
+                `You have ${unanswered} unanswered question${unanswered === 1 ? "" : "s"}. Submit anyway? You cannot retake this test afterwards.`
             );
             if (!proceed) return;
         }
@@ -305,6 +398,41 @@ export default function StudentCBTExam() {
                 </div>
                 <div className="cbtx-page">
                     <p>Loading exam...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Already submitted in a previous session (refresh / direct URL /
+    // power restored after a successful submit): block the exam entirely.
+    // NOTE: this only triggers when a submit succeeded — a power outage
+    // BEFORE submitting leaves no lock, so the student can still come back
+    // and take the test.
+    // A submitError (e.g. timer-expiry 400) on THIS visit takes priority so
+    // the student still sees the actual message.
+    if (alreadySubmitted && !result && !submitError) {
+        return (
+            <div className="cbtx-fullscreen">
+                <div className="cbtx-brandbar">
+                    <span className="cbtx-brand-name">Heroes College <em>&amp; Primary School</em></span>
+                </div>
+                <div className="cbtx-page">
+                    <div className="cbtx-result-card">
+                        <div className="cbtx-result-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
+                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                            </svg>
+                        </div>
+                        <h2 className="cbtx-result-title">Already Submitted</h2>
+                        <p className="cbtx-result-subject">{examData?.subject || passedTest?.subject}</p>
+                        <p className="cbtx-result-message">
+                            You have already submitted this test/exam. You cannot take it again.
+                            Your result will be made available by your school.
+                        </p>
+                        <button className="cbtx-back-btn" onClick={() => navigate("/portal/student/cbt")}>
+                            ← Back to Tests
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -392,6 +520,7 @@ export default function StudentCBTExam() {
                             <p>⚠ Attempting to copy test content twice auto-submits your test.</p>
                             <p>⚠ Right-click and copy/paste are disabled during the test.</p>
                             <p>⚠ This test is only available today (its scheduled date).</p>
+                            <p>⚠ Once submitted, you cannot retake this test — submit only when you are done.</p>
                         </div>
                         <button className="cbtx-begin-btn" onClick={handleBeginExam}>
                             Begin Exam
