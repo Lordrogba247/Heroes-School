@@ -75,6 +75,7 @@ function getTeacherAttachments(assignment) {
 }
 
 function AssignmentCard({ assignment }) {
+    const teacherFiles = getTeacherAttachments(assignment);
     const [files, setFiles] = useState([]);
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(assignment.submitted);
@@ -128,34 +129,30 @@ function AssignmentCard({ assignment }) {
                 <p className="sa-instruction-label">Instruction</p>
                 <p className="sa-instruction-text">{assignment.instruction || assignment.instructions}</p>
 
-                {/* Teacher/admin attached file(s) — was missing, so students saw "0 attachments" */}
-                {(() => {
-                    const teacherFiles = getTeacherAttachments(assignment);
-                    if (teacherFiles.length === 0) return null;
-                    return (
-                        <div className="sa-teacher-files">
-                            <p className="sa-instruction-label">
-                                Attachment{teacherFiles.length !== 1 ? "s" : ""} ({teacherFiles.length})
-                            </p>
-                            <ul className="sa-file-list">
-                                {teacherFiles.map((f, i) => (
-                                    <li key={i} className="sa-file-item">
-                                        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-                                            <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
-                                        </svg>
-                                        {f.url ? (
-                                            <a className="sa-file-name sa-file-link" href={f.url} target="_blank" rel="noreferrer">
-                                                {f.name}
-                                            </a>
-                                        ) : (
-                                            <span className="sa-file-name">{f.name}</span>
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    );
-                })()}
+                {/* Teacher/admin attached file(s) */}
+                {teacherFiles.length > 0 && (
+                    <div className="sa-teacher-files">
+                        <p className="sa-instruction-label">
+                            Attachment{teacherFiles.length !== 1 ? "s" : ""} ({teacherFiles.length})
+                        </p>
+                        <ul className="sa-file-list">
+                            {teacherFiles.map((f, i) => (
+                                <li key={i} className="sa-file-item">
+                                    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                                        <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                                    </svg>
+                                    {f.url ? (
+                                        <a className="sa-file-name sa-file-link" href={f.url} target="_blank" rel="noreferrer">
+                                            {f.name}
+                                        </a>
+                                    ) : (
+                                        <span className="sa-file-name">{f.name}</span>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
 
                 {submitted ? (
                     <p className="sa-submitted-msg">✅ Assignment submitted</p>
@@ -228,9 +225,6 @@ export default function StudentAssignment() {
             // which crashed .map() below since that object has no .map method.
             .then((res) => {
                 const list = res.data?.data || res.data || [];
-                // DEBUG: inspect the real backend shape once so we can lock the
-                // attachment field name. Remove after confirming.
-                if (list.length > 0) console.log("[assignments] sample:", JSON.stringify(list[0], null, 2));
                 setAssignments(Array.isArray(list) ? list : []);
             })
             .catch(() => setError("Failed to load assignments."))

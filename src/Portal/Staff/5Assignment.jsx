@@ -37,10 +37,7 @@ export default function StaffAssignment() {
                 if (!res.ok) throw new Error("Failed to load assignments.");
                 return res.json();
             })
-            .then((data) => {
-                if (data.data?.length > 0) console.log("[staff-assignments] sample:", JSON.stringify(data.data[0], null, 2));
-                setAssignments(data.data || []);
-            })
+            .then((data) => setAssignments(data.data || []))
             .catch(() => setError("Failed to load assignments."))
             .finally(() => setLoading(false));
     };
@@ -92,9 +89,6 @@ export default function StaffAssignment() {
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Failed to create assignment.");
-
-            // DEBUG: see exactly what backend returns on create (does it include file URL?)
-            console.log("[staff-assignments] create response:", JSON.stringify(data, null, 2));
 
             resetForm();
             loadAssignments(); // refresh from server so we get the real ID
