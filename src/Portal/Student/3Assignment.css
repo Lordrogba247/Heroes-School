@@ -178,7 +178,7 @@
 /* File list */
 .sa-file-list {
   list-style: none;
-  margin: 10px 0 0;
+  margin: 10px 0 16px;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -217,6 +217,16 @@
 
 .sa-file-remove:hover {
   color: #ff0000;
+}
+
+.sa-teacher-files {
+  margin-bottom: 16px;
+}
+
+.sa-file-link {
+  color: #002662;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 /* Footer — submit btn alone on the right */
