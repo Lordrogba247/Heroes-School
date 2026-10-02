@@ -2,6 +2,7 @@ import { useState } from "react";
 import "./5Result.css";
 import schoolLogo from "../../assets/logo4.png";
 import principalSign from "../../assets/sign1.png";
+import lowerSign from "../../assets/sign2.png";
 import { useStudentMeta } from "../../hooks/useStudentMeta";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
@@ -10,15 +11,46 @@ const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 const TERM_LABELS = { first: "First Term", second: "Second Term", third: "Third Term" };
 
 // Decide which school name to show on the result header, based on the student's class.
-// Primary/Nursery classes → "Heroes Nursery and Primary School"
+// Kindergarten/Nursery/Primary classes → "Heroes Nursery and Primary School"
 // Everything else (JSS/SSS) → "Heroes College"
 function getSchoolName(studentClass) {
     if (!studentClass) return "HEROES COLLEGE & PRIMARY SCHOOL";
-    const cls = studentClass.toLowerCase();
-    const isPrimaryOrNursery = cls.includes("primary") || cls.includes("nursery");
-    return isPrimaryOrNursery
+    const cls = String(studentClass).toLowerCase();
+    const isLowerSchool = cls.includes("primary") || cls.includes("nursery") || cls.includes("kindergarten") || cls.includes("creche") || /(^|[^a-z])kg([^a-z]|$)/.test(cls);
+    return isLowerSchool
         ? "HEROES NURSERY AND PRIMARY SCHOOL"
         : "HEROES COLLEGE";
+}
+
+// Grade column + sign2 signature only apply to Kindergarten/Nursery/Primary.
+// Secondary (JSS/SSS) keeps Grade column + sign1 signature.
+function isLowerSchoolClass(studentClass) {
+    if (!studentClass) return false;
+    const cls = String(studentClass).toLowerCase();
+    return cls.includes("primary") || cls.includes("nursery") || cls.includes("kindergarten") || cls.includes("creche") || /(^|[^a-z])kg([^a-z]|$)/.test(cls);
+}
+
+function getGradeFromTotal(total) {
+    const t = Number(total) || 0;
+    if (t >= 75) return { grade: "A1", remark: "Excellent" };
+    if (t >= 70) return { grade: "B2", remark: "V.Good" };
+    if (t >= 65) return { grade: "B3", remark: "Good" };
+    if (t >= 60) return { grade: "C4", remark: "Credit" };
+    if (t >= 55) return { grade: "C5", remark: "Credit" };
+    if (t >= 50) return { grade: "C6", remark: "Credit" };
+    if (t >= 45) return { grade: "D7", remark: "Pass" };
+    if (t >= 40) return { grade: "E8", remark: "Pass" };
+    return { grade: "F9", remark: "Fail" };
+}
+
+// Normalise term value/label coming from meta or state to "first"/"second"/"third"
+function normaliseTermValue(t) {
+    if (!t) return "";
+    const v = String(t).toLowerCase();
+    if (v.includes("first")) return "first";
+    if (v.includes("second")) return "second";
+    if (v.includes("third")) return "third";
+    return v;
 }
 
 export default function StudentResults() {
@@ -65,7 +97,84 @@ export default function StudentResults() {
             }
 
             // Confirmed shape: { success, data: { studentInfo, subjects, totalScore, percentage, comment } }
-            setResultData(data.data || data);
+            let current = data.data || data;
+
+            // For third term: also fetch first + second term so we can show
+            // 1st Term Total | 2nd Term Total | Grand Total (average of the 3 term totals).
+            // Grand Total is then used for percentage + grading.
+            const isThird = normaliseTermValue(term) === "third";
+            if (isThird) {
+                const fetchTerm = async (termValue) => {
+                    try {
+                        const p = new URLSearchParams({ session, term: termValue });
+                        const r = await fetch(`${BASE_URL}/api/student/results?${p}`, {
+                            method: "GET",
+                            headers: { "Authorization": `Bearer ${token}` },
+                        });
+                        if (!r.ok) return null;
+                        const j = await r.json();
+                        return j.data || j || null;
+                    } catch {
+                        return null;
+                    }
+                };
+                const [firstData, secondData] = await Promise.all([
+                    fetchTerm("first"),
+                    fetchTerm("second"),
+                ]);
+
+                const getTotalFor = (subj) => Number(subj?.total ?? subj?.percent ?? 0) || 0;
+                const mapByName = (subjects = []) => {
+                    const m = {};
+                    (subjects || []).forEach((s) => {
+                        const key = String(s?.name || s?.subject || "").toLowerCase();
+                        if (key) m[key] = s;
+                    });
+                    return m;
+                };
+                const firstMap = mapByName(firstData?.subjects);
+                const secondMap = mapByName(secondData?.subjects);
+
+                const mergedSubjects = (current.subjects || []).map((s) => {
+                    const key = String(s?.name || s?.subject || "").toLowerCase();
+                    const thirdTotal = getTotalFor(s);
+                    const f = firstMap[key];
+                    const snd = secondMap[key];
+                    const firstTotal = f ? getTotalFor(f) : null;
+                    const secondTotal = snd ? getTotalFor(snd) : null;
+                    // Average of available term totals (first + second + third).
+                    const parts = [firstTotal, secondTotal, thirdTotal].filter((v) => v !== null && !Number.isNaN(v));
+                    const grandTotal = parts.length > 0
+                        ? Math.round((parts.reduce((a, b) => a + b, 0) / parts.length) * 10) / 10
+                        : thirdTotal;
+                    const calc = getGradeFromTotal(grandTotal);
+                    return {
+                        ...s,
+                        firstTotal,
+                        secondTotal,
+                        thirdTotal,
+                        grandTotal,
+                        // In third term, grade AND remark come from Grand Total
+                        grade: calc.grade,
+                        remark: calc.remark,
+                    };
+                });
+
+                const grandSum = mergedSubjects.reduce((a, s) => a + (Number(s.grandTotal) || 0), 0);
+                const grandPercentage = mergedSubjects.length > 0
+                    ? Math.round((grandSum / mergedSubjects.length) * 10) / 10
+                    : current.percentage;
+
+                current = {
+                    ...current,
+                    subjects: mergedSubjects,
+                    totalScore: grandSum,
+                    percentage: grandPercentage,
+                    isThirdTerm: true,
+                };
+            }
+
+            setResultData(current);
         } catch (err) {
             setError(err.message || "No result found for the selected session and term.");
         } finally {
@@ -101,7 +210,10 @@ export default function StudentResults() {
 
             {error && <p className="sr-fetch-error">{error}</p>}
 
-            {resultData && (
+            {resultData && (() => {
+                const showGrade = !isLowerSchoolClass(resultData.studentInfo?.class);
+                const signatureImg = isLowerSchoolClass(resultData.studentInfo?.class) ? lowerSign : principalSign;
+                return (
                 <div className="sr-card">
                     {/* Letterhead */}
                     <div className="sr-letterhead">
@@ -147,19 +259,25 @@ export default function StudentResults() {
                                     <th>2nd C.A (20)</th>
                                     <th>Exam (60)</th>
                                     <th>Total (100)</th>
-                                    <th>Grade</th>
+                                    {resultData.isThirdTerm && <th>1st Term Total</th>}
+                                    {resultData.isThirdTerm && <th>2nd Term Total</th>}
+                                    {resultData.isThirdTerm && <th>Grand Total</th>}
+                                    {showGrade && <th>Grade</th>}
                                     <th>Remark</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {resultData.subjects?.map((s) => (
-                                    <tr key={s.name}>
-                                        <td className="sr-subject-name">{s.name}</td>
+                                    <tr key={s.name || s.subject}>
+                                        <td className="sr-subject-name">{s.name || s.subject}</td>
                                         <td>{s.ca1}</td>
                                         <td>{s.ca2}</td>
                                         <td>{s.exam}</td>
-                                        <td>{s.percent}</td>
-                                        <td>{s.grade}</td>
+                                        <td>{s.percent ?? s.total ?? s.thirdTotal}</td>
+                                        {resultData.isThirdTerm && <td>{s.firstTotal ?? "—"}</td>}
+                                        {resultData.isThirdTerm && <td>{s.secondTotal ?? "—"}</td>}
+                                        {resultData.isThirdTerm && <td>{s.grandTotal}</td>}
+                                        {showGrade && <td>{s.grade}</td>}
                                         <td>{s.remark}</td>
                                     </tr>
                                 ))}
@@ -187,7 +305,7 @@ export default function StudentResults() {
                     <div className="sr-comment-section">
                         <p className="sr-comment-label">Comment</p>
                         <p className="sr-comment-text">{resultData.comment}</p>
-                        <img src={principalSign} alt="Principal Signature" className="sr-signature1" />
+                        <img src={signatureImg} alt="Principal Signature" className="sr-signature1" />
                         <p className="sr-signature">Principal's Signature</p>
                     </div>
 
@@ -202,7 +320,8 @@ export default function StudentResults() {
                         </button>
                     </div>
                 </div>
-            )}
+                );
+            })()}
         </div>
     );
 }

@@ -36,6 +36,13 @@ function getGrade(total) {
     return { grade: "F9", remark: "Fail" };
 }
 
+// Kindergarten/Nursery/Primary → no Grade column. Secondary (JSS/SSS) keeps it.
+function isLowerSchoolClass(studentClass) {
+    if (!studentClass) return false;
+    const cls = String(studentClass).toLowerCase();
+    return cls.includes("primary") || cls.includes("nursery") || cls.includes("kindergarten") || cls.includes("creche") || /(^|[^a-z])kg([^a-z]|$)/.test(cls);
+}
+
 const emptyRowInput = { subject: "", ca1: "", ca2: "", exam: "" };
 
 export default function StaffResultEntry() {
@@ -215,6 +222,12 @@ export default function StaffResultEntry() {
         return { total, ...getGrade(total) };
     })();
 
+    // Grade column is hidden for Kindergarten/Nursery/Primary.
+    // Student object here uses `class` / `studentClass` (see StudentsList shape).
+    const showGrade = !isLowerSchoolClass(
+        student?.class || student?.studentClass || student?.student_class || ""
+    );
+
     const handleSubmitResult = async () => {
         if (results.length === 0 || !student) return;
 
@@ -303,7 +316,7 @@ export default function StaffResultEntry() {
                                 <th>2nd C.A (20)</th>
                                 <th>Exam (60)</th>
                                 <th>Total (100)</th>
-                                <th>Grade</th>
+                                {showGrade && <th>Grade</th>}
                                 <th>Remark</th>
                             </tr>
                         </thead>
@@ -352,7 +365,7 @@ export default function StaffResultEntry() {
                                     />
                                 </td>
                                 <td className="sre-readonly-cell">{livePreview ? livePreview.total : "—"}</td>
-                                <td className="sre-readonly-cell">{livePreview ? livePreview.grade : "—"}</td>
+                                {showGrade && <td className="sre-readonly-cell">{livePreview ? livePreview.grade : "—"}</td>}
                                 <td className="sre-readonly-cell">{livePreview ? livePreview.remark : "—"}</td>
                             </tr>
                         </tbody>
@@ -375,7 +388,7 @@ export default function StaffResultEntry() {
                                 <th>2nd C.A (20)</th>
                                 <th>Exam (60)</th>
                                 <th>Total (100)</th>
-                                <th>Grade</th>
+                                {showGrade && <th>Grade</th>}
                                 <th>Remark</th>
                                 {!submitted && <th>Action</th>}
                             </tr>
@@ -388,7 +401,7 @@ export default function StaffResultEntry() {
                                     <td>{r.ca2}</td>
                                     <td>{r.exam}</td>
                                     <td>{r.total}</td>
-                                    <td>{r.grade}</td>
+                                    {showGrade && <td>{r.grade}</td>}
                                     <td>{r.remark}</td>
                                     {!submitted && (
                                         <td>
