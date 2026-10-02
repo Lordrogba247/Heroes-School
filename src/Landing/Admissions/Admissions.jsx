@@ -57,7 +57,7 @@ export default function Admissions() {
 
                 <section className="admissions-section">
                     <h2>School Fees Breakdown (New Intake)</h2>
-                    <p> NEW INTAKE: JSS1, JSS2, JSS3, SS1, SS2, SS3</p>
+                    <p style={{ color: "#1a1a2e", fontWeight: "500" }}> NEW INTAKE: JSS1, JSS2, JSS3, SS1, SS2, SS3</p>
                     <ul>
                         <li>JSS 1-2: N77,000 (Male), N82,000 (Female)</li>
                         <li>JSS 3: N219,000 (Male), N224,000 (Female) (Note: Three terms school fees, uniforms, Bece Examination fees, Graduation fee are not included)</li>
@@ -68,7 +68,7 @@ export default function Admissions() {
                     </ul>
 
                     <h2>School Fees Breakdown (Returning)</h2>
-                    <p> RETURNING STUDENTS: JSS2, JSS3, SS1, SS2, SS3</p>
+                    <p style={{ color: "#1a1a2e", fontWeight: "500" }}> RETURNING STUDENTS: JSS2, JSS3, SS1, SS2, SS3</p>
                     <ul>
                         <li>JSS 2: N41,000</li>
                         <li>JSS 3: N183,000 (Note: These amounts contains three terms school fees, uniforms, Bece Examination fees, etc, BUT GRADUATION FEE NOT INCLUDED)</li>
