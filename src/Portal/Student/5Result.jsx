@@ -99,6 +99,28 @@ export default function StudentResults() {
             // Confirmed shape: { success, data: { studentInfo, subjects, totalScore, percentage, comment } }
             let current = data.data || data;
 
+            // The result sheet shows ONE comment, but staff comments may live on the
+            // separate comment-thread endpoint. If the result has no comment, fall back
+            // to the latest thread comment so "Add Comment" still shows on the result.
+            if (!current.comment) {
+                try {
+                    const cp = new URLSearchParams({ session, term });
+                    const cr = await fetch(`${BASE_URL}/api/student/results/comments?${cp}`, {
+                        method: "GET",
+                        headers: { "Authorization": `Bearer ${token}` },
+                    });
+                    if (cr.ok) {
+                        const cj = await cr.json();
+                        const list = cj.data || cj.comments || [];
+                        const latest = Array.isArray(list) ? list[list.length - 1] : null;
+                        const text = latest?.text || cj.comment || null;
+                        if (text) current = { ...current, comment: text };
+                    }
+                } catch {
+                    // Non-fatal — result still displays without the thread comment.
+                }
+            }
+
             // For third term: also fetch first + second term so we can show
             // 1st Term Total | 2nd Term Total | Grand Total (average of the 3 term totals).
             // Grand Total is then used for percentage + grading.

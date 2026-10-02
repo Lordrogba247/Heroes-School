@@ -74,7 +74,29 @@ export default function AdminResultView() {
             try {
                 const current = await fetchOne(term);
                 if (!current) throw new Error("No result found for this student.");
-                let result = current;
+
+                // Same fallback as student view: if the result has no single comment,
+                // pull the latest staff thread comment so it still shows on the sheet.
+                let withComment = current;
+                if (!current.comment) {
+                    try {
+                        const cp = new URLSearchParams({ session, term });
+                        const cr = await fetch(
+                            `${BASE_URL}/api/admin/results/${encodeURIComponent(studentId)}/comments?${cp}`,
+                            { method: "GET", headers: { "Authorization": `Bearer ${token}` } }
+                        );
+                        if (cr.ok) {
+                            const cj = await cr.json();
+                            const list = cj.data || cj.comments || [];
+                            const latest = Array.isArray(list) ? list[list.length - 1] : null;
+                            const text = latest?.text || cj.comment || null;
+                            if (text) withComment = { ...current, comment: text };
+                        }
+                    } catch {
+                        // Non-fatal — sheet still renders without the thread comment.
+                    }
+                }
+                let result = withComment;
 
                 if (isThird) {
                     // Labels used by admin list are "First Term"/"Second Term"

@@ -84,6 +84,12 @@ export default function StaffResultEntry() {
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
 
+    // Backend uses term *labels* ("Third Term") for publish/list elsewhere, so the
+    // comment GET/POST must also send the label — never the raw value ("third").
+    // Otherwise comments save/load under the wrong term and look like "not adding".
+    const termLabel =
+        (TERM_OPTIONS.find((t) => t.value === term) || {}).label || term;
+
     // Default to the current session once meta loads (falls back to 2026/2027),
     // so the newest session is always pre-selected and visible.
     useEffect(() => {
@@ -115,10 +121,15 @@ export default function StaffResultEntry() {
             .finally(() => setLoadingStudent(false));
     }, [studentId]);
 
-    // Load existing comments for this student + session + term
+    // Load existing comments for this student + session + term (label form).
     const loadComments = () => {
+        if (!session) {
+            setComments([]);
+            setLoadingComments(false);
+            return;
+        }
         setLoadingComments(true);
-        const params = new URLSearchParams({ session, term });
+        const params = new URLSearchParams({ session, term: termLabel });
         fetch(`${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}/comments?${params}`, {
             method: "GET",
             headers: { "Authorization": `Bearer ${token}` },
@@ -201,13 +212,36 @@ export default function StaffResultEntry() {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`,
                 },
-                body: JSON.stringify({ text: commentInput.trim(), session, term }),
+                body: JSON.stringify({ text: commentInput.trim(), session, term: termLabel }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Failed to add comment.");
 
+            // Prefer the saved comment returned by the backend (handles shapes like
+            // { data: {...} }, { comment: {...} }, or the raw comment object).
+            const saved = data?.data ?? data?.comment ?? data;
+            if (saved && (saved.text || saved._id || saved.id)) {
+                const savedItem = {
+                    _id: saved._id || saved.id || `tmp-${Date.now()}`,
+                    text: saved.text ?? commentInput.trim(),
+                    author: saved.author,
+                    createdAt: saved.createdAt || new Date().toISOString(),
+                };
+                setComments((prev) => {
+                    // Avoid duplicates if the follow-up reload also returns it.
+                    if (prev.some((c) => (c._id || c.id) === savedItem._id || (c.text === savedItem.text && c.createdAt === savedItem.createdAt))) {
+                        return prev;
+                    }
+                    return [...prev, savedItem];
+                });
+            }
+
             setCommentInput("");
+            setCommentError("");
+            // Reload from server (source of truth) so the list shows the saved comment
+            // with its real id/author/timestamp — and retry once if the list lags.
             loadComments();
+            setTimeout(loadComments, 1500);
         } catch (err) {
             setCommentError(err.message || "Failed to add comment. Please try again.");
         } finally {
@@ -234,6 +268,13 @@ export default function StaffResultEntry() {
         setSubmitting(true);
         setSubmitError("");
         try {
+            // The result sheet shows ONE comment (student/admin `comment` field), but
+            // the comment box above saves to a separate thread endpoint. Include the
+            // latest thread comment in the submit payload so it actually lands on the
+            // result — otherwise "Add Comment" never appears on the printed result.
+            const latestComment =
+                (comments.length > 0 ? comments[comments.length - 1]?.text : "") ||
+                commentInput.trim();
             const payload = {
                 studentId: student.id,
                 session,
@@ -244,6 +285,7 @@ export default function StaffResultEntry() {
                     ca2: r.ca2,
                     exam: r.exam,
                 })),
+                ...(latestComment ? { comment: latestComment } : {}),
             };
 
             const res = await fetch(`${BASE_URL}/api/staff/results`, {
@@ -257,6 +299,25 @@ export default function StaffResultEntry() {
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Failed to submit result.");
+
+            // Belt-and-braces: some backends ignore `comment` on the submit route.
+            // If we sent a comment, also post it to the comment thread so the
+            // student's printed result still shows it (read from that thread).
+            if (latestComment && session) {
+                try {
+                    await fetch(`${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}/comments`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ text: latestComment, session, term: termLabel }),
+                    });
+                } catch {
+                    // Non-fatal — result itself already submitted.
+                }
+                loadComments();
+            }
 
             setSubmitted(true);
         } catch (err) {
@@ -438,7 +499,12 @@ export default function StaffResultEntry() {
                 </div>
             )}
 
-            {/* Comment thread */}
+            {/* Comment thread — this text is attached to the result via Submit below.
+                If the backend ignores the `comment` field on submit, still post it
+                to the comment thread so it is never lost. */}
+            <p className="sre-comment-hint" style={{ fontSize: 12, color: "#666", margin: "0 0 8px" }}>
+                This comment will be saved on the student's result when you press Submit result.
+            </p>
             <div className="sre-comment-row">
                 <input
                     type="text"
