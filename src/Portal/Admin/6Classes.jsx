@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import "./6Classes.css";
 import { useMeta } from "../../hooks/useMeta";
+import { normalizeClassesPayload } from "../../hooks/useClasses";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 const CLASSES_ENDPOINT = `${BASE_URL}/api/admin/classes`;
@@ -8,21 +9,8 @@ const STAFF_ENDPOINT = `${BASE_URL}/api/admin/staff`;
 const SESSIONS_ENDPOINT = `${BASE_URL}/api/admin/sessions`;
 const PROMOTE_ENDPOINT = `${BASE_URL}/api/admin/promote`;
 
-// Mock classes data — fallback/demo data shown if API fails or returns empty
-const initialClasses = [
-    { id: "c1", name: "Primary 1", code: "P1", classTeacher: null, studentCount: 22, capacity: 40 },
-    { id: "c2", name: "Primary 2", code: "P2", classTeacher: null, studentCount: 19, capacity: 40 },
-    { id: "c3", name: "Primary 3", code: "P3", classTeacher: null, studentCount: 25, capacity: 40 },
-    { id: "c4", name: "Primary 4", code: "P4", classTeacher: null, studentCount: 20, capacity: 40 },
-    { id: "c5", name: "Primary 5", code: "P5", classTeacher: null, studentCount: 18, capacity: 40 },
-    { id: "c6", name: "JSS 1", code: "JSS1", classTeacher: null, studentCount: 30, capacity: 40 },
-    { id: "c7", name: "JSS 2", code: "JSS2", classTeacher: null, studentCount: 28, capacity: 40 },
-    { id: "c8", name: "JSS 3", code: "JSS3", classTeacher: null, studentCount: 26, capacity: 40 },
-    { id: "c9", name: "SSS 1", code: "SSS1", classTeacher: null, studentCount: 24, capacity: 40 },
-    { id: "c10", name: "SSS 2", code: "SSS2", classTeacher: null, studentCount: 21, capacity: 40 },
-    { id: "c11", name: "SSS 3", code: "SSS3", classTeacher: null, studentCount: 19, capacity: 40 },
-];
-
+// No hardcoded fallback — the class table always renders the live
+// /api/admin/classes payload (28 sectioned classes). Shows empty on failure.
 const emptyForm = { name: "", code: "", level: "", grade: "", academicSession: "" };
 const emptySessionForm = { startYear: "", endYear: "" };
 
@@ -74,11 +62,14 @@ export default function AdminClasses() {
             const classesResult = await classesRes.json();
             const staffResult = await staffRes.json();
 
-            const fetchedClasses = classesResult.data || [];
+            // /api/admin/classes returns { data, classOptions, classNames, ... } where
+            // `data` itself may be the legacy array. Normalize handles every shape.
+            const normalized = normalizeClassesPayload(classesResult);
+            const fetchedClasses = normalized.classes.length > 0 ? normalized.classes : normalized.options;
             const staffList = staffResult.data || [];
 
             if (fetchedClasses.length === 0) {
-                setClasses(initialClasses);
+                setClasses([]);
                 return;
             }
 
@@ -95,7 +86,7 @@ export default function AdminClasses() {
             setClasses(merged);
         } catch (err) {
             setError(err.message);
-            setClasses(initialClasses);
+            setClasses([]);
         } finally {
             setLoading(false);
         }
@@ -276,9 +267,9 @@ export default function AdminClasses() {
                         {loading ? (
                             <tr><td colSpan={3}>Loading…</td></tr>
                         ) : (
-                            classes.map((c) => (
-                                <tr key={c.id}>
-                                    <td>{c.name}</td>
+                            classes.map((c, i) => (
+                                <tr key={c.id || c.value || c.name || i}>
+                                    <td>{c.label || c.name || c.value}</td>
                                     <td>{c.teacherName || (c.classTeacher ? c.classTeacher : "Not assigned")}</td>
                                     <td>{c.studentCount ?? c.count ?? 0}{c.capacity ? ` / ${c.capacity}` : ""}</td>
                                 </tr>

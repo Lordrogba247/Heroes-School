@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import "./AdminLayout.css";
 import logo from "../../assets/logo2.png";
 import api from "../../api";
+import { ClassesProvider } from "../../hooks/useClasses";
 
 const navItems = [
     {
@@ -132,6 +133,7 @@ export default function AdminLayout() {
     };
 
     return (
+        <ClassesProvider portal="admin">
         <div className="adl-root">
             {/* ===== Top bar ===== */}
             <header className="adl-topbar">
@@ -196,5 +198,6 @@ export default function AdminLayout() {
                 </main>
             </div>
         </div>
+        </ClassesProvider>
     );
 }

@@ -27,11 +27,16 @@ export default function AddStudentModal({
                 otherNames = rest.join(" ");
             }
 
-            // editingStudent.class may be stored without a space (e.g. "JSS2") — match it back to classOptions.
-            // Also handles the case where the backend already returns studentClass with the space intact.
+            // Resolve the stored class to a live full name.
+            // Handles: new full names as-is, legacy bare names ("JSS 2" -> "JSS 2 Gaa-Akanbi"
+            // via classesByBase), and spaceless variants ("JSS2").
             const rawClass = editingStudent.studentClass || editingStudent.class || "";
-            const matchedClass =
-                classOptions.find((c) => c === rawClass || c.replace(" ", "") === rawClass) || rawClass;
+            const asString = (c) => (typeof c === "string" ? c : c?.name || c?.value || "");
+            const names = classOptions.map(asString);
+            let matchedClass = names.find((c) => c === rawClass) || "";
+            if (!matchedClass && rawClass) {
+                matchedClass = names.find((c) => c.replace(/ /g, "") === String(rawClass).replace(/ /g, "")) || rawClass;
+            }
 
             setForm({
                 surname,
@@ -126,9 +131,11 @@ export default function AddStudentModal({
                                 required
                             >
                                 <option value="" disabled>Select Class</option>
-                                {classOptions.map((c) => (
-                                    <option key={c} value={c}>{c}</option>
-                                ))}
+                                {classOptions.map((c) => {
+                                    const val = typeof c === "string" ? c : c.value ?? c.name ?? "";
+                                    const label = typeof c === "string" ? c : c.label ?? c.name ?? val;
+                                    return <option key={val || label} value={val}>{label}</option>;
+                                })}
                             </select>
                         </div>
                     </div>

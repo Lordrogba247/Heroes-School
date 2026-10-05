@@ -54,8 +54,16 @@ export default function StaffCBT() {
     }, []);
 
     // Reset the selected subject whenever the class changes, since the old
-    // subject may not belong to the new class's level
+    // subject may not belong to the new class's level.
+    // Also clears a stale class value that is no longer in the live list.
     useEffect(() => {
+        if (form.classLevel && classOptions.length > 0) {
+            const valid = classOptions.some((c) => (c.value ?? c.name) === form.classLevel);
+            if (!valid) {
+                setForm((prev) => ({ ...prev, classLevel: "", subject: "" }));
+                return;
+            }
+        }
         setForm((prev) => (prev.subject ? { ...prev, subject: "" } : prev));
     }, [form.classLevel]);
 
@@ -213,9 +221,11 @@ export default function StaffCBT() {
                             disabled={metaLoading}
                         >
                             <option value="">Select Class</option>
-                            {classOptions.map((c) => (
-                                <option key={c.name} value={c.name}>{c.name}</option>
-                            ))}
+                            {classOptions.map((c) => {
+                                const val = c.value ?? c.name;
+                                const label = c.label ?? c.name ?? val;
+                                return <option key={c.id ?? val} value={val}>{label}</option>;
+                            })}
                         </select>
                     </div>
 

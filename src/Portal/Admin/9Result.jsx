@@ -15,7 +15,8 @@ const TERM_LABELS = Object.fromEntries(TERM_OPTIONS.map((t) => [t.value, t.label
 
 export default function AdminResultsList() {
     const navigate = useNavigate();
-    const { classes, sessions: metaSessions, loading: metaLoading, error: metaError, refetch: refetchMeta } = useMeta();
+    const { classes, classNames, sessions: metaSessions, loading: metaLoading, error: metaError, refetch: refetchMeta } = useMeta();
+    const liveNames = classNames.length > 0 ? classNames : classes.map((c) => c.value ?? c.name);
 
     const [session, setSession] = useState("");
     const [term, setTerm] = useState(TERM_OPTIONS[2].value);
@@ -47,9 +48,18 @@ export default function AdminResultsList() {
             setSession(current.name);
         }
         if (classes.length > 0 && !classLabel) {
-            setClassLabel(classes[0].name);
+            setClassLabel(classes[0].value ?? classes[0].name);
         }
     }, [metaSessions, classes, session, classLabel]);
+
+    // Guard against a stale selection: after any refetch, if the held value
+    // isn't in the live list, clear it so the table doesn't silently show nothing.
+    useEffect(() => {
+        if (liveNames.length > 0 && classLabel && !liveNames.includes(classLabel)) {
+            setClassLabel("");
+            setStudents([]);
+        }
+    }, [liveNames, classLabel]);
 
     const handleGetClassResults = async () => {
         setLoading(true);
@@ -257,9 +267,11 @@ export default function AdminResultsList() {
                     {classes.length === 0 && !metaLoading && (
                         <option value="" disabled>No classes found</option>
                     )}
-                    {classes.map((c) => (
-                        <option key={c.name} value={c.name}>{c.name}</option>
-                    ))}
+                    {classes.map((c) => {
+                        const val = c.value ?? c.name;
+                        const label = c.label ?? c.name ?? val;
+                        return <option key={c.id ?? val} value={val}>{label}</option>;
+                    })}
                 </select>
             </div>
 

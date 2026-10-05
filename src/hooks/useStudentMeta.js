@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { normalizeClassesPayload } from "./useClasses";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
@@ -24,8 +25,8 @@ export function useStudentMeta() {
             });
             if (!res.ok) throw new Error("Failed to load meta data.");
             const json = await res.json();
-            studentMetaCache = json.data;
-            setMeta(json.data);
+            studentMetaCache = normalizeClassesPayload(json);
+            setMeta(studentMetaCache);
         } catch (err) {
             setError(err.message || "Failed to load meta data.");
         } finally {
@@ -39,7 +40,14 @@ export function useStudentMeta() {
 
     return {
         subjects: meta?.subjects || [],
+        subjectsByLevel: meta?.subjectsByLevel || {},
+        subjectsByClass: meta?.subjectsByClass || {},
         classes: meta?.classes || [],
+        classOptions: meta?.options || meta?.classes || [],
+        classNames: meta?.names || [],
+        divisions: meta?.divisions || [],
+        classesByBase: meta?.byBase || {},
+        classesByDivision: meta?.byDivision || {},
         sessions: meta?.sessions || [],
         terms: meta?.terms || [],
         loading,

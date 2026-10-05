@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import "./StudentLayout.css";
 import logo from "../../assets/logo2.png";
 import api from "../../api";
+import { ClassesProvider } from "../../hooks/useClasses";
 
 const navItems = [
     {
@@ -99,6 +100,7 @@ export default function StudentLayout() {
     };
 
     return (
+        <ClassesProvider portal="student">
         <div className="stl-root">
             {/* ===== Top bar ===== */}
             <header className="stl-topbar">
@@ -168,5 +170,6 @@ export default function StudentLayout() {
                 </main>
             </div>
         </div>
+        </ClassesProvider>
     );
 }

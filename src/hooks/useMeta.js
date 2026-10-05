@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { normalizeClassesPayload, resolveLegacyClass } from "./useClasses";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
@@ -26,8 +27,8 @@ export function useMeta() {
             });
             if (!res.ok) throw new Error("Failed to load meta data.");
             const json = await res.json();
-            metaCache = json.data;
-            setMeta(json.data);
+            metaCache = normalizeClassesPayload(json);
+            setMeta(metaCache);
         } catch (err) {
             setError(err.message || "Failed to load meta data.");
         } finally {
@@ -39,28 +40,47 @@ export function useMeta() {
         fetchMeta();
     }, [fetchMeta]);
 
-    // Given a class name (e.g. "Primary 1"), return its level (e.g. "primary")
+    // Given a class name (e.g. "Primary 1 Gaa-Akanbi"), return its level (e.g. "primary").
+    // Matches on full value, id, or legacy name so old callers keep working.
     const getLevelForClass = useCallback(
         (className) => {
-            const classes = meta?.classes || [];
-            return classes.find((c) => c.name === className)?.level || null;
+            const classes = meta?.classes || meta?.classOptions || [];
+            const hit = classes.find(
+                (c) => (c.value ?? c.name) === className || (c.name ?? c.value) === className || String(c.id) === String(className)
+            );
+            return hit?.level || null;
         },
         [meta]
     );
 
-    // Given a class name, return the subjects available at that class's level
+    // Given a class name, return the subjects for that exact class, falling back to level.
     const getSubjectsForClass = useCallback(
         (className) => {
-            const level = getLevelForClass(className);
+            if (!className) return [];
+            if (meta?.subjectsByClass?.[className]?.length) return meta.subjectsByClass[className];
+            const classes = meta?.classes || meta?.classOptions || [];
+            const match = classes.find(
+                (c) => (c.value ?? c.name) === className || (c.name ?? c.value) === className || String(c.id) === String(className)
+            );
+            if (match && meta?.subjectsByClass?.[match.value]?.length) return meta.subjectsByClass[match.value];
+            if (match?.baseName && meta?.subjectsByClass?.[match.baseName]?.length)
+                return meta.subjectsByClass[match.baseName];
+            const level = match?.level || null;
             return level ? (meta?.subjectsByLevel?.[level] || []) : [];
         },
-        [meta, getLevelForClass]
+        [meta]
     );
 
     return {
         subjects: meta?.subjects || [],
         subjectsByLevel: meta?.subjectsByLevel || {},
+        subjectsByClass: meta?.subjectsByClass || {},
         classes: meta?.classes || [],
+        classOptions: meta?.options || meta?.classes || [],
+        classNames: meta?.names || [],
+        divisions: meta?.divisions || [],
+        classesByBase: meta?.byBase || {},
+        classesByDivision: meta?.byDivision || {},
         // sessions come back as objects: { name, startYear, endYear, isCurrent }
         sessions: meta?.sessions || [],
         terms: meta?.terms || [],
@@ -69,6 +89,7 @@ export function useMeta() {
         error,
         getLevelForClass,
         getSubjectsForClass,
+        resolveLegacyClass: (v) => resolveLegacyClass(v, meta?.names || [], meta?.byBase || {}),
         refetch: () => fetchMeta(true),
     };
 }

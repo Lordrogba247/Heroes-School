@@ -1,21 +1,19 @@
 import { useState, useEffect } from "react";
 import "./3Student.css";
 import AddStudentModal from "./4Add";
+import { useMeta } from "../../hooks/useMeta";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
-const classOptions = [
-    "Creche", "Nursery 1", "Nursery 2",
-    "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5",
-    "JSS 1", "JSS 2", "JSS 3",
-    "SSS 1", "SSS 2", "SSS 3",
-];
-
 export default function AdminStudentsList() {
+    // Live list from /api/admin/meta: classNames (plain strings, school order).
+    const { classNames, classesByBase, loading: metaLoading } = useMeta();
+    const classOptions = classNames.length > 0 ? classNames : [];
+
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [classFilter, setClassFilter] = useState("JSS 2");
+    const [classFilter, setClassFilter] = useState("");
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState(null);
@@ -48,8 +46,22 @@ export default function AdminStudentsList() {
     };
 
     useEffect(() => {
-        loadStudents(classFilter);
+        if (classFilter) loadStudents(classFilter);
     }, [classFilter]);
+
+    // Once the live list arrives, default to the first class (Creche 1 Gaa-Akanbi).
+    // Also resolves a stale stored value like "JSS 2" to its live full name.
+    useEffect(() => {
+        if (classOptions.length === 0) return;
+        if (!classFilter) {
+            setClassFilter(classOptions[0]);
+        } else if (!classOptions.includes(classFilter)) {
+            const resolved = classesByBase?.[classFilter]?.[0];
+            setClassFilter(
+                typeof resolved === "string" ? resolved : resolved?.name || resolved?.value || classOptions[0]
+            );
+        }
+    }, [classOptions]);
 
     const openAddModal = () => {
         setEditingStudent(null);
@@ -138,7 +150,11 @@ export default function AdminStudentsList() {
                 className="stu-class-filter"
                 value={classFilter}
                 onChange={(e) => setClassFilter(e.target.value)}
+                disabled={metaLoading || classOptions.length === 0}
             >
+                {classOptions.length === 0 && (
+                    <option value="">{metaLoading ? "Loading classes..." : "No classes found"}</option>
+                )}
                 {classOptions.map((c) => (
                     <option key={c} value={c}>{c}</option>
                 ))}

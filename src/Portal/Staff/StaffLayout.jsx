@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import "./StaffLayout.css";
 import logo from "../../assets/logo2.png";
 import api from "../../api";
+import { ClassesProvider } from "../../hooks/useClasses";
 
 const navItems = [
     {
@@ -107,6 +108,7 @@ export default function StaffLayout() {
     };
 
     return (
+        <ClassesProvider portal="staff">
         <div className="stf-root">
             {/* ===== Top bar ===== */}
             <header className="stf-topbar">
@@ -177,5 +179,6 @@ export default function StaffLayout() {
                 </main>
             </div>
         </div>
+        </ClassesProvider>
     );
 }
