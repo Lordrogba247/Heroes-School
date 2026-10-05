@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import "./6Classes.css";
 import { useMeta } from "../../hooks/useMeta";
-import { normalizeClassesPayload } from "../../hooks/useClasses";
+import { normalizeClassesPayload } from "../../hooks/useClasses.jsx";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 const CLASSES_ENDPOINT = `${BASE_URL}/api/admin/classes`;

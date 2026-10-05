@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import "./AdminLayout.css";
 import logo from "../../assets/logo2.png";
 import api from "../../api";
-import { ClassesProvider } from "../../hooks/useClasses";
+import { ClassesProvider } from "../../hooks/useClasses.jsx";
 
 const navItems = [
     {

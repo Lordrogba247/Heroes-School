@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { normalizeClassesPayload, resolveLegacyClass } from "./useClasses";
+import { normalizeClassesPayload, resolveLegacyClass } from "./useClasses.jsx";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 

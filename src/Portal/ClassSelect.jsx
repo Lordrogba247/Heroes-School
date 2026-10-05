@@ -1,4 +1,4 @@
-import { useLiveClasses } from "../hooks/useClasses";
+import { useLiveClasses } from "../hooks/useClasses.jsx";
 
 // Plain select over the live classNames list (verified 28 entries, school order).
 // Rule: render label, send value (the full name). Never baseName.

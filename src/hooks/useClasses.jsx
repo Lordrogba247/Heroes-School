@@ -100,12 +100,6 @@ export function ClassesProvider({ portal = "admin", children }) {
     return <Ctx.Provider value={state}>{children}</Ctx.Provider>;
 }
 
-export function useClasses() {
-    const ctx = useContext(Ctx);
-    if (!ctx) throw new Error("useClasses must be used inside <ClassesProvider>");
-    return ctx;
-}
-
 const cache = {};
 export function useLiveClasses(portal = "admin") {
     const path = PORTAL_PATH[portal] || portal;
@@ -170,3 +164,10 @@ export function useLiveClasses(portal = "admin") {
     return { ...state, ...helpers, resolveLegacyClass: (v) => resolveLegacyClass(v, state.names, state.byBase) };
 }
 
+}
+
+export function useClasses() {
+    const ctx = useContext(Ctx);
+    if (!ctx) throw new Error("useClasses must be used inside <ClassesProvider>");
+    return ctx;
+}
