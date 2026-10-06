@@ -6,20 +6,40 @@ export const DIVISION_SUFFIX = / (Gaa-Akanbi|Amoyo)$/;
 const Ctx = createContext(null);
 export const PORTAL_PATH = { admin: "admin", teacher: "staff", staff: "staff", student: "student" };
 
-// Normalize any /meta or /classes payload (old or new shape) into one consistent object.
+// Normalize any /meta, /classes, or staff payload (old or new shape) into one consistent object.
+// IMPORTANT: preserves backend-only fields like classTeacher / teacherId /
+// studentCount so callers (e.g. Admin Classes table) can still read them.
 export function normalizeClassesPayload(raw = {}) {
+    // raw itself may be the legacy array of classes
+    if (Array.isArray(raw)) {
+        return normalizeClassesPayload({ classes: raw });
+    }
     const d = raw?.data && typeof raw.data === "object" && !Array.isArray(raw.data) ? raw.data : raw;
     const src = d?.data && typeof d.data === "object" && !Array.isArray(d.data) ? d.data : d;
 
-    const rawOptions = src.classOptions || src.classes || [];
+    // /api/admin/classes may return { data: [...] } where data IS the array.
+    // In that case src = { data: [...] } and src.classOptions/src.classes are empty,
+    // so fall back to src.data / d.data / raw.data when they are arrays.
+    const arrayData =
+        (Array.isArray(src?.data) && src.data) ||
+        (Array.isArray(d?.data) && d.data) ||
+        (Array.isArray(raw?.data) && raw.data) ||
+        null;
+    const rawOptions =
+        (src.classOptions?.length ? src.classOptions : null) ||
+        (src.classes?.length ? src.classes : null) ||
+        arrayData || [];
     const options = rawOptions.map((c, i) =>
         typeof c === "string"
             ? { value: c, label: c, name: c, id: c, baseName: c.replace(DIVISION_SUFFIX, "") }
             : {
+                // keep every backend field (classTeacher, teacherId, studentCount, ...) —
+                // explicit keys below just guarantee sane defaults.
+                ...c,
                 value: c.value ?? c.name ?? "",
                 label: c.label ?? c.name ?? c.value ?? "",
                 name: c.name ?? c.value ?? c.label ?? "",
-                id: c.id ?? c.value ?? c.name ?? String(i),
+                id: c.id ?? c._id ?? c.value ?? c.name ?? String(i),
                 code: c.code ?? "",
                 baseName: c.baseName ?? (c.name || c.value || "").replace(DIVISION_SUFFIX, ""),
                 level: c.level ?? null,

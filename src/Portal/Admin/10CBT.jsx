@@ -71,11 +71,41 @@ export default function AdminCBT() {
         setForm((prev) => (prev.subject ? { ...prev, subject: "" } : prev));
     }, [form.classLevel]);
 
-    // A test is "live" if it's active AND either has no expiry, or its expiry hasn't passed yet
+    // A test is "live" if it's explicitly active AND neither its expiry window
+    // nor its scheduled date has passed. Covers every inactive spelling the
+    // backend may send: isActive=false, status "closed"/"expired"/..., or a
+    // past date / expiresAt.
     const isTestLive = (test) => {
-        if (!test.isActive) return false;
-        if (!test.expiresAt) return true;
-        return new Date(test.expiresAt) > new Date();
+        if (!test || typeof test !== "object") return false;
+        if (test.isActive === false) return false;
+        if (typeof test.status === "string" && /expir|clos|inactive|archived|disabled/i.test(test.status)) return false;
+        if (typeof test.isPublished === "boolean" && test.isPublished === false) return false;
+        for (const key of ["expiresAt", "expires_at", "expiryDate"]) {
+            if (test[key]) {
+                const exp = new Date(test[key]).getTime();
+                if (!Number.isNaN(exp) && exp <= Date.now()) return false;
+            }
+        }
+        // Scheduled-date expiry: with no explicit expiresAt window, a test
+        // lives only through the end of its scheduled date.
+        if (!test.expiresAt && !test.expires_at && !test.expiryDate && test.date) {
+            const d = new Date(test.date);
+            if (!Number.isNaN(d.getTime())) {
+                const endOfScheduledDay = new Date(d);
+                endOfScheduledDay.setHours(23, 59, 59, 999);
+                if (endOfScheduledDay.getTime() < Date.now()) return false;
+            }
+        }
+        // isActive missing entirely + no date info: treat as NOT live so stale
+        // "closed" records never render as Active (consistent with Student view).
+        if (
+            test.isActive === undefined &&
+            test.status === undefined &&
+            !test.expiresAt && !test.expires_at && !test.expiryDate && !test.date
+        ) {
+            return false;
+        }
+        return true;
     };
 
     const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });

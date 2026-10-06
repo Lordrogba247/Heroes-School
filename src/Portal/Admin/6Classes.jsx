@@ -74,13 +74,64 @@ export default function AdminClasses() {
             }
 
             const nameByStaffId = {};
+            const addIdName = (key, name) => {
+                if (key === undefined || key === null || key === "") return;
+                nameByStaffId[String(key)] = name;
+                nameByStaffId[String(key).trim()] = name;
+            };
             staffList.forEach((s) => {
-                nameByStaffId[s.staffId] = s.name;
+                addIdName(s.staffId, s.name);
+                addIdName(s.id, s.name);
+                addIdName(s._id, s.name);
             });
+
+            // Fallback: derive teacher from staff.role ("Class Teacher <ClassName>")
+            // because some backends never write Class.teacher back on role assignment.
+            const normKey = (v) =>
+                String(v ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+            const teacherByClassKey = {};
+            staffList.forEach((s) => {
+                const role = String(s.role || "");
+                const m = role.match(/^\s*class\s*teacher\s+(.+?)\s*$/i);
+                if (m && s.name && !teacherByClassKey[normKey(m[1])]) {
+                    teacherByClassKey[normKey(m[1])] = s.name;
+                }
+            });
+
+            const resolveTeacherName = (c) => {
+                // 1) Direct reference stored on the class (id, staffId, object, or name)
+                let ref =
+                    c.classTeacher ?? c.teacherId ?? c.teacher ??
+                    c.class_teacher ?? c.teacher_id ?? null;
+                if (ref && typeof ref === "object") {
+                    const refName = ref.name || ref.fullName || ref.staffName;
+                    const refId = ref.staffId || ref.id || ref._id;
+                    if (refId && nameByStaffId[String(refId)]) return nameByStaffId[String(refId)];
+                    if (refName) return refName;
+                    ref = refId || refName || null;
+                }
+                if (ref !== undefined && ref !== null && String(ref).trim() !== "") {
+                    const hit =
+                        nameByStaffId[String(ref)] || nameByStaffId[String(ref).trim()];
+                    if (hit) return hit;
+                    // ref already looks like a human name (not a bare id) — show it
+                    if (/\s/.test(String(ref).trim())) return String(ref).trim();
+                }
+                // 2) Fallback: staff whose role targets this class
+                for (const key of [c.value, c.name, c.label]) {
+                    const hit = key ? teacherByClassKey[normKey(key)] : null;
+                    if (hit) return hit;
+                }
+                // 3) Last resort: raw ref if it exists, else unassigned
+                if (ref !== undefined && ref !== null && String(ref).trim() !== "") {
+                    return String(ref).trim();
+                }
+                return "Not assigned";
+            };
 
             const merged = fetchedClasses.map((c) => ({
                 ...c,
-                teacherName: c.classTeacher ? (nameByStaffId[c.classTeacher] || c.classTeacher) : "Not assigned",
+                teacherName: resolveTeacherName(c),
             }));
 
             setClasses(merged);

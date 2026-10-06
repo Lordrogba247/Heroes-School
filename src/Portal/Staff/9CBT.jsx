@@ -6,6 +6,37 @@ import CbtResultsModal from "../CbtResultsModal";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
+// Same liveness rule as Admin/Student: expired, deactivated, closed-status,
+// or past scheduled date => Closed. Otherwise Active.
+const isTestLive = (test) => {
+    if (!test || typeof test !== "object") return false;
+    if (test.isActive === false) return false;
+    if (typeof test.status === "string" && /expir|clos|inactive|archived|disabled/i.test(test.status)) return false;
+    if (typeof test.isPublished === "boolean" && test.isPublished === false) return false;
+    for (const key of ["expiresAt", "expires_at", "expiryDate"]) {
+        if (test[key]) {
+            const exp = new Date(test[key]).getTime();
+            if (!Number.isNaN(exp) && exp <= Date.now()) return false;
+        }
+    }
+    if (!test.expiresAt && !test.expires_at && !test.expiryDate && test.date) {
+        const d = new Date(test.date);
+        if (!Number.isNaN(d.getTime())) {
+            const endOfScheduledDay = new Date(d);
+            endOfScheduledDay.setHours(23, 59, 59, 999);
+            if (endOfScheduledDay.getTime() < Date.now()) return false;
+        }
+    }
+    if (
+        test.isActive === undefined &&
+        test.status === undefined &&
+        !test.expiresAt && !test.expires_at && !test.expiryDate && !test.date
+    ) {
+        return false;
+    }
+    return true;
+};
+
 export default function StaffCBT() {
     const { classes: classOptions, getSubjectsForClass, loading: metaLoading } = useStaffMeta();
 
@@ -290,6 +321,9 @@ export default function StaffCBT() {
                                         <path d="M19 4h-1V2h-2v2H8V2H6v2H5C3.9 4 3 4.9 3 6v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h5v5H7z" />
                                     </svg>
                                     Date of Test/Exam: {t.date}
+                                </p>
+                                <p className="sc-card-detail">
+                                    {isTestLive(t) ? "● Active" : "● Closed"}
                                 </p>
                             </div>
                             <div className="sc-card-actions">
