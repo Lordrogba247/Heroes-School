@@ -112,8 +112,26 @@ export default function StudentResults() {
                     if (cr.ok) {
                         const cj = await cr.json();
                         const list = cj.data || cj.comments || [];
-                        const latest = Array.isArray(list) ? list[list.length - 1] : null;
-                        const text = latest?.text || cj.comment || null;
+                        let latest = Array.isArray(list) ? list[list.length - 1] : null;
+                        let text = latest?.text || cj.comment || null;
+                        if (!text) {
+                            // Selector may be stale while the backend attached the
+                            // comment to the latest result — retry unfiltered.
+                            try {
+                                const ur = await fetch(`${BASE_URL}/api/student/results/comments`, {
+                                    method: "GET",
+                                    headers: { "Authorization": `Bearer ${token}` },
+                                });
+                                if (ur.ok) {
+                                    const uj = await ur.json();
+                                    const all = uj.data || uj.comments || [];
+                                    latest = Array.isArray(all) ? all[all.length - 1] : null;
+                                    text = latest?.text || uj.comment || null;
+                                }
+                            } catch {
+                                // keep result rendering without the thread comment
+                            }
+                        }
                         if (text) current = { ...current, comment: text };
                     }
                 } catch {

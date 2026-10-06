@@ -88,8 +88,26 @@ export default function AdminResultView() {
                         if (cr.ok) {
                             const cj = await cr.json();
                             const list = cj.data || cj.comments || [];
-                            const latest = Array.isArray(list) ? list[list.length - 1] : null;
-                            const text = latest?.text || cj.comment || null;
+                            let latest = Array.isArray(list) ? list[list.length - 1] : null;
+                            let text = latest?.text || cj.comment || null;
+                            if (!text) {
+                                // Selector may be stale while the backend attached the
+                                // comment to the latest result — retry unfiltered.
+                                try {
+                                    const ur = await fetch(
+                                        `${BASE_URL}/api/admin/results/${encodeURIComponent(studentId)}/comments`,
+                                        { method: "GET", headers: { "Authorization": `Bearer ${token}` } }
+                                    );
+                                    if (ur.ok) {
+                                        const uj = await ur.json();
+                                        const all = uj.data || uj.comments || [];
+                                        latest = Array.isArray(all) ? all[all.length - 1] : null;
+                                        text = latest?.text || uj.comment || null;
+                                    }
+                                } catch {
+                                    // keep sheet rendering without the thread comment
+                                }
+                            }
                             if (text) withComment = { ...current, comment: text };
                         }
                     } catch {
@@ -133,7 +151,7 @@ export default function AdminResultView() {
                     const grandPercentage = mergedSubjects.length > 0
                         ? Math.round((grandSum / mergedSubjects.length) * 10) / 10
                         : current.percentage;
-                    result = { ...current, subjects: mergedSubjects, totalScore: grandSum, percentage: grandPercentage, isThirdTerm: true };
+                    result = { ...withComment, subjects: mergedSubjects, totalScore: grandSum, percentage: grandPercentage, isThirdTerm: true };
                 }
 
                 setStudent(result?.studentInfo || null);

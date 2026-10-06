@@ -79,6 +79,7 @@ export default function StaffResultEntry() {
     const [commentInput, setCommentInput] = useState("");
     const [postingComment, setPostingComment] = useState(false);
     const [commentError, setCommentError] = useState("");
+    const [commentNotice, setCommentNotice] = useState("");
 
     const [submitted, setSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -122,14 +123,17 @@ export default function StaffResultEntry() {
     }, [studentId]);
 
     // Load existing comments for this student + session + term (label form).
-    const loadComments = () => {
-        if (!session) {
-            setComments([]);
+    // Accepts overrides so callers can reload from the backend's `attachedTo`
+    // fallback location instead of the stale selector that was just posted to.
+    const loadComments = (overrideSession, overrideTermLabel) => {
+        const effSession = overrideSession || session;
+        const effTermLabel = overrideTermLabel || termLabel;
+        if (!effSession) {
             setLoadingComments(false);
             return;
         }
         setLoadingComments(true);
-        const params = new URLSearchParams({ session, term: termLabel });
+        const params = new URLSearchParams({ session: effSession, term: effTermLabel });
         fetch(`${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}/comments?${params}`, {
             method: "GET",
             headers: { "Authorization": `Bearer ${token}` },
@@ -138,8 +142,30 @@ export default function StaffResultEntry() {
                 if (!res.ok) throw new Error("Failed to load comments.");
                 return res.json();
             })
-            .then((data) => setComments(data.data || []))
-            .catch(() => setComments([]))
+            .then((data) => {
+                const list = data.data || data.comments || [];
+                if (Array.isArray(list) && list.length > 0) {
+                    // Don't wipe an optimistic comment when the list lags or the
+                    // backend attached it under a different session/term fallback.
+                    setComments((prev) => (Array.isArray(list) && list.length > 0 ? list : prev));
+                    return;
+                }
+                // Filtered list came back empty (e.g. selector is stale while the
+                // backend attached the comment to the latest result). Best-effort:
+                // pull the thread unfiltered so the saved comment still shows.
+                fetch(`${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}/comments`, {
+                    method: "GET",
+                    headers: { "Authorization": `Bearer ${token}` },
+                })
+                    .then((r) => (r.ok ? r.json() : null))
+                    .then((j) => {
+                        if (!j) return;
+                        const all = j.data || j.comments || [];
+                        if (Array.isArray(all) && all.length > 0) setComments(all);
+                    })
+                    .catch(() => { /* keep existing optimistic list */ });
+            })
+            .catch(() => { /* keep existing optimistic list */ })
             .finally(() => setLoadingComments(false));
     };
 
@@ -205,6 +231,7 @@ export default function StaffResultEntry() {
 
         setPostingComment(true);
         setCommentError("");
+        setCommentNotice("");
         try {
             const res = await fetch(`${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}/comments`, {
                 method: "POST",
@@ -219,7 +246,7 @@ export default function StaffResultEntry() {
 
             // Prefer the saved comment returned by the backend (handles shapes like
             // { data: {...} }, { comment: {...} }, or the raw comment object).
-            const saved = data?.data ?? data?.comment ?? data;
+            const saved = data?.data?.comment ?? data?.data ?? data?.comment ?? data;
             if (saved && (saved.text || saved._id || saved.id)) {
                 const savedItem = {
                     _id: saved._id || saved.id || `tmp-${Date.now()}`,
@@ -236,12 +263,43 @@ export default function StaffResultEntry() {
                 });
             }
 
+            // Backend may attach the comment under a fallback session/term when the
+            // selector is stale (e.g. results only exist under 2026/2027 Third Term).
+            // Follow `attachedTo` so the list reloads from where it actually landed
+            // instead of the stale selector (which would return [] and look empty).
+            const attached = data?.attachedTo ?? data?.data?.attachedTo ?? null;
+            const attachedSession = attached?.session || null;
+            const attachedTermLabel = attached?.term || null;
+            const fellBack = Boolean(attached?.fallback);
+            let reloadSession = session;
+            let reloadTermLabel = termLabel;
+            if (attachedSession && attachedSession !== session) {
+                reloadSession = attachedSession;
+                setSession(attachedSession);
+            }
+            if (attachedTermLabel && attachedTermLabel !== termLabel) {
+                reloadTermLabel = attachedTermLabel;
+                const mapped = labelToValue[attachedTermLabel];
+                if (mapped) setTerm(mapped);
+                else {
+                    const norm = String(attachedTermLabel).toLowerCase();
+                    if (norm.includes("first")) setTerm("first");
+                    else if (norm.includes("second")) setTerm("second");
+                    else if (norm.includes("third")) setTerm("third");
+                }
+            }
+            if (fellBack || (attachedSession && (attachedSession !== session || attachedTermLabel !== termLabel))) {
+                setCommentNotice(
+                    `Saved to ${reloadSession || attachedSession} · ${reloadTermLabel || attachedTermLabel} (your selector had no result there, so it was attached to the student's latest result).`
+                );
+            }
+
             setCommentInput("");
             setCommentError("");
             // Reload from server (source of truth) so the list shows the saved comment
             // with its real id/author/timestamp — and retry once if the list lags.
-            loadComments();
-            setTimeout(loadComments, 1500);
+            loadComments(reloadSession, reloadTermLabel);
+            setTimeout(() => loadComments(reloadSession, reloadTermLabel), 1500);
         } catch (err) {
             setCommentError(err.message || "Failed to add comment. Please try again.");
         } finally {
@@ -528,6 +586,11 @@ export default function StaffResultEntry() {
             </div>
 
             {commentError && <p className="sre-error">{commentError}</p>}
+            {commentNotice && (
+                <p className="sre-comment-hint" style={{ fontSize: 12, color: "#8a6d1b", margin: "0 0 8px" }}>
+                    {commentNotice}
+                </p>
+            )}
 
             {/* Comments list */}
             {!loadingComments && comments.length > 0 && (
