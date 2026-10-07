@@ -85,8 +85,32 @@ export default function StaffResultEntry() {
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
     const [submitNotice, setSubmitNotice] = useState("");
+    const [loadingSaved, setLoadingSaved] = useState(true);
     const commentInFlight = useRef(false);
     const submitInFlight = useRef(false);
+    const savedLoadSeq = useRef(0);
+
+    // De-duplicate a comment thread by id, falling back to normalised text.
+    // This hides historical double-saves (same text posted twice) and also
+    // collapses an optimistic tmp entry against the server copy whose
+    // createdAt may differ by milliseconds.
+    const dedupeComments = (list) => {
+        if (!Array.isArray(list)) return [];
+        const seenIds = new Set();
+        const seenTexts = new Set();
+        const out = [];
+        for (const c of list) {
+            const id = c?._id || c?.id;
+            const normText = String(c?.text ?? "").trim().toLowerCase();
+            if (id && seenIds.has(String(id))) continue;
+            if (id) seenIds.add(String(id));
+            // Only collapse on text when there is actual text; keep distinct texts.
+            if (normText && seenTexts.has(normText)) continue;
+            if (normText) seenTexts.add(normText);
+            out.push(c);
+        }
+        return out;
+    };
 
     // Per backend contract §4: UI may only know subject codes — map to canonical
     // meta names (case-insensitive) before POST /api/staff/results, otherwise
@@ -148,9 +172,130 @@ export default function StaffResultEntry() {
             .finally(() => setLoadingStudent(false));
     }, [studentId]);
 
+    // ---- Saved-result loader helpers (revisit must show inputted rows) ----
+    const normSavedTerm = (t) => {
+        const v = String(t ?? "").toLowerCase();
+        if (v.includes("first")) return "first";
+        if (v.includes("second")) return "second";
+        if (v.includes("third")) return "third";
+        return v;
+    };
+
+    const extractSavedResult = (json, wantSession, wantTermCanon) => {
+        if (!json) return null;
+        const root = json.data ?? json.result ?? json;
+        const candidates = Array.isArray(root) ? root : [root];
+        let fallback = null;
+        for (const c of candidates) {
+            const subj = c?.subjects || c?.scores || c?.items || null;
+            if (!Array.isArray(subj) || subj.length === 0) continue;
+            if (!fallback) fallback = c;
+            const cSess = c?.session?.name || c?.session || c?.academicSession || null;
+            const cTerm = c?.term || c?.termLabel || null;
+            const sessOk = !wantSession || !cSess || String(cSess) === String(wantSession);
+            const termOk = !wantTermCanon || !cTerm || normSavedTerm(cTerm) === wantTermCanon;
+            if (sessOk && termOk) return c;
+        }
+        return fallback;
+    };
+
+    const normaliseSavedSubjects = (raw) => {
+        const list = raw?.subjects || raw?.scores || raw?.items || [];
+        if (!Array.isArray(list)) return [];
+        return list
+            .map((s, i) => {
+                const name = s?.subject ?? s?.name ?? s?.title ?? "";
+                if (!name) return null;
+                const ca1 = Number(s?.ca1 ?? s?.ca1Score ?? 0) || 0;
+                const ca2 = Number(s?.ca2 ?? s?.ca2Score ?? 0) || 0;
+                const exam = Number(s?.exam ?? s?.examScore ?? 0) || 0;
+                const total = Number(s?.total ?? s?.percent ?? s?.thirdTotal ?? (ca1 + ca2 + exam)) || 0;
+                const g = s?.grade && s?.remark ? { grade: s.grade, remark: s.remark } : getGrade(total);
+                return {
+                    id: s?._id || s?.id || `saved-${i}`,
+                    subject: canonicalSubjectName(name),
+                    ca1, ca2, exam, total,
+                    grade: g.grade, remark: g.remark,
+                };
+            })
+            .filter(Boolean);
+    };
+
+    // Load the already-saved subject rows for this student + session + term so a
+    // revisit shows the inputted result instead of an empty table + comment only.
+    useEffect(() => {
+        if (!studentId || !session) {
+            setLoadingSaved(false);
+            return;
+        }
+        const seq = ++savedLoadSeq.current;
+        setLoadingSaved(true);
+        const wantTerm = normSavedTerm(termLabel || term);
+        const urls = [
+            `${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}?${new URLSearchParams({ session, term: termLabel })}`,
+            `${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}?${new URLSearchParams({ session, term: wantTerm })}`,
+            `${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}`,
+            `${BASE_URL}/api/staff/results?${new URLSearchParams({ studentId, session, term: termLabel })}`,
+            `${BASE_URL}/api/staff/results?${new URLSearchParams({ studentId, session, term: wantTerm })}`,
+        ];
+        (async () => {
+            let found = null;
+            for (const u of urls) {
+                try {
+                    const res = await fetch(u, {
+                        method: "GET",
+                        headers: { "Authorization": `Bearer ${token}` },
+                    });
+                    if (!res.ok) continue;
+                    const json = await res.json().catch(() => null);
+                    const hit = extractSavedResult(json, session, wantTerm);
+                    if (hit) { found = hit; break; }
+                } catch { /* try next candidate */ }
+            }
+            if (savedLoadSeq.current !== seq) return;
+            // Fallback: a local snapshot saved right after submit, so a revisit
+            // restores the inputted rows + comment even if no staff GET endpoint
+            // exists for this backend deployment (admin view works because it has
+            // GET /api/admin/results/:studentId).
+            if (!found) {
+                try {
+                    const raw = localStorage.getItem(`staff-result:${studentId}:${session}:${wantTerm}`);
+                    if (raw) found = JSON.parse(raw);
+                } catch { /* ignore corrupt snapshot */ }
+            }
+            if (found) {
+                const rows = normaliseSavedSubjects(found);
+                const isFinal = Boolean(
+                    found?.isSubmitted ?? found?.isFinal ?? found?.submitted ?? found?.published ?? false
+                );
+                if (rows.length > 0) {
+                    setResults((prev) => (prev.length === 0 || isFinal ? rows : prev));
+                }
+                if (isFinal) setSubmitted(true);
+                const single = found?.comment;
+                const singleText = typeof single === "string" ? single : single?.text;
+                if (singleText) {
+                    setComments((prev) => {
+                        if (prev.length > 0) return prev;
+                        return dedupeComments([{
+                            _id: single?._id || single?.id || "result-comment",
+                            text: singleText,
+                            author: single?.author,
+                            createdAt: single?.createdAt || found?.updatedAt || new Date().toISOString(),
+                        }]);
+                    });
+                }
+            }
+            setLoadingSaved(false);
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [studentId, session, term]);
+
     // Load existing comments for this student + session + term (label form).
     // Accepts overrides so callers can reload from the backend's `attachedTo`
     // fallback location instead of the stale selector that was just posted to.
+    // Every set path runs through dedupeComments so a historical double-save
+    // (same text posted twice) renders once instead of "double comments".
     const loadComments = (overrideSession, overrideTermLabel) => {
         const effSession = overrideSession || session;
         const effTermLabel = overrideTermLabel || termLabel;
@@ -171,14 +316,16 @@ export default function StaffResultEntry() {
             .then((data) => {
                 const list = data.data || data.comments || [];
                 if (Array.isArray(list) && list.length > 0) {
-                    // Don't wipe an optimistic comment when the list lags or the
-                    // backend attached it under a different session/term fallback.
-                    setComments((prev) => (Array.isArray(list) && list.length > 0 ? list : prev));
+                    // Replace with the server thread (de-duplicated). Any optimistic
+                    // tmp entry for the same text collapses via dedupeComments, and
+                    // lagging server copies no longer stack into "double comments".
+                    setComments(dedupeComments(list));
                     return;
                 }
                 // Filtered list came back empty (e.g. selector is stale while the
                 // backend attached the comment to the latest result). Best-effort:
-                // pull the thread unfiltered so the saved comment still shows.
+                // pull the thread unfiltered so the saved comment still shows,
+                // then de-duplicate so the fallback can't stack on the selector list.
                 fetch(`${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}/comments`, {
                     method: "GET",
                     headers: { "Authorization": `Bearer ${token}` },
@@ -187,7 +334,7 @@ export default function StaffResultEntry() {
                     .then((j) => {
                         if (!j) return;
                         const all = j.data || j.comments || [];
-                        if (Array.isArray(all) && all.length > 0) setComments(all);
+                        if (Array.isArray(all) && all.length > 0) setComments(dedupeComments(all));
                     })
                     .catch(() => { /* keep existing optimistic list */ });
             })
@@ -302,13 +449,10 @@ export default function StaffResultEntry() {
                     author: saved.author,
                     createdAt: saved.createdAt || new Date().toISOString(),
                 };
-                setComments((prev) => {
-                    // Avoid duplicates if the follow-up reload also returns it.
-                    if (prev.some((c) => (c._id || c.id) === savedItem._id || (c.text === savedItem.text && c.createdAt === savedItem.createdAt))) {
-                        return prev;
-                    }
-                    return [...prev, savedItem];
-                });
+                // Merge + de-duplicate so an optimistic entry collapses against the
+                // server copy even when createdAt differs by milliseconds, and a
+                // historical double-save (same text twice) renders once.
+                setComments((prev) => dedupeComments([...prev, savedItem]));
             }
 
             // Backend may attach the comment under a fallback session/term when the
@@ -466,6 +610,36 @@ export default function StaffResultEntry() {
                 : undefined;
             loadComments(savedSession || undefined, savedTermLabel);
 
+            // Snapshot what was just saved so a revisit restores the inputted
+            // rows + latest comment even if the backend exposes no staff GET.
+            try {
+                const snapTerm = normSavedTerm(savedTermRaw || termValue || termLabel || term);
+                const snapSession = savedSession || safeSession || session;
+                const latestComment = [...comments]
+                    .map((c) => c?.text)
+                    .filter((t) => String(t ?? "").trim())
+                    .pop();
+                localStorage.setItem(
+                    `staff-result:${studentId}:${snapSession}:${snapTerm}`,
+                    JSON.stringify({
+                        session: snapSession,
+                        term: snapTerm,
+                        subjects: results.map((r) => ({
+                            subject: r.subject,
+                            ca1: r.ca1,
+                            ca2: r.ca2,
+                            exam: r.exam,
+                            total: r.total,
+                            grade: r.grade,
+                            remark: r.remark,
+                        })),
+                        comment: latestComment || null,
+                        isSubmitted: true,
+                        updatedAt: new Date().toISOString(),
+                    })
+                );
+            } catch { /* snapshot is best-effort only */ }
+
             setSubmitted(true);
         } catch (err) {
             setSubmitError(err.message || "Failed to submit result. Please try again.");
@@ -587,6 +761,11 @@ export default function StaffResultEntry() {
             )}
 
             {/* Results table */}
+            {loadingSaved && results.length === 0 && (
+                <p className="sre-comment-hint" style={{ fontSize: 12, margin: "0 0 8px" }}>
+                    Loading saved result…
+                </p>
+            )}
             {results.length > 0 && (
                 <div className="sre-results-table-wrap">
                     <table className="sre-table">
