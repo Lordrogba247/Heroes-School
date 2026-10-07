@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useStaffMeta } from "../../hooks/useStaffMeta";
 import "./8Result2.css";
@@ -50,7 +50,7 @@ export default function StaffResultEntry() {
     const navigate = useNavigate();
     const token = localStorage.getItem("token");
 
-    const { sessions: metaSessions, terms: metaTerms } = useStaffMeta();
+    const { sessions: metaSessions, terms: metaTerms, subjects: metaSubjects } = useStaffMeta();
 
     const [student, setStudent] = useState(null);
     const [loadingStudent, setLoadingStudent] = useState(true);
@@ -84,6 +84,32 @@ export default function StaffResultEntry() {
     const [submitted, setSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
+    const [submitNotice, setSubmitNotice] = useState("");
+    const commentInFlight = useRef(false);
+    const submitInFlight = useRef(false);
+
+    // Per backend contract §4: UI may only know subject codes — map to canonical
+    // meta names (case-insensitive) before POST /api/staff/results, otherwise
+    // backend auto-creates a new subject under the resolved session and the row
+    // "disappears" from the selector you are looking at.
+    const canonicalSubjectName = (raw) => {
+        const s = String(raw ?? "").trim();
+        if (!s) return s;
+        const toName = (n) =>
+            typeof n === "string" ? n : (n?.name ?? n?.subject ?? n?.title ?? n?.value ?? "");
+        const pool = [
+            ...(Array.isArray(metaSubjects) ? metaSubjects.map(toName).filter(Boolean) : []),
+            ...subjectOptions,
+        ];
+        const map = new Map(pool.map((n) => [String(n).toUpperCase(), n]));
+        return map.get(s.toUpperCase()) || s;
+    };
+
+    const clampScore = (v, max) => {
+        const n = Number(v);
+        if (!Number.isFinite(n)) return 0;
+        return Math.min(Math.max(Math.round(n), 0), max);
+    };
 
     // Backend uses term *labels* ("Third Term") for publish/list elsewhere, so the
     // comment GET/POST must also send the label — never the raw value ("third").
@@ -187,9 +213,15 @@ export default function StaffResultEntry() {
         const { subject, ca1, ca2, exam } = rowInput;
         if (!subject || ca1 === "" || ca2 === "" || exam === "") return;
 
-        const ca1Num = Number(ca1);
-        const ca2Num = Number(ca2);
-        const examNum = Number(exam);
+        // Contract §1: CA 0–20, exam 0–60, total ≤ 100 — clamp + reject client-side
+        // so runValidators never fails the whole save.
+        const ca1Num = clampScore(ca1, 20);
+        const ca2Num = clampScore(ca2, 20);
+        const examNum = clampScore(exam, 60);
+        if (ca1Num + ca2Num + examNum > 100) {
+            return;
+        }
+        const canonSubject = canonicalSubjectName(subject);
         const total = ca1Num + ca2Num + examNum;
         const { grade, remark } = getGrade(total);
 
@@ -197,15 +229,26 @@ export default function StaffResultEntry() {
             setResults((prev) =>
                 prev.map((r) =>
                     r.id === editingId
-                        ? { ...r, subject, ca1: ca1Num, ca2: ca2Num, exam: examNum, total, grade, remark }
+                        ? { ...r, subject: canonSubject, ca1: ca1Num, ca2: ca2Num, exam: examNum, total, grade, remark }
                         : r
                 )
             );
         } else {
-            setResults((prev) => [
-                ...prev,
-                { id: Date.now(), subject, ca1: ca1Num, ca2: ca2Num, exam: examNum, total, grade, remark },
-            ]);
+            // Avoid silent duplicate rows for the same canonical subject.
+            setResults((prev) => {
+                const idx = prev.findIndex(
+                    (r) => String(r.subject).toUpperCase() === canonSubject.toUpperCase()
+                );
+                if (idx >= 0) {
+                    const next = [...prev];
+                    next[idx] = { ...next[idx], subject: canonSubject, ca1: ca1Num, ca2: ca2Num, exam: examNum, total, grade, remark };
+                    return next;
+                }
+                return [
+                    ...prev,
+                    { id: Date.now(), subject: canonSubject, ca1: ca1Num, ca2: ca2Num, exam: examNum, total, grade, remark },
+                ];
+            });
         }
 
         resetRowInput();
@@ -228,6 +271,11 @@ export default function StaffResultEntry() {
 
     const handleAddComment = async () => {
         if (!commentInput.trim()) return;
+        // Guard against double-click / double-invoke (React StrictMode + fast
+        // clicks): state updates are async so `postingComment` alone still lets
+        // two POSTs through on one click → comment saved twice.
+        if (postingComment || commentInFlight.current) return;
+        commentInFlight.current = true;
 
         setPostingComment(true);
         setCommentError("");
@@ -303,6 +351,7 @@ export default function StaffResultEntry() {
         } catch (err) {
             setCommentError(err.message || "Failed to add comment. Please try again.");
         } finally {
+            commentInFlight.current = false;
             setPostingComment(false);
         }
     };
@@ -322,28 +371,55 @@ export default function StaffResultEntry() {
 
     const handleSubmitResult = async () => {
         if (results.length === 0 || !student) return;
+        // Same double-click guard as comments — one click must equal one save.
+        if (submitting || submitInFlight.current) return;
+        submitInFlight.current = true;
 
         setSubmitting(true);
         setSubmitError("");
+        setSubmitNotice("");
         try {
-            // The result sheet shows ONE comment (student/admin `comment` field), but
-            // the comment box above saves to a separate thread endpoint. Include the
-            // latest thread comment in the submit payload so it actually lands on the
-            // result — otherwise "Add Comment" never appears on the printed result.
-            const latestComment =
-                (comments.length > 0 ? comments[comments.length - 1]?.text : "") ||
-                commentInput.trim();
+            // Contract §1: never send "" or a 24-hex session. Non-empty canonical
+            // name (2026/2027) or omit so backend falls back to current session.
+            // Contract §1: term must be lowercase canonical (first/second/third).
+            const HEX24 = /^[0-9a-fA-F]{24}$/;
+            const sessionName = String(session || "").trim();
+            const safeSession = sessionName && !HEX24.test(sessionName) ? sessionName : undefined;
+            const canonTerm = String(term || "").trim().toLowerCase();
+            const termValue = ["first", "second", "third"].includes(canonTerm)
+                ? canonTerm
+                : (canonTerm.includes("first") ? "first" : canonTerm.includes("second") ? "second" : canonTerm.includes("third") ? "third" : "third");
+
+            // Contract §1 + §4: canonical subject names, CA ≤ 20 / exam ≤ 60,
+            // total ≤ 100, non-empty subjects array. Filter (don't throw) so one
+            // bad row can't nuke the whole save.
+            const normalizedSubjects = results
+                .map((r) => ({
+                    subject: canonicalSubjectName(r.subject),
+                    ca1: clampScore(r.ca1, 20),
+                    ca2: clampScore(r.ca2, 20),
+                    exam: clampScore(r.exam, 60),
+                }))
+                .filter((s) => s.subject && (s.ca1 + s.ca2 + s.exam) <= 100);
+            if (normalizedSubjects.length === 0) {
+                throw new Error("At least one subject is required.");
+            }
+
+            // Contract §1: studentId accepts _id / registration id / populated
+            // object — prefer the route param (real Mongo _id) with fallbacks.
+            const studentRef = studentId || student.id || student._id || student.studentId;
+            // Contract §1: class is optional but include it when known so the row
+            // lands where the teacher expects instead of a fallback class.
+            const studentClass =
+                student?.classLabel?.name || student?.classLabel ||
+                student?.class?.name || student?.class ||
+                student?.studentClass || student?.student_class || undefined;
             const payload = {
-                studentId: student.id,
-                session,
-                term,
-                subjects: results.map((r) => ({
-                    subject: r.subject,
-                    ca1: r.ca1,
-                    ca2: r.ca2,
-                    exam: r.exam,
-                })),
-                ...(latestComment ? { comment: latestComment } : {}),
+                studentId: studentRef,
+                ...(safeSession ? { session: safeSession } : {}),
+                term: termValue,
+                subjects: normalizedSubjects,
+                ...(studentClass ? { class: studentClass } : {}),
             };
 
             const res = await fetch(`${BASE_URL}/api/staff/results`, {
@@ -358,29 +434,43 @@ export default function StaffResultEntry() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Failed to submit result.");
 
-            // Belt-and-braces: some backends ignore `comment` on the submit route.
-            // If we sent a comment, also post it to the comment thread so the
-            // student's printed result still shows it (read from that thread).
-            if (latestComment && session) {
-                try {
-                    await fetch(`${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}/comments`, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Authorization": `Bearer ${token}`,
-                        },
-                        body: JSON.stringify({ text: latestComment, session, term: termLabel }),
-                    });
-                } catch {
-                    // Non-fatal — result itself already submitted.
-                }
-                loadComments();
+            // Contract §3: NEVER trust the stale selector — read savedFor and
+            // move the dropdowns to wherever the backend actually stored the row.
+            // Otherwise the save "looks missing" (it went to current session).
+            const savedFor = data?.savedFor ?? data?.data?.savedFor ?? null;
+            const savedSession = savedFor?.session || null;
+            const savedTermRaw = savedFor?.term || null;
+            if (savedSession && savedSession !== session) setSession(savedSession);
+            if (savedTermRaw) {
+                const norm = String(savedTermRaw).toLowerCase();
+                const canon = ["first", "second", "third"].includes(norm)
+                    ? norm
+                    : (norm.includes("first") ? "first" : norm.includes("second") ? "second" : norm.includes("third") ? "third" : null);
+                if (canon && canon !== term) setTerm(canon);
             }
+            if (savedSession || savedTermRaw) {
+                const tLbl = valueToLabel[
+                    ["first", "second", "third"].includes(String(savedTermRaw || "").toLowerCase())
+                        ? String(savedTermRaw).toLowerCase()
+                        : termValue
+                ] || savedTermRaw || valueToLabel[termValue];
+                setSubmitNotice(`Saved to ${savedSession || safeSession || session} · ${tLbl}.`);
+            }
+
+            // FIX (double-comment bug): DO NOT re-POST the comment thread here.
+            // The old code sent `comment` inside the result payload AND then
+            // POSTed the same text to /comments → one click saved it twice.
+            // Just refresh the thread view from where the backend stored it.
+            const savedTermLabel = savedTermRaw
+                ? (valueToLabel[String(savedTermRaw).toLowerCase()] || String(savedTermRaw))
+                : undefined;
+            loadComments(savedSession || undefined, savedTermLabel);
 
             setSubmitted(true);
         } catch (err) {
             setSubmitError(err.message || "Failed to submit result. Please try again.");
         } finally {
+            submitInFlight.current = false;
             setSubmitting(false);
         }
     };
@@ -622,6 +712,11 @@ export default function StaffResultEntry() {
             </div>
 
             {submitError && <p className="sre-error">{submitError}</p>}
+            {submitNotice && (
+                <p className="sre-comment-hint" style={{ fontSize: 12, color: "#1a6b2e", margin: "0 0 8px" }}>
+                    {submitNotice}
+                </p>
+            )}
 
             {/* Submit */}
             <button
