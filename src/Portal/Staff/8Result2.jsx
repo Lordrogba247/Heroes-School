@@ -286,7 +286,12 @@ export default function StaffResultEntry() {
             // GET /api/admin/results/:studentId).
             if (!found) {
                 try {
-                    const raw = localStorage.getItem(`staff-result:${studentId}:${session}:${wantTerm}`);
+                    // v3 key: legacy `staff-result:*` snapshots were written under
+                    // the backend's echoed term, so a First Term save could land in
+                    // the :third key and leak forever. Bump the prefix so those old
+                    // (possibly corrupt) entries are ignored and only correctly
+                    // term-scoped snapshots written by the current build load.
+                    const raw = localStorage.getItem(`staff-result:v3:${studentId}:${session}:${wantTerm}`);
                     if (raw) found = JSON.parse(raw);
                 } catch { /* ignore corrupt snapshot */ }
             }
@@ -735,7 +740,7 @@ export default function StaffResultEntry() {
                     .filter((t) => String(t ?? "").trim())
                     .pop();
                 localStorage.setItem(
-                    `staff-result:${studentId}:${snapSession}:${snapTerm}`,
+                    `staff-result:v3:${studentId}:${snapSession}:${snapTerm}`,
                     JSON.stringify({
                         session: snapSession,
                         term: snapTerm,
