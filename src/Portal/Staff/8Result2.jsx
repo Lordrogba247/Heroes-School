@@ -43,7 +43,20 @@ function isLowerSchoolClass(studentClass) {
     return cls.includes("primary") || cls.includes("nursery") || cls.includes("kindergarten") || cls.includes("creche") || /(^|[^a-z])kg([^a-z]|$)/.test(cls);
 }
 
+// Robustly render a comment author from the several shapes the backend may
+// return: a plain string, {firstName,lastName}, {first_name,last_name},
+// {name}, {fullName}, or a bare user id (rendered as empty).
+function fmtAuthor(a) {
+    if (!a) return "";
+    if (typeof a === "string") return a;
+    const fn = a.firstName || a.first_name || "";
+    const ln = a.lastName || a.last_name || a.surname || "";
+    const full = `${fn} ${ln}`.trim();
+    return full || a.name || a.fullName || "";
+}
+
 const emptyRowInput = { subject: "", ca1: "", ca2: "", exam: "" };
+
 
 export default function StaffResultEntry() {
     const { studentId } = useParams();
@@ -470,25 +483,41 @@ export default function StaffResultEntry() {
             }
 
             // Backend resolves session/term exactly (no silent fallback).
-            // `savedFor`/`attachedTo` echo where it landed — reload from there.
+            // `savedFor`/`attachedTo` echo where it landed — reload from there,
+            // but ONLY when the echo is a value we recognise. A malformed/foreign
+            // echo (e.g. a raw ObjectId, an unknown session, or a raw term value
+            // like "third" where the GET wants a label) makes the follow-up
+            // GET /comments return 400, so fall back to the selected selector
+            // values — which the page already loaded comments with on mount.
             const attached = data?.attachedTo ?? data?.data?.attachedTo ?? data?.savedFor ?? null;
             const attachedSession = attached?.session || null;
             const attachedTermLabel = attached?.term || null;
             let reloadSession = session;
             let reloadTermLabel = termLabel;
-            if (attachedSession && attachedSession !== session) {
+            if (
+                attachedSession &&
+                attachedSession !== session &&
+                Array.isArray(sessionOptions) &&
+                sessionOptions.includes(attachedSession)
+            ) {
                 reloadSession = attachedSession;
                 setSession(attachedSession);
             }
             if (attachedTermLabel && attachedTermLabel !== termLabel) {
-                reloadTermLabel = attachedTermLabel;
                 const mapped = labelToValue[attachedTermLabel];
-                if (mapped) setTerm(mapped);
-                else {
-                    const norm = String(attachedTermLabel).toLowerCase();
-                    if (norm.includes("first")) setTerm("first");
-                    else if (norm.includes("second")) setTerm("second");
-                    else if (norm.includes("third")) setTerm("third");
+                const norm = String(attachedTermLabel).toLowerCase();
+                const resolvedTerm =
+                    mapped ||
+                    (norm.includes("first")
+                        ? "first"
+                        : norm.includes("second")
+                        ? "second"
+                        : norm.includes("third")
+                        ? "third"
+                        : null);
+                if (resolvedTerm) {
+                    reloadTermLabel = valueToLabel[resolvedTerm] || termLabel;
+                    setTerm(resolvedTerm);
                 }
             }
 
@@ -496,6 +525,8 @@ export default function StaffResultEntry() {
             setCommentError("");
             // Reload from server (source of truth) so the list shows the saved comment
             // with its real id/author/timestamp — and retry once if the list lags.
+            // The saved comment was already merged optimistically above, so this is
+            // best-effort and must never surface an error to the user.
             loadComments(reloadSession, reloadTermLabel);
             setTimeout(() => loadComments(reloadSession, reloadTermLabel), 1500);
         } catch (err) {
@@ -952,8 +983,8 @@ export default function StaffResultEntry() {
                                     )}
                                 </div>
                                 <span className="sre-comment-time">
-                                    {c.author ? `${c.author.firstName} ${c.author.lastName}` : ""}
-                                    {c.author && c.createdAt ? " — " : ""}
+                                    {fmtAuthor(c.author)}
+                                    {fmtAuthor(c.author) && c.createdAt ? " — " : ""}
                                     {c.createdAt ? new Date(c.createdAt).toLocaleString() : ""}
                                 </span>
                             </div>
