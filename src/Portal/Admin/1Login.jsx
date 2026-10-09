@@ -33,17 +33,32 @@ export default function AdminLogin() {
                 }),
             });
 
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
 
             if (!res.ok) {
+                if (res.status === 404) {
+                    throw new Error(
+                        data.message ||
+                        "Login service unavailable (route not found — backend may be redeploying or DB not connected). Please wait a minute and try again."
+                    );
+                }
                 throw new Error(data.message || "Login failed. Check your credentials.");
             }
 
-            localStorage.setItem("token", data.token);
-            localStorage.setItem("user", JSON.stringify(data.user));
+            const token = data.token || data.data?.token;
+            const user = data.user || data.data?.user || data.data;
+            if (!token) {
+                throw new Error("Login succeeded but no session token was returned. Please try again.");
+            }
+            localStorage.setItem("token", token);
+            localStorage.setItem("user", JSON.stringify(user));
             navigate("/portal/admin/dashboard");
         } catch (err) {
-            setError(err.message || "Login failed. Check your credentials.");
+            if (err instanceof TypeError) {
+                setError("Cannot reach the login server. Check your internet connection and try again.");
+            } else {
+                setError(err.message || "Login failed. Check your credentials.");
+            }
         } finally {
             setLoading(false);
         }
