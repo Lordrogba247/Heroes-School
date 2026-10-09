@@ -847,7 +847,7 @@ export default function StaffResultEntry() {
                                 <th>Total (100)</th>
                                 {showGrade && <th>Grade</th>}
                                 <th>Remark</th>
-                                {!submitted && <th>Action</th>}
+                                {!resultLocked && <th>Action</th>}
                             </tr>
                         </thead>
                         <tbody>
