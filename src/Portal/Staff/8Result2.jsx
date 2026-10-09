@@ -275,6 +275,15 @@ export default function StaffResultEntry() {
                     });
                     if (!res.ok) continue;
                     const json = await res.json().catch(() => null);
+                    // TEMP DIAGNOSTIC: show exactly what the backend returns so we
+                    // can tell whether it echoes the wrong term on First Term data.
+                    try {
+                        const root = json?.data ?? json?.result ?? json;
+                        const arr = Array.isArray(root) ? root : [root];
+                        console.warn("[SRE-DIAG] wantTerm=", wantTerm, "url=", u,
+                            "returnedTerms=", arr.map((c) => c?.term ?? c?.termLabel ?? null),
+                            "subjCount=", arr.map((c) => (c?.subjects || c?.scores || c?.items || []).length));
+                    } catch { /* diagnostics only */ }
                     const hit = extractSavedResult(json, session, wantTerm);
                     if (hit) { found = hit; break; }
                 } catch { /* try next candidate */ }
