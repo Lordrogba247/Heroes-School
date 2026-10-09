@@ -80,8 +80,11 @@ export default function StaffResultEntry() {
     const [postingComment, setPostingComment] = useState(false);
     const [commentError, setCommentError] = useState("");
     const [commentNotice, setCommentNotice] = useState("");
+    const [deletingCommentId, setDeletingCommentId] = useState(null);
+    // Locked ONLY when the backend refuses a save with 403 (published).
+    // Saving must never lock the page — re-save = upsert overwrite until publish.
+    const [resultLocked, setResultLocked] = useState(false);
 
-    const [submitted, setSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
     const [submitNotice, setSubmitNotice] = useState("");
@@ -266,12 +269,14 @@ export default function StaffResultEntry() {
             if (found) {
                 const rows = normaliseSavedSubjects(found);
                 const isFinal = Boolean(
-                    found?.isSubmitted ?? found?.isFinal ?? found?.submitted ?? found?.published ?? false
+                    found?.isFinal ?? found?.published ?? false
                 );
                 if (rows.length > 0) {
                     setResults((prev) => (prev.length === 0 || isFinal ? rows : prev));
                 }
-                if (isFinal) setSubmitted(true);
+                // Only publish/final locks the page — a saved (submitted) draft
+                // stays editable so mistakes can be corrected before publishing.
+                if (isFinal) setResultLocked(true);
                 const single = found?.comment;
                 const singleText = typeof single === "string" ? single : single?.text;
                 if (singleText) {
@@ -428,6 +433,11 @@ export default function StaffResultEntry() {
         setCommentError("");
         setCommentNotice("");
         try {
+            // New backend contract (7489249): session + term are REQUIRED —
+            // always send the selector values, never a fallback.
+            if (!session || !term) {
+                throw new Error("Please select a session/term.");
+            }
             const res = await fetch(`${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}/comments`, {
                 method: "POST",
                 headers: {
@@ -436,8 +446,12 @@ export default function StaffResultEntry() {
                 },
                 body: JSON.stringify({ text: commentInput.trim(), session, term: termLabel }),
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Failed to add comment.");
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                // Commenting on a published result is refused with 403 + lock the page.
+                if (res.status === 403) setResultLocked(true);
+                throw new Error(data.message || "Failed to add comment.");
+            }
 
             // Prefer the saved comment returned by the backend (handles shapes like
             // { data: {...} }, { comment: {...} }, or the raw comment object).
@@ -455,14 +469,11 @@ export default function StaffResultEntry() {
                 setComments((prev) => dedupeComments([...prev, savedItem]));
             }
 
-            // Backend may attach the comment under a fallback session/term when the
-            // selector is stale (e.g. results only exist under 2026/2027 Third Term).
-            // Follow `attachedTo` so the list reloads from where it actually landed
-            // instead of the stale selector (which would return [] and look empty).
-            const attached = data?.attachedTo ?? data?.data?.attachedTo ?? null;
+            // Backend resolves session/term exactly (no silent fallback).
+            // `savedFor`/`attachedTo` echo where it landed — reload from there.
+            const attached = data?.attachedTo ?? data?.data?.attachedTo ?? data?.savedFor ?? null;
             const attachedSession = attached?.session || null;
             const attachedTermLabel = attached?.term || null;
-            const fellBack = Boolean(attached?.fallback);
             let reloadSession = session;
             let reloadTermLabel = termLabel;
             if (attachedSession && attachedSession !== session) {
@@ -480,11 +491,6 @@ export default function StaffResultEntry() {
                     else if (norm.includes("third")) setTerm("third");
                 }
             }
-            if (fellBack || (attachedSession && (attachedSession !== session || attachedTermLabel !== termLabel))) {
-                setCommentNotice(
-                    `Saved to ${reloadSession || attachedSession} · ${reloadTermLabel || attachedTermLabel} (your selector had no result there, so it was attached to the student's latest result).`
-                );
-            }
 
             setCommentInput("");
             setCommentError("");
@@ -497,6 +503,39 @@ export default function StaffResultEntry() {
         } finally {
             commentInFlight.current = false;
             setPostingComment(false);
+        }
+    };
+
+    const handleDeleteComment = async (commentId) => {
+        if (!commentId || deletingCommentId || postingComment) return;
+        // New backend contract (7489249): session + term are REQUIRED —
+        // always send the selector values, never a fallback.
+        if (!session || !term) {
+            setCommentError("Please select a session/term.");
+            return;
+        }
+        setDeletingCommentId(commentId);
+        setCommentError("");
+        try {
+            const params = new URLSearchParams({ session, term: termLabel });
+            const res = await fetch(
+                `${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}/comments/${encodeURIComponent(commentId)}?${params}`,
+                {
+                    method: "DELETE",
+                    headers: { "Authorization": `Bearer ${token}` },
+                }
+            );
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                // Deleting on a published result is refused with 403 + lock the page.
+                if (res.status === 403) setResultLocked(true);
+                throw new Error(data.message || "Failed to delete comment.");
+            }
+            setComments((prev) => prev.filter((c) => String(c._id || c.id) !== String(commentId)));
+        } catch (err) {
+            setCommentError(err.message || "Failed to delete comment. Please try again.");
+        } finally {
+            setDeletingCommentId(null);
         }
     };
 
@@ -517,18 +556,27 @@ export default function StaffResultEntry() {
         if (results.length === 0 || !student) return;
         // Same double-click guard as comments — one click must equal one save.
         if (submitting || submitInFlight.current) return;
+        // New backend contract (7489249): session + term are REQUIRED and
+        // resolved exactly — no silent redirect to "current session". Always
+        // send the selector values.
+        if (!session || !term) {
+            setSubmitError("Please select a session/term.");
+            return;
+        }
         submitInFlight.current = true;
 
         setSubmitting(true);
         setSubmitError("");
         setSubmitNotice("");
+        setResultLocked(false);
         try {
-            // Contract §1: never send "" or a 24-hex session. Non-empty canonical
-            // name (2026/2027) or omit so backend falls back to current session.
-            // Contract §1: term must be lowercase canonical (first/second/third).
+            // Term must be lowercase canonical (first/second/third).
             const HEX24 = /^[0-9a-fA-F]{24}$/;
             const sessionName = String(session || "").trim();
             const safeSession = sessionName && !HEX24.test(sessionName) ? sessionName : undefined;
+            if (!safeSession) {
+                throw new Error("Please select a session/term.");
+            }
             const canonTerm = String(term || "").trim().toLowerCase();
             const termValue = ["first", "second", "third"].includes(canonTerm)
                 ? canonTerm
@@ -575,8 +623,25 @@ export default function StaffResultEntry() {
                 body: JSON.stringify(payload),
             });
 
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Failed to submit result.");
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                // Backend commit 7489249: locked rows come back 403 + exact message
+                // "Result for <Subject> is already published and can no longer be edited".
+                // Surface it as-is AND mark the page locked so the inputs stay
+                // read-only exactly like the published state.
+                if (res.status === 403) {
+                    setResultLocked(true);
+                }
+                throw new Error(
+                    data.message ||
+                    (res.status === 403
+                        ? "This result is already published and can no longer be edited."
+                        : "Failed to save result.")
+                );
+            }
+
+            // New contract: save is an upsert that stays EDITABLE until publish.
+            // Do NOT lock the page here — only a 403 (published) locks it.
 
             // Contract §3: NEVER trust the stale selector — read savedFor and
             // move the dropdowns to wherever the backend actually stored the row.
@@ -610,8 +675,12 @@ export default function StaffResultEntry() {
                 : undefined;
             loadComments(savedSession || undefined, savedTermLabel);
 
+            setSubmitNotice(`Result saved for ${savedSession || safeSession || session} · ${savedTermLabel || valueToLabel[termValue] || termLabel}. You can still edit it until it is published.`);
+
             // Snapshot what was just saved so a revisit restores the inputted
             // rows + latest comment even if the backend exposes no staff GET.
+            // NOTE: this snapshot does NOT lock the page — the save stays
+            // editable (re-save = upsert overwrite) until publish (403).
             try {
                 const snapTerm = normSavedTerm(savedTermRaw || termValue || termLabel || term);
                 const snapSession = savedSession || safeSession || session;
@@ -634,15 +703,15 @@ export default function StaffResultEntry() {
                             remark: r.remark,
                         })),
                         comment: latestComment || null,
-                        isSubmitted: true,
+                        isSubmitted: false,
                         updatedAt: new Date().toISOString(),
                     })
                 );
             } catch { /* snapshot is best-effort only */ }
 
-            setSubmitted(true);
+            // Stay unlocked: the teacher can correct mistakes by editing + saving again.
         } catch (err) {
-            setSubmitError(err.message || "Failed to submit result. Please try again.");
+            setSubmitError(err.message || "Failed to save result. Please try again.");
         } finally {
             submitInFlight.current = false;
             setSubmitting(false);
@@ -669,7 +738,7 @@ export default function StaffResultEntry() {
                     className="sre-select"
                     value={session}
                     onChange={(e) => setSession(e.target.value)}
-                    disabled={submitted}
+                    disabled={resultLocked}
                 >
                     {sessionOptions.map((s) => (
                         <option key={s} value={s}>{s}</option>
@@ -680,7 +749,7 @@ export default function StaffResultEntry() {
                     className="sre-select"
                     value={term}
                     onChange={(e) => setTerm(e.target.value)}
-                    disabled={submitted}
+                    disabled={resultLocked}
                 >
                     {termOptions.map((value) => (
                         <option key={value} value={value}>{valueToLabel[value] || value}</option>
@@ -688,8 +757,8 @@ export default function StaffResultEntry() {
                 </select>
             </div>
 
-            {/* Row input table */}
-            {!submitted && (
+            {/* Row input table — stays editable after saving; locks only on publish */}
+            {!resultLocked && (
                 <div className="sre-input-table-wrap">
                     <table className="sre-table">
                         <thead>
@@ -791,7 +860,7 @@ export default function StaffResultEntry() {
                                     <td>{r.total}</td>
                                     {showGrade && <td>{r.grade}</td>}
                                     <td>{r.remark}</td>
-                                    {!submitted && (
+                                    {!resultLocked && (
                                         <td>
                                             <div className="sre-row-actions">
                                                 <button
@@ -830,7 +899,7 @@ export default function StaffResultEntry() {
                 If the backend ignores the `comment` field on submit, still post it
                 to the comment thread so it is never lost. */}
             <p className="sre-comment-hint" style={{ fontSize: 12, color: "#666", margin: "0 0 8px" }}>
-                This comment will be saved on the student's result when you press Submit result.
+                This comment will be saved on the student's result when you press Save Result.
             </p>
             <div className="sre-comment-row">
                 <input
@@ -864,31 +933,38 @@ export default function StaffResultEntry() {
             {/* Comments list */}
             {!loadingComments && comments.length > 0 && (
                 <div className="sre-comments-list">
-                    {comments.map((c, i) => (
-                        <div key={c._id || i} className="sre-comment-item">
-                            <p className="sre-comment-text">{c.text}</p>
-                            <span className="sre-comment-time">
-                                {c.author ? `${c.author.firstName} ${c.author.lastName}` : ""}
-                                {c.author && c.createdAt ? " — " : ""}
-                                {c.createdAt ? new Date(c.createdAt).toLocaleString() : ""}
-                            </span>
-                        </div>
-                    ))}
+                    {comments.map((c, i) => {
+                        const cid = c._id || c.id;
+                        return (
+                            <div key={cid || i} className="sre-comment-item">
+                                <div className="sre-comment-item-top">
+                                    <p className="sre-comment-text">{c.text}</p>
+                                    {cid && (
+                                        <button
+                                            className="sre-comment-delete-btn"
+                                            onClick={() => handleDeleteComment(cid)}
+                                            disabled={deletingCommentId === cid}
+                                            title="Delete this comment"
+                                            aria-label="Delete comment"
+                                        >
+                                            {deletingCommentId === cid ? "Deleting..." : "Delete"}
+                                        </button>
+                                    )}
+                                </div>
+                                <span className="sre-comment-time">
+                                    {c.author ? `${c.author.firstName} ${c.author.lastName}` : ""}
+                                    {c.author && c.createdAt ? " — " : ""}
+                                    {c.createdAt ? new Date(c.createdAt).toLocaleString() : ""}
+                                </span>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 
-            {/* Warning */}
-            <div className="sre-warning">
-                <span className="sre-warning-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 24 24">
-                        <path d="M0 0h24v24H0z" fill="none" />
-                        <path fill="currentColor" fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12s4.477 10 10 10s10-4.477 10-10M12 7a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0V8a1 1 0 0 1 1-1m-1 9a1 1 0 0 1 1-1h.008a1 1 0 1 1 0 2H12a1 1 0 0 1-1-1" clipRule="evenodd" />
-                    </svg>
-                </span>
-                <p className="sre-warning-text">
-                    <span className="sre-warning-bold">Important:</span> You cannot Edit this student result after you Submit the result.
-                </p>
-            </div>
+            {/* No fixed "cannot edit" warning here: results stay editable after
+                saving and lock only when published (backend commit 7489249).
+                The publish warning lives on the Publish button (list page). */}
 
             {submitError && <p className="sre-error">{submitError}</p>}
             {submitNotice && (
@@ -897,13 +973,14 @@ export default function StaffResultEntry() {
                 </p>
             )}
 
-            {/* Submit */}
+            {/* Save — stays enabled so mistakes can be corrected (re-save = upsert overwrite).
+                Locks only when the result is published (resultLocked from 403). */}
             <button
                 className="sre-submit-btn"
                 onClick={handleSubmitResult}
-                disabled={submitted || submitting || results.length === 0}
+                disabled={resultLocked || submitting || results.length === 0}
             >
-                {submitted ? "✓ Result Submitted" : submitting ? "Submitting..." : "Submit result"}
+                {resultLocked ? "Published — locked" : submitting ? "Saving..." : "Save Result"}
             </button>
         </div>
     );

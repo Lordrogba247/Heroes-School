@@ -19,6 +19,7 @@ export default function StaffResultsList() {
     const [error, setError] = useState("");
     const [publishingId, setPublishingId] = useState(null);
     const [publishStatus, setPublishStatus] = useState(null);
+    const [publishTarget, setPublishTarget] = useState(null);
 
     const [session, setSession] = useState("");
     const [term, setTerm] = useState("");
@@ -69,6 +70,20 @@ export default function StaffResultsList() {
     };
 
     const handlePublishOne = async (student) => {
+        // CBT-style caution on Publish (not on Save): published results lock —
+        // backend refuses edits with 403 "already published and can no longer
+        // be edited", so warn first with the same confirm-modal feel as CBT.
+        if (!session || !term) {
+            setPublishStatus({ type: "error", message: "Please select a session/term." });
+            return;
+        }
+        setPublishTarget(student);
+    };
+
+    const confirmPublish = async () => {
+        const student = publishTarget;
+        if (!student || publishingId) return;
+        setPublishTarget(null);
         setPublishingId(student.id);
         setPublishStatus(null);
         try {
@@ -83,7 +98,7 @@ export default function StaffResultsList() {
                     body: JSON.stringify({ session, term }),
                 }
             );
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.message || "Failed to publish result.");
 
             setStudents((prev) =>
@@ -186,6 +201,38 @@ export default function StaffResultsList() {
 
             {students.length === 0 && (
                 <p className="srl-empty">No students found in your class.</p>
+            )}
+
+            {/* Publish confirmation — same caution pattern as CBT submit: this locks the result */}
+            {publishTarget && (
+                <div className="srl-modal-overlay" onClick={() => setPublishTarget(null)}>
+                    <div className="srl-confirm-modal" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="srl-confirm-title">Publish Result?</h3>
+                        <p className="srl-confirm-text">
+                            You are about to publish <strong>{publishTarget.name}</strong>'s result
+                            for <strong>{session} · {term}</strong>.
+                        </p>
+                        <p className="srl-confirm-warning">
+                            ⚠ Important: You cannot edit this result after you publish it.
+                        </p>
+                        <div className="srl-confirm-actions">
+                            <button
+                                className="srl-confirm-btn srl-confirm-btn--cancel"
+                                onClick={() => setPublishTarget(null)}
+                                disabled={!!publishingId}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="srl-confirm-btn srl-confirm-btn--publish"
+                                onClick={confirmPublish}
+                                disabled={!!publishingId}
+                            >
+                                Publish
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

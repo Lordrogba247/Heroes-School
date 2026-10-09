@@ -174,4 +174,102 @@
   .srl-select {
     width: 100%;
   }
+
+  .srl-confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .srl-confirm-btn {
+    width: 100%;
+  }
+}
+
+/* ===== Publish confirmation modal (same caution pattern as CBT submit) ===== */
+
+.srl-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 20px;
+}
+
+.srl-confirm-modal {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 28px 24px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.srl-confirm-title {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: #002662;
+  margin: 0 0 10px;
+}
+
+.srl-confirm-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #666;
+  line-height: 1.55;
+  margin: 0 0 12px;
+}
+
+.srl-confirm-warning {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #b3541e;
+  background: #fdf3d8;
+  border-radius: 8px;
+  padding: 10px 12px;
+  line-height: 1.55;
+  margin: 0 0 22px;
+}
+
+.srl-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.srl-confirm-btn {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 22px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.srl-confirm-btn--cancel {
+  background: #ececec;
+  color: #555;
+}
+
+.srl-confirm-btn--cancel:hover {
+  background: #dedede;
+}
+
+.srl-confirm-btn--publish {
+  background: #2fa84f;
+  color: #ffffff;
+}
+
+.srl-confirm-btn--publish:hover {
+  background: #24893f;
+}
+
+.srl-confirm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

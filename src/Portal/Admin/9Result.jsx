@@ -29,6 +29,7 @@ export default function AdminResultsList() {
     const [uploadStatus, setUploadStatus] = useState(null);
     const [publishing, setPublishing] = useState(false);
     const [publishingId, setPublishingId] = useState(null);
+    const [publishTarget, setPublishTarget] = useState(null);
 
     // Add Session modal state
     const [showSessionModal, setShowSessionModal] = useState(false);
@@ -112,7 +113,21 @@ export default function AdminResultsList() {
     };
 
     // Publish a single student's result instead of the whole class.
-    const handlePublishOne = async (student) => {
+    // CBT-style caution on Publish (not on upload): published results lock —
+    // backend refuses edits with 403 "already published and can no longer
+    // be edited", so warn first with a confirm modal before locking.
+    const handlePublishOne = (student) => {
+        if (!session || !term) {
+            setUploadStatus({ type: "error", message: "Please select a session, term, and class." });
+            return;
+        }
+        setPublishTarget(student);
+    };
+
+    const confirmPublishOne = async () => {
+        const student = publishTarget;
+        if (!student || publishingId) return;
+        setPublishTarget(null);
         setPublishingId(student.studentId);
         setUploadStatus(null);
         try {
@@ -127,7 +142,7 @@ export default function AdminResultsList() {
                     body: JSON.stringify({ session, term: TERM_LABELS[term] }),
                 }
             );
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.message || "Failed to publish result.");
 
             setStudents((prev) =>
@@ -349,6 +364,38 @@ export default function AdminResultsList() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Publish confirmation — same caution pattern as CBT submit: this locks the result */}
+            {publishTarget && (
+                <div className="adr-modal-overlay" onClick={() => setPublishTarget(null)}>
+                    <div className="adr-confirm-modal" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="adr-confirm-title">Publish Result?</h3>
+                        <p className="adr-confirm-text">
+                            You are about to publish <strong>{publishTarget.name || `${publishTarget.surname} ${publishTarget.otherNames}`}</strong>'s result
+                            for <strong>{session} · {TERM_LABELS[term]}</strong>.
+                        </p>
+                        <p className="adr-confirm-text adr-confirm-warning">
+                            ⚠ Important: You cannot edit this result after you publish it.
+                        </p>
+                        <div className="adr-confirm-actions">
+                            <button
+                                className="adr-confirm-btn adr-confirm-btn--cancel"
+                                onClick={() => setPublishTarget(null)}
+                                disabled={!!publishingId}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="adr-confirm-btn adr-confirm-btn--publish"
+                                onClick={confirmPublishOne}
+                                disabled={!!publishingId}
+                            >
+                                Publish
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

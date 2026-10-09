@@ -557,3 +557,21 @@
   cursor: pointer;
   font-size: inherit;
 }
+
+/* Publish confirmation warning + green publish action (same caution pattern as CBT submit) */
+.adr-confirm-warning {
+  font-weight: 600;
+  color: #b3541e;
+  background: #fdf3d8;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.adr-confirm-btn--publish {
+  background: #2fa84f;
+  color: #ffffff;
+}
+
+.adr-confirm-btn--publish:hover:not(:disabled) {
+  background: #24893f;
+}
