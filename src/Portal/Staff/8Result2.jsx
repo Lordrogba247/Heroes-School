@@ -201,18 +201,23 @@ export default function StaffResultEntry() {
         if (!json) return null;
         const root = json.data ?? json.result ?? json;
         const candidates = Array.isArray(root) ? root : [root];
-        let fallback = null;
         for (const c of candidates) {
             const subj = c?.subjects || c?.scores || c?.items || null;
             if (!Array.isArray(subj) || subj.length === 0) continue;
-            if (!fallback) fallback = c;
             const cSess = c?.session?.name || c?.session || c?.academicSession || null;
             const cTerm = c?.term || c?.termLabel || null;
             const sessOk = !wantSession || !cSess || String(cSess) === String(wantSession);
-            const termOk = !wantTermCanon || !cTerm || normSavedTerm(cTerm) === wantTermCanon;
+            // Strict term match: a result saved under First Term must NEVER load
+            // when viewing Second/Third Term. When a specific term is requested the
+            // saved record must carry a term that matches it — a missing or foreign
+            // term is treated as "no match" so it falls through to the term-scoped
+            // localStorage snapshot (or an empty page), never leaking across terms.
+            const termOk = !wantTermCanon
+                ? true
+                : Boolean(cTerm) && normSavedTerm(cTerm) === wantTermCanon;
             if (sessOk && termOk) return c;
         }
-        return fallback;
+        return null;
     };
 
     const normaliseSavedSubjects = (raw) => {
@@ -246,6 +251,12 @@ export default function StaffResultEntry() {
         }
         const seq = ++savedLoadSeq.current;
         setLoadingSaved(true);
+        // Reset the previous term's rows the moment the selector changes. Without
+        // this, a First Term result stays on screen while you view Second/Third
+        // Term — each term must start as its own (empty) input page unless a
+        // saved result for THIS term is found below.
+        setResults([]);
+        setResultLocked(false);
         const wantTerm = normSavedTerm(termLabel || term);
         const urls = [
             `${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}?${new URLSearchParams({ session, term: termLabel })}`,
