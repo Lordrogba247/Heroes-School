@@ -724,7 +724,11 @@ export default function StaffResultEntry() {
             // NOTE: this snapshot does NOT lock the page — the save stays
             // editable (re-save = upsert overwrite) until publish (403).
             try {
-                const snapTerm = normSavedTerm(savedTermRaw || termValue || termLabel || term);
+                // Snapshot MUST be keyed by the term the user actually selected —
+                // never the backend echo — so a First Term save can never be
+                // written under the Second/Third Term key (which would then leak
+                // on the next load). termValue is the canonical selected term.
+                const snapTerm = normSavedTerm(termValue || termLabel || term);
                 const snapSession = savedSession || safeSession || session;
                 const latestComment = [...comments]
                     .map((c) => c?.text)
