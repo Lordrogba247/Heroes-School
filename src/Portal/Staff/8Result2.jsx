@@ -242,8 +242,20 @@ export default function StaffResultEntry() {
             .filter(Boolean);
     };
 
-    // Load the already-saved subject rows for this student + session + term so a
-    // revisit shows the inputted result instead of an empty table + comment only.
+    // Load the already-saved subject rows for this student + session + term.
+    //
+    // WORKAROUND (frontend-only): the backend GET for this deployment returns the
+    // WRONG term's data (a First Term save reappears under Second/Third Term), and
+    // it even echoes the requested term label back on that data — so no client-side
+    // term filter can tell them apart. Until the backend is fixed to key results by
+    // (studentId + session + term) and filter the GET by term, we make the per-term
+    // localStorage snapshot the AUTHORITATIVE store and DO NOT read the backend GET
+    // at all. Each term is therefore fully isolated: it shows only what was saved
+    // for that exact term on this device.
+    //
+    // Trade-off: results persist per-browser (localStorage), not across devices.
+    // The Save button still POSTs to the backend, so the server record exists for
+    // when the backend is corrected.
     useEffect(() => {
         if (!studentId || !session) {
             setLoadingSaved(false);
@@ -251,86 +263,43 @@ export default function StaffResultEntry() {
         }
         const seq = ++savedLoadSeq.current;
         setLoadingSaved(true);
-        // Reset the previous term's rows the moment the selector changes. Without
-        // this, a First Term result stays on screen while you view Second/Third
-        // Term — each term must start as its own (empty) input page unless a
-        // saved result for THIS term is found below.
+        // Reset the previous term's rows the moment the selector changes so each
+        // term starts as its own (empty) input page unless a snapshot for THIS
+        // exact term exists below.
         setResults([]);
         setResultLocked(false);
         const wantTerm = normSavedTerm(termLabel || term);
-        const urls = [
-            `${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}?${new URLSearchParams({ session, term: termLabel })}`,
-            `${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}?${new URLSearchParams({ session, term: wantTerm })}`,
-            `${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}`,
-            `${BASE_URL}/api/staff/results?${new URLSearchParams({ studentId, session, term: termLabel })}`,
-            `${BASE_URL}/api/staff/results?${new URLSearchParams({ studentId, session, term: wantTerm })}`,
-        ];
-        (async () => {
-            let found = null;
-            for (const u of urls) {
-                try {
-                    const res = await fetch(u, {
-                        method: "GET",
-                        headers: { "Authorization": `Bearer ${token}` },
-                    });
-                    if (!res.ok) continue;
-                    const json = await res.json().catch(() => null);
-                    // TEMP DIAGNOSTIC: show exactly what the backend returns so we
-                    // can tell whether it echoes the wrong term on First Term data.
-                    try {
-                        const root = json?.data ?? json?.result ?? json;
-                        const arr = Array.isArray(root) ? root : [root];
-                        console.warn("[SRE-DIAG] wantTerm=", wantTerm, "url=", u,
-                            "returnedTerms=", arr.map((c) => c?.term ?? c?.termLabel ?? null),
-                            "subjCount=", arr.map((c) => (c?.subjects || c?.scores || c?.items || []).length));
-                    } catch { /* diagnostics only */ }
-                    const hit = extractSavedResult(json, session, wantTerm);
-                    if (hit) { found = hit; break; }
-                } catch { /* try next candidate */ }
+
+        let found = null;
+        try {
+            const raw = localStorage.getItem(`staff-result:v3:${studentId}:${session}:${wantTerm}`);
+            if (raw) found = JSON.parse(raw);
+        } catch { /* ignore corrupt snapshot */ }
+
+        // Ignore a stale load if the selector changed again before we finished.
+        if (savedLoadSeq.current !== seq) return;
+
+        if (found) {
+            const rows = normaliseSavedSubjects(found);
+            const isFinal = Boolean(found?.isFinal ?? found?.published ?? false);
+            if (rows.length > 0) setResults(rows);
+            // Only publish/final locks the page — a saved draft stays editable.
+            if (isFinal) setResultLocked(true);
+            const single = found?.comment;
+            const singleText = typeof single === "string" ? single : single?.text;
+            if (singleText) {
+                setComments((prev) => {
+                    if (prev.length > 0) return prev;
+                    return dedupeComments([{
+                        _id: single?._id || single?.id || "result-comment",
+                        text: singleText,
+                        author: single?.author,
+                        createdAt: single?.createdAt || found?.updatedAt || new Date().toISOString(),
+                    }]);
+                });
             }
-            if (savedLoadSeq.current !== seq) return;
-            // Fallback: a local snapshot saved right after submit, so a revisit
-            // restores the inputted rows + comment even if no staff GET endpoint
-            // exists for this backend deployment (admin view works because it has
-            // GET /api/admin/results/:studentId).
-            if (!found) {
-                try {
-                    // v3 key: legacy `staff-result:*` snapshots were written under
-                    // the backend's echoed term, so a First Term save could land in
-                    // the :third key and leak forever. Bump the prefix so those old
-                    // (possibly corrupt) entries are ignored and only correctly
-                    // term-scoped snapshots written by the current build load.
-                    const raw = localStorage.getItem(`staff-result:v3:${studentId}:${session}:${wantTerm}`);
-                    if (raw) found = JSON.parse(raw);
-                } catch { /* ignore corrupt snapshot */ }
-            }
-            if (found) {
-                const rows = normaliseSavedSubjects(found);
-                const isFinal = Boolean(
-                    found?.isFinal ?? found?.published ?? false
-                );
-                if (rows.length > 0) {
-                    setResults((prev) => (prev.length === 0 || isFinal ? rows : prev));
-                }
-                // Only publish/final locks the page — a saved (submitted) draft
-                // stays editable so mistakes can be corrected before publishing.
-                if (isFinal) setResultLocked(true);
-                const single = found?.comment;
-                const singleText = typeof single === "string" ? single : single?.text;
-                if (singleText) {
-                    setComments((prev) => {
-                        if (prev.length > 0) return prev;
-                        return dedupeComments([{
-                            _id: single?._id || single?.id || "result-comment",
-                            text: singleText,
-                            author: single?.author,
-                            createdAt: single?.createdAt || found?.updatedAt || new Date().toISOString(),
-                        }]);
-                    });
-                }
-            }
-            setLoadingSaved(false);
-        })();
+        }
+        setLoadingSaved(false);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [studentId, session, term]);
 
@@ -699,51 +668,33 @@ export default function StaffResultEntry() {
             // New contract: save is an upsert that stays EDITABLE until publish.
             // Do NOT lock the page here — only a 403 (published) locks it.
 
-            // Contract §3: NEVER trust the stale selector — read savedFor and
-            // move the dropdowns to wherever the backend actually stored the row.
-            // Otherwise the save "looks missing" (it went to current session).
+            // WORKAROUND: the backend's `savedFor` echo is unreliable (it is the
+            // very thing causing cross-term leaks), so we do NOT move the session/
+            // term selectors to match it. The user's selection is authoritative and
+            // is what our per-term localStorage snapshot is keyed by. We only surface
+            // a notice using the selected values.
             const savedFor = data?.savedFor ?? data?.data?.savedFor ?? null;
             const savedSession = savedFor?.session || null;
             const savedTermRaw = savedFor?.term || null;
-            if (savedSession && savedSession !== session) setSession(savedSession);
-            if (savedTermRaw) {
-                const norm = String(savedTermRaw).toLowerCase();
-                const canon = ["first", "second", "third"].includes(norm)
-                    ? norm
-                    : (norm.includes("first") ? "first" : norm.includes("second") ? "second" : norm.includes("third") ? "third" : null);
-                if (canon && canon !== term) setTerm(canon);
-            }
             if (savedSession || savedTermRaw) {
-                const tLbl = valueToLabel[
-                    ["first", "second", "third"].includes(String(savedTermRaw || "").toLowerCase())
-                        ? String(savedTermRaw).toLowerCase()
-                        : termValue
-                ] || savedTermRaw || valueToLabel[termValue];
-                setSubmitNotice(`Saved to ${savedSession || safeSession || session} · ${tLbl}.`);
+                setSubmitNotice(`Result saved for ${safeSession || session} · ${valueToLabel[termValue] || termLabel}. You can still edit it until it is published.`);
             }
 
-            // FIX (double-comment bug): DO NOT re-POST the comment thread here.
-            // The old code sent `comment` inside the result payload AND then
-            // POSTed the same text to /comments → one click saved it twice.
-            // Just refresh the thread view from where the backend stored it.
-            const savedTermLabel = savedTermRaw
-                ? (valueToLabel[String(savedTermRaw).toLowerCase()] || String(savedTermRaw))
-                : undefined;
-            loadComments(savedSession || undefined, savedTermLabel);
-
-            setSubmitNotice(`Result saved for ${savedSession || safeSession || session} · ${savedTermLabel || valueToLabel[termValue] || termLabel}. You can still edit it until it is published.`);
+            // Refresh the comment thread for the SELECTED term (not the backend
+            // echo) so comments stay aligned with the term currently on screen.
+            loadComments(safeSession || undefined, valueToLabel[termValue] || termLabel);
 
             // Snapshot what was just saved so a revisit restores the inputted
             // rows + latest comment even if the backend exposes no staff GET.
             // NOTE: this snapshot does NOT lock the page — the save stays
             // editable (re-save = upsert overwrite) until publish (403).
             try {
-                // Snapshot MUST be keyed by the term the user actually selected —
-                // never the backend echo — so a First Term save can never be
-                // written under the Second/Third Term key (which would then leak
-                // on the next load). termValue is the canonical selected term.
+                // Snapshot MUST be keyed by the term AND session the user actually
+                // selected — never the backend echo — so the write key always matches
+                // the read key in the loader above. Otherwise a First Term save could
+                // be written under the wrong key and leak into another term.
                 const snapTerm = normSavedTerm(termValue || termLabel || term);
-                const snapSession = savedSession || safeSession || session;
+                const snapSession = safeSession || session;
                 const latestComment = [...comments]
                     .map((c) => c?.text)
                     .filter((t) => String(t ?? "").trim())
