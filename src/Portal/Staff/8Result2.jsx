@@ -757,6 +757,7 @@ export default function StaffResultEntry() {
                     onChange={(e) => setSession(e.target.value)}
                     disabled={resultLocked}
                 >
+                    <option value="">Select Session</option>
                     {sessionOptions.map((s) => (
                         <option key={s} value={s}>{s}</option>
                     ))}
@@ -768,6 +769,7 @@ export default function StaffResultEntry() {
                     onChange={(e) => setTerm(e.target.value)}
                     disabled={resultLocked}
                 >
+                    <option value="">Select Term</option>
                     {termOptions.map((value) => (
                         <option key={value} value={value}>{valueToLabel[value] || value}</option>
                     ))}
