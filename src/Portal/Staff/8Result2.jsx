@@ -82,7 +82,10 @@ export default function StaffResultEntry() {
             : fallbackTerms.map((t) => labelToValue[t] || t);
 
     const [session, setSession] = useState("");
-    const [term, setTerm] = useState(TERM_OPTIONS[2].value);
+    // Start with NO term selected (empty). An unselected term must never save as
+    // "Third Term" — the backend rejects a missing term with 400, so the dropown
+    // must be blank until the teacher explicitly picks one.
+    const [term, setTerm] = useState("");
     const [rowInput, setRowInput] = useState(emptyRowInput);
     const [results, setResults] = useState([]);
     const [editingId, setEditingId] = useState(null);
@@ -603,9 +606,12 @@ export default function StaffResultEntry() {
                 throw new Error("Please select a session/term.");
             }
             const canonTerm = String(term || "").trim().toLowerCase();
+            // Only accept first/second/third (lowercase canonical). Returning ""
+            // instead of a fallback to "third" so an unselected or unknown term
+            // is never silently forced to "Third Term" when saving.
             const termValue = ["first", "second", "third"].includes(canonTerm)
                 ? canonTerm
-                : (canonTerm.includes("first") ? "first" : canonTerm.includes("second") ? "second" : canonTerm.includes("third") ? "third" : "third");
+                : "";
 
             // Contract §1 + §4: canonical subject names, CA ≤ 20 / exam ≤ 60,
             // total ≤ 100, non-empty subjects array. Filter (don't throw) so one
