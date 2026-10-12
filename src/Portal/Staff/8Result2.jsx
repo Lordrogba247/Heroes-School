@@ -587,10 +587,13 @@ export default function StaffResultEntry() {
         // New backend contract (7489249): session + term are REQUIRED and
         // resolved exactly — no silent redirect to "current session". Always
         // send the selector values.
+        // First gate — both selectors must be picked. Surface EXACTLY which one
+        // is missing so the teacher isn't left guessing at "select term/session".
         if (!session || !term) {
-            setSubmitError("Please select a session/term.");
+            setSubmitError(!session ? "Please select a session first." : "Please select a term first.");
             return;
         }
+        console.log("[handleSubmitResult] session=", JSON.stringify(session), "term=", JSON.stringify(term), "termValue=", JSON.stringify(termValue));
         submitInFlight.current = true;
 
         setSubmitting(true);
