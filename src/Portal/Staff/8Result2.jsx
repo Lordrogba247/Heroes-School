@@ -593,7 +593,7 @@ export default function StaffResultEntry() {
             setSubmitError(!session ? "Please select a session first." : "Please select a term first.");
             return;
         }
-        console.log("[handleSubmitResult] session=", JSON.stringify(session), "term=", JSON.stringify(term), "termValue=", JSON.stringify(termValue));
+
         submitInFlight.current = true;
 
         setSubmitting(true);

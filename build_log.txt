@@ -1,2 +1,0 @@
-C:\Users\USER\Desktop\My Dev Works\Heroes-academy\build_log.txt
-The process cannot access the file because it is being used by another process.
