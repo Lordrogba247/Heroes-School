@@ -36,16 +36,12 @@ function getGrade(total) {
     return { grade: "F9", remark: "Fail" };
 }
 
-// Kindergarten/Nursery/Primary → no Grade column. Secondary (JSS/SSS) keeps it.
 function isLowerSchoolClass(studentClass) {
     if (!studentClass) return false;
     const cls = String(studentClass).toLowerCase();
     return cls.includes("primary") || cls.includes("nursery") || cls.includes("kindergarten") || cls.includes("creche") || /(^|[^a-z])kg([^a-z]|$)/.test(cls);
 }
 
-// Robustly render a comment author from the several shapes the backend may
-// return: a plain string, {firstName,lastName}, {first_name,last_name},
-// {name}, {fullName}, or a bare user id (rendered as empty).
 function fmtAuthor(a) {
     if (!a) return "";
     if (typeof a === "string") return a;
@@ -55,8 +51,15 @@ function fmtAuthor(a) {
     return full || a.name || a.fullName || "";
 }
 
-const emptyRowInput = { subject: "", ca1: "", ca2: "", exam: "" };
+function normSavedTerm(t) {
+    const v = String(t ?? "").toLowerCase();
+    if (v.includes("first")) return "first";
+    if (v.includes("second")) return "second";
+    if (v.includes("third")) return "third";
+    return v;
+}
 
+const emptyRowInput = { subject: "", ca1: "", ca2: "", exam: "" };
 
 export default function StaffResultEntry() {
     const { studentId } = useParams();
@@ -72,8 +75,6 @@ export default function StaffResultEntry() {
     const sessionOptions = Array.from(
         new Set([...metaSessions.map((s) => s.name), ...fallbackSessions])
     ).sort();
-    // metaTerms come back as labels ("First Term"...), TERM_OPTIONS values are ("first"...).
-    // Normalize so the select value always matches what the backend expects.
     const labelToValue = Object.fromEntries(TERM_OPTIONS.map((t) => [t.label, t.value]));
     const valueToLabel = Object.fromEntries(TERM_OPTIONS.map((t) => [t.value, t.label]));
     const termOptions =
@@ -82,9 +83,6 @@ export default function StaffResultEntry() {
             : fallbackTerms.map((t) => labelToValue[t] || t);
 
     const [session, setSession] = useState("");
-    // Start with NO term selected (empty). An unselected term must never save as
-    // "Third Term" — the backend rejects a missing term with 400, so the dropown
-    // must be blank until the teacher explicitly picks one.
     const [term, setTerm] = useState("");
     const [rowInput, setRowInput] = useState(emptyRowInput);
     const [results, setResults] = useState([]);
@@ -97,8 +95,6 @@ export default function StaffResultEntry() {
     const [commentError, setCommentError] = useState("");
     const [commentNotice, setCommentNotice] = useState("");
     const [deletingCommentId, setDeletingCommentId] = useState(null);
-    // Locked ONLY when the backend refuses a save with 403 (published).
-    // Saving must never lock the page — re-save = upsert overwrite until publish.
     const [resultLocked, setResultLocked] = useState(false);
 
     const [submitting, setSubmitting] = useState(false);
@@ -109,10 +105,6 @@ export default function StaffResultEntry() {
     const submitInFlight = useRef(false);
     const savedLoadSeq = useRef(0);
 
-    // De-duplicate a comment thread by id, falling back to normalised text.
-    // This hides historical double-saves (same text posted twice) and also
-    // collapses an optimistic tmp entry against the server copy whose
-    // createdAt may differ by milliseconds.
     const dedupeComments = (list) => {
         if (!Array.isArray(list)) return [];
         const seenIds = new Set();
@@ -123,7 +115,6 @@ export default function StaffResultEntry() {
             const normText = String(c?.text ?? "").trim().toLowerCase();
             if (id && seenIds.has(String(id))) continue;
             if (id) seenIds.add(String(id));
-            // Only collapse on text when there is actual text; keep distinct texts.
             if (normText && seenTexts.has(normText)) continue;
             if (normText) seenTexts.add(normText);
             out.push(c);
@@ -131,10 +122,6 @@ export default function StaffResultEntry() {
         return out;
     };
 
-    // Per backend contract §4: UI may only know subject codes — map to canonical
-    // meta names (case-insensitive) before POST /api/staff/results, otherwise
-    // backend auto-creates a new subject under the resolved session and the row
-    // "disappears" from the selector you are looking at.
     const canonicalSubjectName = (raw) => {
         const s = String(raw ?? "").trim();
         if (!s) return s;
@@ -154,14 +141,20 @@ export default function StaffResultEntry() {
         return Math.min(Math.max(Math.round(n), 0), max);
     };
 
-    // Backend uses term *labels* ("Third Term") for publish/list elsewhere, so the
-    // comment GET/POST must also send the label — never the raw value ("third").
-    // Otherwise comments save/load under the wrong term and look like "not adding".
     const termLabel =
         (TERM_OPTIONS.find((t) => t.value === term) || {}).label || term;
 
-    // Default to the current session once meta loads (falls back to 2026/2027),
-    // so the newest session is always pre-selected and visible.
+    const draftKey = () =>
+        `staff-result-draft:v1:${studentId}:${session}:${normSavedTerm(termLabel || term)}`;
+
+    const persistDraft = (rows) => {
+        try {
+            if (!session || !term) return;
+            if (rows.length === 0) localStorage.removeItem(draftKey());
+            else localStorage.setItem(draftKey(), JSON.stringify({ subjects: rows }));
+        } catch { /* best-effort */ }
+    };
+
     useEffect(() => {
         if (sessionOptions.length > 0 && !session) {
             const current = metaSessions.find((s) => s.isCurrent);
@@ -176,7 +169,6 @@ export default function StaffResultEntry() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sessionOptions.length]);
 
-    // Load the student's info directly by ID (no more full-list fetch + filter)
     useEffect(() => {
         fetch(`${BASE_URL}/api/staff/students/${encodeURIComponent(studentId)}`, {
             method: "GET",
@@ -190,38 +182,6 @@ export default function StaffResultEntry() {
             .catch(() => setLoadError("Failed to load student details."))
             .finally(() => setLoadingStudent(false));
     }, [studentId]);
-
-    // ---- Saved-result loader helpers (revisit must show inputted rows) ----
-    const normSavedTerm = (t) => {
-        const v = String(t ?? "").toLowerCase();
-        if (v.includes("first")) return "first";
-        if (v.includes("second")) return "second";
-        if (v.includes("third")) return "third";
-        return v;
-    };
-
-    const extractSavedResult = (json, wantSession, wantTermCanon) => {
-        if (!json) return null;
-        const root = json.data ?? json.result ?? json;
-        const candidates = Array.isArray(root) ? root : [root];
-        for (const c of candidates) {
-            const subj = c?.subjects || c?.scores || c?.items || null;
-            if (!Array.isArray(subj) || subj.length === 0) continue;
-            const cSess = c?.session?.name || c?.session || c?.academicSession || null;
-            const cTerm = c?.term || c?.termLabel || null;
-            const sessOk = !wantSession || !cSess || String(cSess) === String(wantSession);
-            // Strict term match: a result saved under First Term must NEVER load
-            // when viewing Second/Third Term. When a specific term is requested the
-            // saved record must carry a term that matches it — a missing or foreign
-            // term is treated as "no match" so it falls through to the term-scoped
-            // localStorage snapshot (or an empty page), never leaking across terms.
-            const termOk = !wantTermCanon
-                ? true
-                : Boolean(cTerm) && normSavedTerm(cTerm) === wantTermCanon;
-            if (sessOk && termOk) return c;
-        }
-        return null;
-    };
 
     const normaliseSavedSubjects = (raw) => {
         const list = raw?.subjects || raw?.scores || raw?.items || [];
@@ -245,20 +205,6 @@ export default function StaffResultEntry() {
             .filter(Boolean);
     };
 
-    // Load the already-saved subject rows for this student + session + term.
-    //
-    // WORKAROUND (frontend-only): the backend GET for this deployment returns the
-    // WRONG term's data (a First Term save reappears under Second/Third Term), and
-    // it even echoes the requested term label back on that data — so no client-side
-    // term filter can tell them apart. Until the backend is fixed to key results by
-    // (studentId + session + term) and filter the GET by term, we make the per-term
-    // localStorage snapshot the AUTHORITATIVE store and DO NOT read the backend GET
-    // at all. Each term is therefore fully isolated: it shows only what was saved
-    // for that exact term on this device.
-    //
-    // Trade-off: results persist per-browser (localStorage), not across devices.
-    // The Save button still POSTs to the backend, so the server record exists for
-    // when the backend is corrected.
     useEffect(() => {
         if (!studentId || !session) {
             setLoadingSaved(false);
@@ -266,27 +212,28 @@ export default function StaffResultEntry() {
         }
         const seq = ++savedLoadSeq.current;
         setLoadingSaved(true);
-        // Reset the previous term's rows the moment the selector changes so each
-        // term starts as its own (empty) input page unless a snapshot for THIS
-        // exact term exists below.
         setResults([]);
         setResultLocked(false);
         const wantTerm = normSavedTerm(termLabel || term);
 
         let found = null;
         try {
-            const raw = localStorage.getItem(`staff-result:v3:${studentId}:${session}:${wantTerm}`);
-            if (raw) found = JSON.parse(raw);
+            const draftRaw = localStorage.getItem(
+                `staff-result-draft:v1:${studentId}:${session}:${wantTerm}`
+            );
+            if (draftRaw) found = JSON.parse(draftRaw);
+            if (!found) {
+                const raw = localStorage.getItem(`staff-result:v3:${studentId}:${session}:${wantTerm}`);
+                if (raw) found = JSON.parse(raw);
+            }
         } catch { /* ignore corrupt snapshot */ }
 
-        // Ignore a stale load if the selector changed again before we finished.
         if (savedLoadSeq.current !== seq) return;
 
         if (found) {
             const rows = normaliseSavedSubjects(found);
             const isFinal = Boolean(found?.isFinal ?? found?.published ?? false);
             if (rows.length > 0) setResults(rows);
-            // Only publish/final locks the page — a saved draft stays editable.
             if (isFinal) setResultLocked(true);
             const single = found?.comment;
             const singleText = typeof single === "string" ? single : single?.text;
@@ -306,11 +253,6 @@ export default function StaffResultEntry() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [studentId, session, term]);
 
-    // Load existing comments for this student + session + term (label form).
-    // Accepts overrides so callers can reload from the backend's `attachedTo`
-    // fallback location instead of the stale selector that was just posted to.
-    // Every set path runs through dedupeComments so a historical double-save
-    // (same text posted twice) renders once instead of "double comments".
     const loadComments = (overrideSession, overrideTermLabel) => {
         const effSession = overrideSession || session;
         const effTermLabel = overrideTermLabel || termLabel;
@@ -331,16 +273,9 @@ export default function StaffResultEntry() {
             .then((data) => {
                 const list = data.data || data.comments || [];
                 if (Array.isArray(list) && list.length > 0) {
-                    // Replace with the server thread (de-duplicated). Any optimistic
-                    // tmp entry for the same text collapses via dedupeComments, and
-                    // lagging server copies no longer stack into "double comments".
                     setComments(dedupeComments(list));
                     return;
                 }
-                // Filtered list came back empty (e.g. selector is stale while the
-                // backend attached the comment to the latest result). Best-effort:
-                // pull the thread unfiltered so the saved comment still shows,
-                // then de-duplicate so the fallback can't stack on the selector list.
                 fetch(`${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}/comments`, {
                     method: "GET",
                     headers: { "Authorization": `Bearer ${token}` },
@@ -351,9 +286,9 @@ export default function StaffResultEntry() {
                         const all = j.data || j.comments || [];
                         if (Array.isArray(all) && all.length > 0) setComments(dedupeComments(all));
                     })
-                    .catch(() => { /* keep existing optimistic list */ });
+                    .catch(() => { });
             })
-            .catch(() => { /* keep existing optimistic list */ })
+            .catch(() => { })
             .finally(() => setLoadingComments(false));
     };
 
@@ -375,8 +310,6 @@ export default function StaffResultEntry() {
         const { subject, ca1, ca2, exam } = rowInput;
         if (!subject || ca1 === "" || ca2 === "" || exam === "") return;
 
-        // Contract §1: CA 0–20, exam 0–60, total ≤ 100 — clamp + reject client-side
-        // so runValidators never fails the whole save.
         const ca1Num = clampScore(ca1, 20);
         const ca2Num = clampScore(ca2, 20);
         const examNum = clampScore(exam, 60);
@@ -387,32 +320,29 @@ export default function StaffResultEntry() {
         const total = ca1Num + ca2Num + examNum;
         const { grade, remark } = getGrade(total);
 
+        let nextRows;
         if (editingId) {
-            setResults((prev) =>
-                prev.map((r) =>
-                    r.id === editingId
-                        ? { ...r, subject: canonSubject, ca1: ca1Num, ca2: ca2Num, exam: examNum, total, grade, remark }
-                        : r
-                )
+            nextRows = results.map((r) =>
+                r.id === editingId
+                    ? { ...r, subject: canonSubject, ca1: ca1Num, ca2: ca2Num, exam: examNum, total, grade, remark }
+                    : r
             );
         } else {
-            // Avoid silent duplicate rows for the same canonical subject.
-            setResults((prev) => {
-                const idx = prev.findIndex(
-                    (r) => String(r.subject).toUpperCase() === canonSubject.toUpperCase()
-                );
-                if (idx >= 0) {
-                    const next = [...prev];
-                    next[idx] = { ...next[idx], subject: canonSubject, ca1: ca1Num, ca2: ca2Num, exam: examNum, total, grade, remark };
-                    return next;
-                }
-                return [
-                    ...prev,
+            const idx = results.findIndex(
+                (r) => String(r.subject).toUpperCase() === canonSubject.toUpperCase()
+            );
+            if (idx >= 0) {
+                nextRows = [...results];
+                nextRows[idx] = { ...nextRows[idx], subject: canonSubject, ca1: ca1Num, ca2: ca2Num, exam: examNum, total, grade, remark };
+            } else {
+                nextRows = [
+                    ...results,
                     { id: Date.now(), subject: canonSubject, ca1: ca1Num, ca2: ca2Num, exam: examNum, total, grade, remark },
                 ];
-            });
+            }
         }
-
+        setResults(nextRows);
+        persistDraft(nextRows);
         resetRowInput();
     };
 
@@ -427,15 +357,14 @@ export default function StaffResultEntry() {
     };
 
     const handleDeleteRow = (id) => {
-        setResults((prev) => prev.filter((r) => r.id !== id));
+        const next = results.filter((r) => r.id !== id);
+        setResults(next);
+        persistDraft(next);
         if (editingId === id) resetRowInput();
     };
 
     const handleAddComment = async () => {
         if (!commentInput.trim()) return;
-        // Guard against double-click / double-invoke (React StrictMode + fast
-        // clicks): state updates are async so `postingComment` alone still lets
-        // two POSTs through on one click → comment saved twice.
         if (postingComment || commentInFlight.current) return;
         commentInFlight.current = true;
 
@@ -443,8 +372,6 @@ export default function StaffResultEntry() {
         setCommentError("");
         setCommentNotice("");
         try {
-            // New backend contract (7489249): session + term are REQUIRED —
-            // always send the selector values, never a fallback.
             if (!session || !term) {
                 throw new Error("Please select a session/term.");
             }
@@ -458,13 +385,10 @@ export default function StaffResultEntry() {
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-                // Commenting on a published result is refused with 403 + lock the page.
                 if (res.status === 403) setResultLocked(true);
                 throw new Error(data.message || "Failed to add comment.");
             }
 
-            // Prefer the saved comment returned by the backend (handles shapes like
-            // { data: {...} }, { comment: {...} }, or the raw comment object).
             const saved = data?.data?.comment ?? data?.data ?? data?.comment ?? data;
             if (saved && (saved.text || saved._id || saved.id)) {
                 const savedItem = {
@@ -473,59 +397,23 @@ export default function StaffResultEntry() {
                     author: saved.author,
                     createdAt: saved.createdAt || new Date().toISOString(),
                 };
-                // Merge + de-duplicate so an optimistic entry collapses against the
-                // server copy even when createdAt differs by milliseconds, and a
-                // historical double-save (same text twice) renders once.
                 setComments((prev) => dedupeComments([...prev, savedItem]));
             }
 
-            // Backend resolves session/term exactly (no silent fallback).
-            // `savedFor`/`attachedTo` echo where it landed — reload from there,
-            // but ONLY when the echo is a value we recognise. A malformed/foreign
-            // echo (e.g. a raw ObjectId, an unknown session, or a raw term value
-            // like "third" where the GET wants a label) makes the follow-up
-            // GET /comments return 400, so fall back to the selected selector
-            // values — which the page already loaded comments with on mount.
             const attached = data?.attachedTo ?? data?.data?.attachedTo ?? data?.savedFor ?? null;
-            const attachedSession = attached?.session || null;
-            const attachedTermLabel = attached?.term || null;
-            let reloadSession = session;
-            let reloadTermLabel = termLabel;
             if (
-                attachedSession &&
-                attachedSession !== session &&
-                Array.isArray(sessionOptions) &&
-                sessionOptions.includes(attachedSession)
+                (attached?.session && attached.session !== session) ||
+                (attached?.term && attached.term !== termLabel)
             ) {
-                reloadSession = attachedSession;
-                setSession(attachedSession);
-            }
-            if (attachedTermLabel && attachedTermLabel !== termLabel) {
-                const mapped = labelToValue[attachedTermLabel];
-                const norm = String(attachedTermLabel).toLowerCase();
-                const resolvedTerm =
-                    mapped ||
-                    (norm.includes("first")
-                        ? "first"
-                        : norm.includes("second")
-                        ? "second"
-                        : norm.includes("third")
-                        ? "third"
-                        : null);
-                if (resolvedTerm) {
-                    reloadTermLabel = valueToLabel[resolvedTerm] || termLabel;
-                    setTerm(resolvedTerm);
-                }
+                setCommentNotice(
+                    `Comment saved under ${attached.session || session} · ${attached.term || termLabel} by the server.`
+                );
             }
 
             setCommentInput("");
             setCommentError("");
-            // Reload from server (source of truth) so the list shows the saved comment
-            // with its real id/author/timestamp — and retry once if the list lags.
-            // The saved comment was already merged optimistically above, so this is
-            // best-effort and must never surface an error to the user.
-            loadComments(reloadSession, reloadTermLabel);
-            setTimeout(() => loadComments(reloadSession, reloadTermLabel), 1500);
+            loadComments(session, termLabel);
+            setTimeout(() => loadComments(session, termLabel), 1500);
         } catch (err) {
             setCommentError(err.message || "Failed to add comment. Please try again.");
         } finally {
@@ -536,8 +424,6 @@ export default function StaffResultEntry() {
 
     const handleDeleteComment = async (commentId) => {
         if (!commentId || deletingCommentId || postingComment) return;
-        // New backend contract (7489249): session + term are REQUIRED —
-        // always send the selector values, never a fallback.
         if (!session || !term) {
             setCommentError("Please select a session/term.");
             return;
@@ -555,7 +441,6 @@ export default function StaffResultEntry() {
             );
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-                // Deleting on a published result is refused with 403 + lock the page.
                 if (res.status === 403) setResultLocked(true);
                 throw new Error(data.message || "Failed to delete comment.");
             }
@@ -574,21 +459,13 @@ export default function StaffResultEntry() {
         return { total, ...getGrade(total) };
     })();
 
-    // Grade column is hidden for Kindergarten/Nursery/Primary.
-    // Student object here uses `class` / `studentClass` (see StudentsList shape).
     const showGrade = !isLowerSchoolClass(
         student?.class || student?.studentClass || student?.student_class || ""
     );
 
     const handleSubmitResult = async () => {
         if (results.length === 0 || !student) return;
-        // Same double-click guard as comments — one click must equal one save.
         if (submitting || submitInFlight.current) return;
-        // New backend contract (7489249): session + term are REQUIRED and
-        // resolved exactly — no silent redirect to "current session". Always
-        // send the selector values.
-        // First gate — both selectors must be picked. Surface EXACTLY which one
-        // is missing so the teacher isn't left guessing at "select term/session".
         if (!session || !term) {
             setSubmitError(!session ? "Please select a session first." : "Please select a term first.");
             return;
@@ -601,7 +478,6 @@ export default function StaffResultEntry() {
         setSubmitNotice("");
         setResultLocked(false);
         try {
-            // Term must be lowercase canonical (first/second/third).
             const HEX24 = /^[0-9a-fA-F]{24}$/;
             const sessionName = String(session || "").trim();
             const safeSession = sessionName && !HEX24.test(sessionName) ? sessionName : undefined;
@@ -609,16 +485,10 @@ export default function StaffResultEntry() {
                 throw new Error("Please select a session/term.");
             }
             const canonTerm = String(term || "").trim().toLowerCase();
-            // Only accept first/second/third (lowercase canonical). Returning ""
-            // instead of a fallback to "third" so an unselected or unknown term
-            // is never silently forced to "Third Term" when saving.
             const termValue = ["first", "second", "third"].includes(canonTerm)
                 ? canonTerm
                 : "";
 
-            // Contract §1 + §4: canonical subject names, CA ≤ 20 / exam ≤ 60,
-            // total ≤ 100, non-empty subjects array. Filter (don't throw) so one
-            // bad row can't nuke the whole save.
             const normalizedSubjects = results
                 .map((r) => ({
                     subject: canonicalSubjectName(r.subject),
@@ -631,11 +501,7 @@ export default function StaffResultEntry() {
                 throw new Error("At least one subject is required.");
             }
 
-            // Contract §1: studentId accepts _id / registration id / populated
-            // object — prefer the route param (real Mongo _id) with fallbacks.
             const studentRef = studentId || student.id || student._id || student.studentId;
-            // Contract §1: class is optional but include it when known so the row
-            // lands where the teacher expects instead of a fallback class.
             const studentClass =
                 student?.classLabel?.name || student?.classLabel ||
                 student?.class?.name || student?.class ||
@@ -659,10 +525,6 @@ export default function StaffResultEntry() {
 
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-                // Backend commit 7489249: locked rows come back 403 + exact message
-                // "Result for <Subject> is already published and can no longer be edited".
-                // Surface it as-is AND mark the page locked so the inputs stay
-                // read-only exactly like the published state.
                 if (res.status === 403) {
                     setResultLocked(true);
                 }
@@ -674,14 +536,6 @@ export default function StaffResultEntry() {
                 );
             }
 
-            // New contract: save is an upsert that stays EDITABLE until publish.
-            // Do NOT lock the page here — only a 403 (published) locks it.
-
-            // WORKAROUND: the backend's `savedFor` echo is unreliable (it is the
-            // very thing causing cross-term leaks), so we do NOT move the session/
-            // term selectors to match it. The user's selection is authoritative and
-            // is what our per-term localStorage snapshot is keyed by. We only surface
-            // a notice using the selected values.
             const savedFor = data?.savedFor ?? data?.data?.savedFor ?? null;
             const savedSession = savedFor?.session || null;
             const savedTermRaw = savedFor?.term || null;
@@ -689,19 +543,9 @@ export default function StaffResultEntry() {
                 setSubmitNotice(`Result saved for ${safeSession || session} · ${valueToLabel[termValue] || termLabel}. You can still edit it until it is published.`);
             }
 
-            // Refresh the comment thread for the SELECTED term (not the backend
-            // echo) so comments stay aligned with the term currently on screen.
             loadComments(safeSession || undefined, valueToLabel[termValue] || termLabel);
 
-            // Snapshot what was just saved so a revisit restores the inputted
-            // rows + latest comment even if the backend exposes no staff GET.
-            // NOTE: this snapshot does NOT lock the page — the save stays
-            // editable (re-save = upsert overwrite) until publish (403).
             try {
-                // Snapshot MUST be keyed by the term AND session the user actually
-                // selected — never the backend echo — so the write key always matches
-                // the read key in the loader above. Otherwise a First Term save could
-                // be written under the wrong key and leak into another term.
                 const snapTerm = normSavedTerm(termValue || termLabel || term);
                 const snapSession = safeSession || session;
                 const latestComment = [...comments]
@@ -727,9 +571,8 @@ export default function StaffResultEntry() {
                         updatedAt: new Date().toISOString(),
                     })
                 );
+                localStorage.removeItem(draftKey());
             } catch { /* snapshot is best-effort only */ }
-
-            // Stay unlocked: the teacher can correct mistakes by editing + saving again.
         } catch (err) {
             setSubmitError(err.message || "Failed to save result. Please try again.");
         } finally {
@@ -752,7 +595,6 @@ export default function StaffResultEntry() {
                 {student.studentId} &nbsp; {student.sex} &nbsp; {student.classLabel?.name || student.classLabel || student.class?.name || student.class}
             </p>
 
-            {/* Session / Term */}
             <div className="sre-top-row">
                 <select
                     className="sre-select"
@@ -779,7 +621,6 @@ export default function StaffResultEntry() {
                 </select>
             </div>
 
-            {/* Row input table — stays editable after saving; locks only on publish */}
             {!resultLocked && (
                 <div className="sre-input-table-wrap">
                     <table className="sre-table">
@@ -851,7 +692,6 @@ export default function StaffResultEntry() {
                 </div>
             )}
 
-            {/* Results table */}
             {loadingSaved && results.length === 0 && (
                 <p className="sre-comment-hint" style={{ fontSize: 12, margin: "0 0 8px" }}>
                     Loading saved result…
@@ -894,7 +734,6 @@ export default function StaffResultEntry() {
                                                         <path d="M0 0h1024v1024H0z" fill="none" />
                                                         <path fill="currentColor" d="M257.7 752c2 0 4-.2 6-.5L431.9 722c2-.4 3.9-1.3 5.3-2.8l423.9-423.9a9.96 9.96 0 0 0 0-14.1L694.9 114.9c-1.9-1.9-4.4-2.9-7.1-2.9s-5.2 1-7.1 2.9L256.8 538.8c-1.5 1.5-2.4 3.3-2.8 5.3l-29.5 168.2a33.5 33.5 0 0 0 9.4 29.8c6.6 6.4 14.9 9.9 23.8 9.9m67.4-174.4L687.8 215l73.3 73.3l-362.7 362.6l-88.9 15.7zM880 836H144c-17.7 0-32 14.3-32 32v36c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-36c0-17.7-14.3-32-32-32" />
                                                     </svg>
-
                                                 </button>
                                                 <button
                                                     className="sre-icon-btn sre-icon-btn--delete"
@@ -905,7 +744,6 @@ export default function StaffResultEntry() {
                                                         <path d="M0 0h24v24H0z" fill="none" />
                                                         <path fill="currentColor" d="M7 21q-.825 0-1.412-.587T5 19V6H4V4h5V3h6v1h5v2h-1v13q0 .825-.587 1.413T17 21zm2-4h2V8H9zm4 0h2V8h-2z" />
                                                     </svg>
-
                                                 </button>
                                             </div>
                                         </td>
@@ -917,11 +755,8 @@ export default function StaffResultEntry() {
                 </div>
             )}
 
-            {/* Comment thread — this text is attached to the result via Submit below.
-                If the backend ignores the `comment` field on submit, still post it
-                to the comment thread so it is never lost. */}
             <p className="sre-comment-hint" style={{ fontSize: 12, color: "#666", margin: "0 0 8px" }}>
-                This comment will be saved on the student's result when you press Save Result.
+                Comments are saved immediately and don't need the Save Result button.
             </p>
             <div className="sre-comment-row">
                 <input
@@ -952,7 +787,6 @@ export default function StaffResultEntry() {
                 </p>
             )}
 
-            {/* Comments list */}
             {!loadingComments && comments.length > 0 && (
                 <div className="sre-comments-list">
                     {comments.map((c, i) => {
@@ -984,10 +818,6 @@ export default function StaffResultEntry() {
                 </div>
             )}
 
-            {/* No fixed "cannot edit" warning here: results stay editable after
-                saving and lock only when published (backend commit 7489249).
-                The publish warning lives on the Publish button (list page). */}
-
             {submitError && <p className="sre-error">{submitError}</p>}
             {submitNotice && (
                 <p className="sre-comment-hint" style={{ fontSize: 12, color: "#1a6b2e", margin: "0 0 8px" }}>
@@ -995,8 +825,6 @@ export default function StaffResultEntry() {
                 </p>
             )}
 
-            {/* Save — stays enabled so mistakes can be corrected (re-save = upsert overwrite).
-                Locks only when the result is published (resultLocked from 403). */}
             <button
                 className="sre-submit-btn"
                 onClick={handleSubmitResult}
