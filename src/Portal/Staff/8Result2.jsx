@@ -52,10 +52,11 @@ function fmtAuthor(a) {
 }
 
 function normSavedTerm(t) {
-    const v = String(t ?? "").toLowerCase();
-    if (v.includes("first")) return "first";
-    if (v.includes("second")) return "second";
-    if (v.includes("third")) return "third";
+    const raw = t && typeof t === "object" ? (t.name ?? t.label ?? t.value ?? t.title ?? "") : t;
+    const v = String(raw ?? "").trim().toLowerCase();
+    if (v.includes("first") || v.includes("1st")) return "first";
+    if (v.includes("second") || v.includes("2nd")) return "second";
+    if (v.includes("third") || v.includes("3rd")) return "third";
     return v;
 }
 
@@ -75,12 +76,12 @@ export default function StaffResultEntry() {
     const sessionOptions = Array.from(
         new Set([...metaSessions.map((s) => s.name), ...fallbackSessions])
     ).sort();
-    const labelToValue = Object.fromEntries(TERM_OPTIONS.map((t) => [t.label, t.value]));
     const valueToLabel = Object.fromEntries(TERM_OPTIONS.map((t) => [t.value, t.label]));
+    const metaTermValues = Array.from(
+        new Set(metaTerms.map(normSavedTerm).filter((v) => v in valueToLabel))
+    );
     const termOptions =
-        metaTerms.length > 0
-            ? metaTerms.map((t) => labelToValue[t] || valueToLabel[t] || t)
-            : fallbackTerms.map((t) => labelToValue[t] || t);
+        metaTermValues.length > 0 ? metaTermValues : TERM_OPTIONS.map((t) => t.value);
 
     const [session, setSession] = useState("");
     const [term, setTerm] = useState("");
@@ -256,7 +257,8 @@ export default function StaffResultEntry() {
     const loadComments = (overrideSession, overrideTermLabel) => {
         const effSession = overrideSession || session;
         const effTermLabel = overrideTermLabel || termLabel;
-        if (!effSession) {
+        if (!effSession || !effTermLabel) {
+            setComments([]);
             setLoadingComments(false);
             return;
         }
@@ -484,10 +486,10 @@ export default function StaffResultEntry() {
             if (!safeSession) {
                 throw new Error("Please select a session/term.");
             }
-            const canonTerm = String(term || "").trim().toLowerCase();
-            const termValue = ["first", "second", "third"].includes(canonTerm)
-                ? canonTerm
-                : "";
+            const termValue = normSavedTerm(term);
+            if (!["first", "second", "third"].includes(termValue)) {
+                throw new Error("Please select a term first.");
+            }
 
             const normalizedSubjects = results
                 .map((r) => ({
@@ -524,24 +526,17 @@ export default function StaffResultEntry() {
             });
 
             const data = await res.json().catch(() => ({}));
+            console.log("SAVE RESULT", { status: res.status, payload, response: data });
             if (!res.ok) {
-                if (res.status === 403) {
+                if (res.status === 403 && /published/i.test(data.message || "")) {
                     setResultLocked(true);
                 }
-                throw new Error(
-                    data.message ||
-                    (res.status === 403
-                        ? "This result is already published and can no longer be edited."
-                        : "Failed to save result.")
-                );
+                throw new Error(`${data.message || "Failed to save result."} (HTTP ${res.status})`);
             }
 
-            const savedFor = data?.savedFor ?? data?.data?.savedFor ?? null;
-            const savedSession = savedFor?.session || null;
-            const savedTermRaw = savedFor?.term || null;
-            if (savedSession || savedTermRaw) {
-                setSubmitNotice(`Result saved for ${safeSession || session} · ${valueToLabel[termValue] || termLabel}. You can still edit it until it is published.`);
-            }
+            setSubmitNotice(
+                `Result saved for ${safeSession} · ${valueToLabel[termValue] || termLabel}. You can still edit it until it is published.`
+            );
 
             loadComments(safeSession || undefined, valueToLabel[termValue] || termLabel);
 
