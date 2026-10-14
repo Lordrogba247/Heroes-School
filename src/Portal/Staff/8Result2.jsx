@@ -5,7 +5,7 @@ import "./8Result2.css";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
 
-const subjectOptions = [
+const FALLBACK_SUBJECT_OPTIONS = [
     "Mathematics", "English Language", "Basic Science", "Basic Technology",
     "Civic Education", "Social Studies", "Computer Studies/ICT", "Agricultural Science",
     "Christian Religious Studies", "Islamic Religious Studies", "Yoruba", "Hausa", "Igbo",
@@ -15,6 +15,8 @@ const subjectOptions = [
     "Literature-in-English", "History", "Financial Account", "Commerce", "Marketing",
     "Technical Drawing", "Food and Nutrition",
 ];
+// Last-resort fallback only (custom `other`-level classes / offline). The live
+// per-class list (offeredSubjects) always wins when available.
 
 const fallbackSessions = ["2024/2025", "2025/2026", "2026/2027"];
 const fallbackTerms = ["First Term", "Second Term", "Third Term"];
@@ -67,11 +69,16 @@ export default function StaffResultEntry() {
     const navigate = useNavigate();
     const token = localStorage.getItem("token");
 
-    const { sessions: metaSessions, terms: metaTerms, subjects: metaSubjects } = useStaffMeta();
+    const { sessions: metaSessions, terms: metaTerms, getSubjectsForClass, fetchClassSubjects } = useStaffMeta();
 
     const [student, setStudent] = useState(null);
     const [loadingStudent, setLoadingStudent] = useState(true);
     const [loadError, setLoadError] = useState("");
+    // Subjects this student's class actually offers (tightened backend):
+    // live endpoint -> results payload -> meta map -> fallback constant.
+    const [liveClassSubjects, setLiveClassSubjects] = useState([]);
+    const [offeredSubjects, setOfferedSubjects] = useState([]);
+    const [classSubjectsLoading, setClassSubjectsLoading] = useState(false);
 
     const sessionOptions = Array.from(
         new Set([...metaSessions.map((s) => s.name), ...fallbackSessions])
@@ -123,16 +130,41 @@ export default function StaffResultEntry() {
         return out;
     };
 
+    const studentClassLabel =
+        student?.classLabel?.name || student?.classLabel ||
+        student?.class?.name || student?.class ||
+        student?.studentClass || student?.student_class || "";
+    function toSubjectName(n) {
+        return typeof n === "string" ? n : (n?.name ?? n?.subject ?? n?.title ?? n?.value ?? "");
+    }
+    function normNames(list) {
+        return (Array.isArray(list) ? list : [])
+            .map(toSubjectName)
+            .map((s) => String(s ?? "").trim())
+            .filter(Boolean);
+    }
+    // Per-class rows: live GET .../classes/:classRef/subjects wins, then the
+    // offeredSubjects/availableSubjects from the results payload, then
+    // meta.subjectsByClass(...), then the static fallback.
+    const metaClassSubjects = studentClassLabel ? (getSubjectsForClass(studentClassLabel) || []) : [];
+    const metaSubjectNames = normNames(metaClassSubjects);
+    const subjectOptions =
+        liveClassSubjects.length > 0 ? liveClassSubjects
+        : offeredSubjects.length > 0 ? offeredSubjects
+        : metaSubjectNames.length > 0 ? metaSubjectNames
+        : FALLBACK_SUBJECT_OPTIONS;
+    const usingFallbackSubjects =
+        liveClassSubjects.length === 0 && offeredSubjects.length === 0 && metaSubjectNames.length === 0;
+    // Backend rejects off-list subjects for non-custom classes — mirror that
+    // client-side so the 400's offered list never surprises the teacher.
+    const offeredSet = new Set(subjectOptions.map((s) => String(s).toUpperCase()));
+    const isOfferedSubject = (name) =>
+        usingFallbackSubjects || offeredSet.has(String(name ?? "").trim().toUpperCase());
+
     const canonicalSubjectName = (raw) => {
         const s = String(raw ?? "").trim();
         if (!s) return s;
-        const toName = (n) =>
-            typeof n === "string" ? n : (n?.name ?? n?.subject ?? n?.title ?? n?.value ?? "");
-        const pool = [
-            ...(Array.isArray(metaSubjects) ? metaSubjects.map(toName).filter(Boolean) : []),
-            ...subjectOptions,
-        ];
-        const map = new Map(pool.map((n) => [String(n).toUpperCase(), n]));
+        const map = new Map(subjectOptions.map((n) => [String(n).toUpperCase(), n]));
         return map.get(s.toUpperCase()) || s;
     };
 
@@ -141,6 +173,20 @@ export default function StaffResultEntry() {
         if (!Number.isFinite(n)) return 0;
         return Math.min(Math.max(Math.round(n), 0), max);
     };
+
+    // Live per-class subjects: GET /api/staff/classes/:classRef/subjects.
+    // Runs once the student (and hence their class) is known; overrides meta.
+    useEffect(() => {
+        if (!studentClassLabel) return;
+        let cancelled = false;
+        setClassSubjectsLoading(true);
+        fetchClassSubjects(studentClassLabel)
+            .then((list) => { if (!cancelled && list.length > 0) setLiveClassSubjects(list); })
+            .catch(() => {})
+            .finally(() => { if (!cancelled) setClassSubjectsLoading(false); });
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [studentClassLabel]);
 
     const termLabel =
         (TERM_OPTIONS.find((t) => t.value === term) || {}).label || term;
@@ -228,6 +274,26 @@ export default function StaffResultEntry() {
                 if (raw) found = JSON.parse(raw);
             }
         } catch { /* ignore corrupt snapshot */ }
+
+        // Tightened backend: the saved-results payload now carries
+        // offeredSubjects / availableSubjects for this student's class.
+        // Prefer the live endpoint first, but capture this copy too so the
+        // rows stay class-scoped even if the endpoint is unreachable.
+        (async () => {
+            try {
+                const params = new URLSearchParams({ session, term: termLabel });
+                const res = await fetch(
+                    `${BASE_URL}/api/staff/results/${encodeURIComponent(studentId)}?${params}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                if (!res.ok) return;
+                const json = await res.json().catch(() => ({}));
+                const d = json?.data ?? json?.result ?? json;
+                const offered = d?.offeredSubjects ?? d?.availableSubjects ?? null;
+                const list = normNames(offered);
+                if (savedLoadSeq.current === seq && list.length > 0) setOfferedSubjects(list);
+            } catch { /* optional — live class fetch covers this */ }
+        })();
 
         if (savedLoadSeq.current !== seq) return;
 
@@ -319,6 +385,16 @@ export default function StaffResultEntry() {
             return;
         }
         const canonSubject = canonicalSubjectName(subject);
+        // Mirror the tightened backend: reject subjects the class doesn't
+        // offer before they ever reach the save payload.
+        if (!usingFallbackSubjects && !isOfferedSubject(canonSubject)) {
+            setSubmitError(
+                `"${canonSubject}" is not offered in ${studentClassLabel || "this class"}. ` +
+                `Offered subjects: ${subjectOptions.join(", ")}`
+            );
+            return;
+        }
+        setSubmitError("");
         const total = ca1Num + ca2Num + examNum;
         const { grade, remark } = getGrade(total);
 
@@ -502,6 +578,18 @@ export default function StaffResultEntry() {
             if (normalizedSubjects.length === 0) {
                 throw new Error("At least one subject is required.");
             }
+            // Tightened backend rejects off-list subjects with a 400 naming the
+            // offered list — pre-check here so the message is instant and exact.
+            if (!usingFallbackSubjects) {
+                const offList = normalizedSubjects.filter((s) => !isOfferedSubject(s.subject));
+                if (offList.length > 0) {
+                    const unique = [...new Set(offList.map((s) => s.subject))];
+                    throw new Error(
+                        `${unique.join(", ")} ${unique.length === 1 ? "is" : "are"} not offered in ` +
+                        `${studentClassLabel || "this class"}. Offered subjects: ${subjectOptions.join(", ")}`
+                    );
+                }
+            }
 
             const studentRef = studentId || student.id || student._id || student.studentId;
             const studentClass =
@@ -618,6 +706,13 @@ export default function StaffResultEntry() {
 
             {!resultLocked && (
                 <div className="sre-input-table-wrap">
+                    <p className="sre-comment-hint" style={{ fontSize: 12, color: "#555", margin: "0 0 8px" }}>
+                        {classSubjectsLoading
+                            ? `Loading subjects offered in ${studentClassLabel || "this class"}…`
+                            : usingFallbackSubjects
+                                ? "Subject list unavailable — showing general fallback."
+                                : `Showing ${subjectOptions.length} subject${subjectOptions.length === 1 ? "" : "s"} offered in ${studentClassLabel || "this class"}.`}
+                    </p>
                     <table className="sre-table">
                         <thead>
                             <tr>

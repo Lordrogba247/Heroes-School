@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { normalizeClassesPayload, resolveLegacyClass } from "./useClasses.jsx";
 
 const BASE_URL = "https://heroesschool-management-backend.vercel.app";
@@ -52,6 +52,43 @@ export function useStaffMeta() {
     );
 
     // Given a class name, return the subjects for that exact class, falling back to level.
+    // (Live per-class list from GET /api/staff/classes/:classRef/subjects is
+    // fetched via fetchClassSubjects below; this stays as the instant fallback.)
+    const classSubjectsCache = useRef({});
+    const fetchClassSubjects = useCallback(
+        async (classRef) => {
+            const ref = String(classRef ?? "").trim();
+            if (!ref) return [];
+            if (classSubjectsCache.current[ref]?.length) return classSubjectsCache.current[ref];
+            try {
+                const token = localStorage.getItem("token");
+                const res = await fetch(
+                    `${BASE_URL}/api/staff/classes/${encodeURIComponent(ref)}/subjects`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const json = await res.json().catch(() => ({}));
+                const d = json?.data ?? json;
+                const rawList =
+                    (Array.isArray(d?.subjects) && d.subjects) ||
+                    (Array.isArray(d) && d) ||
+                    (Array.isArray(json?.subjects) && json.subjects) ||
+                    [];
+                const names = rawList
+                    .map((s) => (typeof s === "string" ? s : (s?.name ?? s?.subject ?? s?.title ?? s?.value ?? "")))
+                    .map((s) => String(s ?? "").trim())
+                    .filter(Boolean);
+                if (names.length > 0) {
+                    classSubjectsCache.current[ref] = names;
+                    return names;
+                }
+            } catch {
+                // ignore — caller falls back to meta-derived list
+            }
+            return [];
+        },
+        []
+    );
     const getSubjectsForClass = useCallback(
         (className) => {
             if (!className) return [];
@@ -85,6 +122,7 @@ export function useStaffMeta() {
         error,
         getLevelForClass,
         getSubjectsForClass,
+        fetchClassSubjects,
         resolveLegacyClass: (v) => resolveLegacyClass(v, meta?.names || [], meta?.byBase || {}),
         refetch: () => fetchMeta(true),
     };
