@@ -165,6 +165,12 @@ export default function AdminResultsList() {
         });
     };
 
+    const handleEditResult = (student) => {
+        navigate(`/portal/admin/results/${encodeURIComponent(student.studentId)}/edit`, {
+            state: { session, term: TERM_LABELS[term], classLabel, student },
+        });
+    };
+
     const confirmDelete = async () => {
         try {
             const params = new URLSearchParams({ session, term: TERM_LABELS[term] });
@@ -336,6 +342,14 @@ export default function AdminResultsList() {
                                                 >
                                                     View Result
                                                 </button>
+                                                {!s.isFinal && (
+                                                    <button
+                                                        className="adr-view-btn"
+                                                        onClick={() => handleEditResult(s)}
+                                                    >
+                                                        Add/Edit Result
+                                                    </button>
+                                                )}
                                                 <button
                                                     className="adr-publish-btn"
                                                     onClick={() => handlePublishOne(s)}

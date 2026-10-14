@@ -43,6 +43,7 @@ import AdminAssignments from './Portal/Admin/7Assignment'
 import AdminOnlineClass from './Portal/Admin/8OnlineClasses'
 import AdminResultsList from './Portal/Admin/9Result'
 import AdminResultView from './Portal/Admin/9Result2'
+import AdminResultEntry from './Portal/Admin/9Result3'
 import AdminCBT from './Portal/Admin/10CBT'
 import AdminProfile from './Portal/Admin/11Profile'
 
@@ -114,6 +115,7 @@ function App() {
           <Route path="online-classes" element={<AdminOnlineClass />} />
           <Route path="results" element={<AdminResultsList />} />
           <Route path="results/:studentId" element={<AdminResultView />} />
+          <Route path="results/:studentId/edit" element={<AdminResultEntry />} />
           <Route path="cbt" element={<AdminCBT />} />
           <Route path="profile" element={<AdminProfile />} />
         </Route>
