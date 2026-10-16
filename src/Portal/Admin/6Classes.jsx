@@ -26,6 +26,13 @@ export default function AdminClasses() {
     const [submitting, setSubmitting] = useState(false);
     const [formError, setFormError] = useState("");
 
+    // ===== Delete class state =====
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteClassKey, setDeleteClassKey] = useState("");
+    const [deleteConfirm, setDeleteConfirm] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
+
     // ===== Sessions section state =====
     const [sessions, setSessions] = useState([]);
     const [sessionsLoading, setSessionsLoading] = useState(true);
@@ -216,6 +223,74 @@ export default function AdminClasses() {
         }
     };
 
+    // ===== Delete class =====
+    const openDeleteModal = () => {
+        setDeleteClassKey("");
+        setDeleteConfirm(false);
+        setDeleteError("");
+        setShowDeleteModal(true);
+    };
+
+    const selectedDeleteClass = classes.find(
+        (c) => String(c.id ?? c.value ?? c.name) === String(deleteClassKey)
+    ) || null;
+
+    const handleDeleteClass = async () => {
+        if (!deleteClassKey) {
+            setDeleteError("Please select which class you want to delete.");
+            return;
+        }
+        if (!deleteConfirm) {
+            setDeleteError("Please confirm by ticking the checkbox before deleting.");
+            return;
+        }
+
+        const target = selectedDeleteClass;
+        const idOrName = target?.id ?? target?.value ?? target?.name ?? deleteClassKey;
+
+        setDeleting(true);
+        setDeleteError("");
+        try {
+            // Try id-based delete first, fall back to name-based if backend expects that.
+            const candidates = [
+                `${CLASSES_ENDPOINT}/${encodeURIComponent(idOrName)}`,
+            ];
+            if (target?.name && String(target.name) !== String(idOrName)) {
+                candidates.push(`${CLASSES_ENDPOINT}/${encodeURIComponent(target.name)}`);
+            }
+
+            let lastError = "";
+            let deleted = false;
+            for (const url of candidates) {
+                const res = await fetch(url, {
+                    method: "DELETE",
+                    headers: { "Authorization": `Bearer ${token}` },
+                });
+                let data = null;
+                try { data = await res.json(); } catch { data = null; }
+                if (res.ok) { deleted = true; break; }
+                // If backend has no DELETE route at all, stop and surface a clear message.
+                if (res.status === 404 || res.status === 405) {
+                    lastError = data?.message || "Delete is not supported by the backend yet (no DELETE /api/admin/classes/:id route).";
+                    break;
+                }
+                lastError = data?.message || "Failed to delete class.";
+            }
+
+            if (!deleted) throw new Error(lastError || "Failed to delete class.");
+
+            setShowDeleteModal(false);
+            setDeleteClassKey("");
+            setDeleteConfirm(false);
+            await refetchMeta();
+            loadClassData();
+        } catch (err) {
+            setDeleteError(err.message || "Failed to delete class.");
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     // ===== Sessions: create =====
     const openSessionModal = () => {
         setSessionForm(emptySessionForm);
@@ -330,15 +405,27 @@ export default function AdminClasses() {
                 </table>
             </div>
 
-            <button className="adc-add-btn" onClick={openAddModal}>
-                Add Class
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
-                    <path
-                        fill="currentColor"
-                        d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8zm2 16H8v-2h8zm0-4H8v-2h8zm-3-5V3.5L18.5 9z"
-                    />
-                </svg>
-            </button>
+            <div className="adc-actions">
+                <button className="adc-add-btn" onClick={openAddModal}>
+                    Add Class
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                        <path
+                            fill="currentColor"
+                            d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8zm2 16H8v-2h8zm0-4H8v-2h8zm-3-5V3.5L18.5 9z"
+                        />
+                    </svg>
+                </button>
+
+                <button className="adc-add-btn adc-add-btn--danger" onClick={openDeleteModal}>
+                    Delete Class
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24">
+                        <path
+                            fill="currentColor"
+                            d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                        />
+                    </svg>
+                </button>
+            </div>
 
             {/* ===== Classes/Sessions ===== */}
             <div className="adc-sessions-section">
@@ -500,6 +587,81 @@ export default function AdminClasses() {
                                 disabled={submitting}
                             >
                                 {submitting ? "Adding..." : "Add Class"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Class modal — step 1: ask which class to delete */}
+            {showDeleteModal && (
+                <div className="adc-modal-overlay" onClick={() => setShowDeleteModal(false)}>
+                    <div className="adc-modal" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="adc-modal-title">Delete Class</h3>
+                        <p className="adc-modal-text">
+                            Which class do you want to delete? This cannot be undone.
+                        </p>
+
+                        <div className="adc-modal-form">
+                            <label className="adc-modal-label">
+                                Select class
+                                <select
+                                    className="adc-modal-input"
+                                    value={deleteClassKey}
+                                    onChange={(e) => {
+                                        setDeleteClassKey(e.target.value);
+                                        setDeleteConfirm(false);
+                                        setDeleteError("");
+                                    }}
+                                >
+                                    <option value="" disabled>Choose a class...</option>
+                                    {classes.map((c, i) => {
+                                        const key = String(c.id ?? c.value ?? c.name ?? i);
+                                        const label = c.label || c.name || c.value || key;
+                                        return <option key={key} value={key}>{label}</option>;
+                                    })}
+                                </select>
+                            </label>
+
+                            {selectedDeleteClass && (
+                                <p className="adc-delete-preview">
+                                    Selected: <strong>{selectedDeleteClass.label || selectedDeleteClass.name}</strong>
+                                    {selectedDeleteClass.teacherName && selectedDeleteClass.teacherName !== "Not assigned"
+                                        ? ` — Class teacher: ${selectedDeleteClass.teacherName}`
+                                        : ""}
+                                    {(selectedDeleteClass.studentCount ?? selectedDeleteClass.count ?? 0) > 0
+                                        ? ` — ${selectedDeleteClass.studentCount ?? selectedDeleteClass.count} student(s) in this class`
+                                        : ""}
+                                </p>
+                            )}
+
+                            <label className="adc-delete-confirm">
+                                <input
+                                    type="checkbox"
+                                    checked={deleteConfirm}
+                                    disabled={!deleteClassKey}
+                                    onChange={(e) => setDeleteConfirm(e.target.checked)}
+                                />
+                                Yes, I understand this class will be permanently deleted.
+                            </label>
+                        </div>
+
+                        {deleteError && <p className="adc-error">{deleteError}</p>}
+
+                        <div className="adc-modal-actions">
+                            <button
+                                className="adc-modal-btn adc-modal-btn--cancel"
+                                onClick={() => setShowDeleteModal(false)}
+                                disabled={deleting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="adc-modal-btn adc-modal-btn--danger"
+                                onClick={handleDeleteClass}
+                                disabled={deleting || !deleteClassKey}
+                            >
+                                {deleting ? "Deleting..." : "Delete Class"}
                             </button>
                         </div>
                     </div>

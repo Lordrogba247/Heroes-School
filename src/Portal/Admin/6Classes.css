@@ -80,6 +80,15 @@
   background: #f9f8fc;
 }
 
+/* ===== Add / Delete buttons row ===== */
+
+.adc-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 /* ===== Add button ===== */
 
 .adc-add-btn {
@@ -102,6 +111,62 @@
 .adc-add-btn:hover {
   background: #001a47;
   color: white;
+}
+
+.adc-add-btn--danger {
+  background: #b42318;
+}
+
+.adc-add-btn--danger:hover {
+  background: #8a1a12;
+  color: white;
+}
+
+.adc-modal-text {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13.5px;
+  color: #555;
+  margin: 0 0 14px 0;
+}
+
+.adc-delete-preview {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #374151;
+  background: #fef2f2;
+  border: 1px solid #f5c2c2;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 0;
+}
+
+.adc-delete-confirm {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.adc-delete-confirm input {
+  margin-top: 2px;
+  accent-color: #b42318;
+}
+
+.adc-modal-btn--danger {
+  background: #b42318;
+  color: #fff;
+}
+
+.adc-modal-btn--danger:hover:not(:disabled) {
+  background: #8a1a12;
+}
+
+.adc-modal-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* ===== Responsive ===== */
